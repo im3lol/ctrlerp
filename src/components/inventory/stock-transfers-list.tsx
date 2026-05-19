@@ -139,6 +139,8 @@ function buildWarehouseDisplayName(wh: Warehouse): string {
 
 export default function StockTransfersList() {
   const companyId = useAppStore((state) => state.currentCompanyId)
+  const setView = useAppStore((state) => state.setView)
+  const setSelectedTransferId = useAppStore((state) => state.setSelectedTransferId)
   const [transfers, setTransfers] = useState<StockTransfer[]>([])
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -224,14 +226,8 @@ export default function StockTransfersList() {
   // ── Create Transfer Handlers ──────────────────────────────────────────────
 
   const handleOpenCreate = () => {
-    setCreateForm({
-      fromWarehouseId: '',
-      toWarehouseId: '',
-      date: new Date().toISOString().split('T')[0],
-      notes: '',
-    })
-    setCreateLines([{ ...initialLineInput }])
-    setCreateDialogOpen(true)
+    setSelectedTransferId(null)
+    setView('stock-transfer-form')
   }
 
   const handleAddLine = () => {
@@ -308,24 +304,9 @@ export default function StockTransfersList() {
 
   // ── View/Confirm/Cancel Handlers ──────────────────────────────────────────
 
-  const handleViewTransfer = async (transferId: string) => {
-    setViewLoading(true)
-    setViewDialogOpen(true)
-    try {
-      const res = await fetch(`/api/inventory/stock-transfers/${transferId}?companyId=${companyId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setSelectedTransfer(data)
-      } else {
-        toast.error('فشل في تحميل تفاصيل التحويل')
-        setViewDialogOpen(false)
-      }
-    } catch {
-      toast.error('فشل في تحميل تفاصيل التحويل')
-      setViewDialogOpen(false)
-    } finally {
-      setViewLoading(false)
-    }
+  const handleViewTransfer = (transferId: string) => {
+    setSelectedTransferId(transferId)
+    setView('stock-transfer-form')
   }
 
   const handleConfirmTransfer = async () => {

@@ -13,10 +13,6 @@ import {
   X,
   Star,
   Barcode,
-  FileText,
-  Receipt,
-  ArrowLeftRight,
-  Sliders,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -195,9 +191,8 @@ export default function ItemsList() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Detail view
-  const [detailItem, setDetailItem] = useState<Item | null>(null)
-  const [detailCodes, setDetailCodes] = useState<ItemCode[]>([])
+  // Navigation to detail page
+  const setSelectedItemId = useAppStore(state => state.setSelectedItemId)
 
   useEffect(() => {
     fetchItems()
@@ -341,18 +336,9 @@ export default function ItemsList() {
     setDeleteDialogOpen(true)
   }
 
-  const handleOpenDetail = async (item: Item) => {
-    const codes = await fetchItemCodes(item.id)
-    setDetailItem(item)
-    setDetailCodes(codes)
-  }
-
-  // Navigate to related records filtered by this item
-  const handleNavigateToRelated = (module: 'sales' | 'purchases' | 'inventory', view: string, itemId: string) => {
-    setDetailItem(null)
-    setItemFilter(itemId)
-    setModule(module)
-    setView(view)
+  const handleOpenDetail = (item: Item) => {
+    setSelectedItemId(item.id)
+    setView('item-detail')
   }
 
   // ── Image handling ──
@@ -1064,171 +1050,6 @@ export default function ItemsList() {
               {uploadingImage ? 'جاري رفع الصورة...' : editingId ? 'تحديث' : 'إضافة'}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Item Detail Dialog */}
-      <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-          {detailItem && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  {detailItem.image ? (
-                    <img
-                      src={detailItem.image}
-                      alt={detailItem.nameAr || detailItem.code}
-                      className="h-12 w-12 rounded-lg object-cover border border-slate-100"
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                      <Package className="h-6 w-6 text-slate-300" />
-                    </div>
-                  )}
-                  {detailItem.nameAr || detailItem.nameEn || detailItem.code}
-                </DialogTitle>
-                <DialogDescription>
-                  {detailItem.code} {detailItem.nameEn && `| ${detailItem.nameEn}`}
-                </DialogDescription>
-              </DialogHeader>
-
-              {/* Large Image */}
-              {detailItem.image && (
-                <div className="flex justify-center mb-4">
-                  <img
-                    src={detailItem.image}
-                    alt={detailItem.nameAr || detailItem.code}
-                    className="h-48 w-48 rounded-xl object-cover border border-slate-100 shadow-sm"
-                  />
-                </div>
-              )}
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-slate-400">الفئة</p>
-                  <p className="font-medium">{getCategoryName(detailItem.categoryId)}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">وحدة القياس</p>
-                  <p className="font-medium">{getUOMName(detailItem.uomId)}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">طريقة التكلفة</p>
-                  <p className="font-medium">{detailItem.costMethod}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">سعر البيع</p>
-                  <p className="font-medium font-mono" dir="ltr">{formatCurrency(detailItem.sellPrice)}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">الحد الأدنى</p>
-                  <p className="font-medium">{detailItem.minStock.toLocaleString('ar-EG')}</p>
-                </div>
-                <div>
-                  <p className="text-slate-400">الحالة</p>
-                  <p className="font-medium">
-                    {detailItem.isActive ? (
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">نشط</Badge>
-                    ) : (
-                      <Badge variant="secondary">غير نشط</Badge>
-                    )}
-                  </p>
-                </div>
-                {detailItem.description && (
-                  <div className="col-span-full">
-                    <p className="text-slate-400">الوصف</p>
-                    <p className="font-medium">{detailItem.description}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Related Records */}
-              <div className="border-t pt-4 mt-4">
-                <Label className="text-sm font-semibold mb-3 block">السجلات المرتبطة</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {/* Sales */}
-                  <button
-                    onClick={() => handleNavigateToRelated('sales', 'sales-invoices', detailItem.id)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 hover:border-emerald-300 transition-colors cursor-pointer group"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                      <FileText className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <span className="text-xs text-emerald-700 font-medium">مبيعات</span>
-                    <span className="text-2xl font-bold text-emerald-700">{detailItem._stats?.salesCount ?? 0}</span>
-                  </button>
-
-                  {/* Purchases */}
-                  <button
-                    onClick={() => handleNavigateToRelated('purchases', 'purchase-invoices', detailItem.id)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 hover:border-emerald-300 transition-colors cursor-pointer group"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                      <Receipt className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <span className="text-xs text-emerald-700 font-medium">مشتريات</span>
-                    <span className="text-2xl font-bold text-emerald-700">{detailItem._stats?.purchaseCount ?? 0}</span>
-                  </button>
-
-                  {/* Movements */}
-                  <button
-                    onClick={() => handleNavigateToRelated('inventory', 'stock-movements', detailItem.id)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 hover:border-emerald-300 transition-colors cursor-pointer group"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                      <ArrowLeftRight className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <span className="text-xs text-emerald-700 font-medium">حركة</span>
-                    <span className="text-2xl font-bold text-emerald-700">{detailItem._stats?.movementCount ?? 0}</span>
-                  </button>
-
-                  {/* Adjustments */}
-                  <button
-                    onClick={() => handleNavigateToRelated('inventory', 'stock-movements', detailItem.id)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 hover:border-emerald-300 transition-colors cursor-pointer group"
-                  >
-                    <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                      <Sliders className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <span className="text-xs text-emerald-700 font-medium">تسوية</span>
-                    <span className="text-2xl font-bold text-emerald-700">{detailItem._stats?.adjustmentCount ?? 0}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Product Codes */}
-              {detailCodes.length > 0 && (
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Barcode className="h-4 w-4 text-slate-500" />
-                    <Label className="text-sm font-semibold">أكواد المنتج</Label>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {detailCodes.map((codeEntry) => (
-                      <div
-                        key={codeEntry.id || codeEntry.codeType + codeEntry.code}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-100"
-                      >
-                        <Badge
-                          variant="outline"
-                          className={`shrink-0 text-xs ${CODE_TYPE_COLORS[codeEntry.codeType] || ''}`}
-                        >
-                          {CODE_TYPE_SHORT[codeEntry.codeType] || codeEntry.codeType}
-                        </Badge>
-                        <span className="font-mono text-sm" dir="ltr">{codeEntry.code}</span>
-                        {codeEntry.isPrimary && (
-                          <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-1 mr-auto">
-                            رئيسي
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
         </DialogContent>
       </Dialog>
 

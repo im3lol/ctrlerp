@@ -83,6 +83,8 @@ import CategoriesList from '@/components/inventory/categories-list'
 import ItemsList from '@/components/inventory/items-list'
 import StockMovementsList from '@/components/inventory/stock-movements-list'
 import StockTransfersList from '@/components/inventory/stock-transfers-list'
+import ItemDetailPage from '@/components/inventory/item-detail-page'
+import StockTransferFormPage from '@/components/inventory/stock-transfer-form-page'
 import ItemBalancesList from '@/components/inventory/item-balances-list'
 import SuppliersList from '@/components/purchases/suppliers-list'
 import PurchaseInvoicesList from '@/components/purchases/purchase-invoices-list'
@@ -261,6 +263,8 @@ const viewTitles: Record<string, string> = {
   categories: 'الفئات',
   'stock-movements': 'حركات المخزن',
   'stock-transfers': 'تحويلات المخزون',
+  'item-detail': 'تفاصيل الصنف',
+  'stock-transfer-form': 'تحويل مخزون',
   'item-balances': 'أرصدة الأصناف',
   'journal-entries': 'القيود اليومية',
   customers: 'العملاء',
@@ -873,6 +877,10 @@ function AppContent() {
           return <StockMovementsList />
         case 'stock-transfers':
           return <StockTransfersList />
+        case 'item-detail':
+          return <ItemDetailPage />
+        case 'stock-transfer-form':
+          return <StockTransferFormPage />
         case 'item-balances':
           return <ItemBalancesList />
         default:
