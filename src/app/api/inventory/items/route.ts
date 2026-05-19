@@ -5,7 +5,7 @@ import { requirePermission, requireAuth } from '@/lib/auth-guard'
 // GET /api/inventory/items - List all items with filters, include codes and image
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.view')
+    const user = await requirePermission('inventory.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId') || user.companyId
     if (!companyId) {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 // POST /api/inventory/items - Create item
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.create')
+    const user = await requirePermission('inventory.create', request)
     const body = await request.json()
     const {
       companyId,
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/inventory/items - Update item
 export async function PUT(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.edit')
+    const user = await requirePermission('inventory.edit', request)
     const body = await request.json()
     const {
       companyId,
@@ -299,7 +299,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/inventory/items - Delete item
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.delete')
+    const user = await requirePermission('inventory.delete', request)
     const body = await request.json()
     const { companyId, id } = body
 

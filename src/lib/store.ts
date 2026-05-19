@@ -35,6 +35,7 @@ interface AppState {
   currentCompanyId: string | null
   companies: CompanyInfo[]
   isAuthenticated: boolean
+  accessToken: string | null
   // Navigation actions
   setModule: (module: Module) => void
   setView: (view: string) => void
@@ -45,6 +46,7 @@ interface AppState {
   setCurrentCompany: (id: string) => void
   setCompanies: (companies: CompanyInfo[]) => void
   addCompany: (company: CompanyInfo) => void
+  setAccessToken: (token: string | null) => void
   logout: () => void
 }
 
@@ -57,6 +59,7 @@ export const useAppStore = create<AppState>((set) => ({
   currentCompanyId: null,
   companies: [],
   isAuthenticated: false,
+  accessToken: null,
   // Navigation actions
   setModule: (module) => set({ currentModule: module, currentView: '' }),
   setView: (view) => set({ currentView: view }),
@@ -67,5 +70,6 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentCompany: (id) => set({ currentCompanyId: id }),
   setCompanies: (companies) => set({ companies }),
   addCompany: (company) => set((state) => ({ companies: [...state.companies, company] })),
-  logout: () => set({ user: null, currentCompanyId: null, companies: [], isAuthenticated: false }),
+  setAccessToken: (token) => set({ accessToken: token }),
+  logout: () => set({ user: null, currentCompanyId: null, companies: [], isAuthenticated: false, accessToken: null }),
 }))

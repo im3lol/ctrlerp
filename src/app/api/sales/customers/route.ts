@@ -5,7 +5,7 @@ import { requirePermission } from '@/lib/auth-guard'
 // GET /api/sales/customers - List customers with filters for a company
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('sales.view')
+    const user = await requirePermission('sales.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 // POST /api/sales/customers - Create customer
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission('sales.create')
+    const user = await requirePermission('sales.create', request)
     const body = await request.json()
     const {
       companyId,
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/sales/customers - Update customer
 export async function PUT(request: NextRequest) {
   try {
-    const user = await requirePermission('sales.edit')
+    const user = await requirePermission('sales.edit', request)
     const body = await request.json()
     const {
       companyId,
@@ -222,7 +222,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/sales/customers - Delete customer
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await requirePermission('sales.edit')
+    const user = await requirePermission('sales.edit', request)
     const body = await request.json()
     const { companyId, id } = body
 

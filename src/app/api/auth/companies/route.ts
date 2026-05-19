@@ -1,17 +1,16 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getCurrentUser } from '@/lib/auth-guard'
 import { db } from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const user = await getCurrentUser(request)
 
-    if (!session?.user) {
+    if (!user) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
     }
 
-    const userId = (session.user as any).id
+    const userId = user.id
 
     // Get companies the user has access to
     const companyUsers = await db.companyUser.findMany({

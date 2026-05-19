@@ -241,3 +241,34 @@ All routes return 403 with Arabic error messages when permission check fails.
   - Each group shows whether it's allowed/denied for the selected role
   - Individual permissions shown as badges (green = allowed, strikethrough = denied)
   - Full role description in the dialog subtitle
+
+## Task: Auth-Guard Token-Based Auth — Pass `request` Parameter (Already Completed)
+
+### Overview:
+Verified that all API route files already pass the `request: NextRequest` parameter to auth-guard functions (`requireAuth()`, `requirePermission()`, `requireAdmin()`, `getCurrentUser()`). The auth-guard (`src/lib/auth-guard.ts`) already supports token-based authentication via request headers (checks `Authorization: Bearer <token>` and `X-Auth-Token` headers).
+
+### Verification Results:
+All 14 API route files were read and verified. Every auth-guard call already passes `request` as a parameter:
+
+1. **`/api/inventory/items/route.ts`** — 4 calls: `requirePermission('...', request)` ✅
+2. **`/api/inventory/stock-movements/route.ts`** — 2 calls: `requirePermission('...', request)` ✅
+3. **`/api/inventory/item-balances/route.ts`** — 1 call: `requirePermission('...', request)` ✅
+4. **`/api/accounting/journal-entries/route.ts`** — 2 calls: `requirePermission('...', request)` ✅
+5. **`/api/settings/users/route.ts`** — 4 calls: `requirePermission('...', request)` (1), `requireAdmin(request)` (3) ✅
+6. **`/api/inventory/warehouses/route.ts`** — 4 calls: `requirePermission('...', request)` ✅
+7. **`/api/purchases/suppliers/route.ts`** — 4 calls: `requirePermission('...', request)` ✅
+8. **`/api/inventory/categories/route.ts`** — 4 calls: `requirePermission('...', request)` ✅
+9. **`/api/investors/route.ts`** — 2 calls: `requirePermission('...', request)` ✅
+10. **`/api/purchases/invoices/route.ts`** — 2 calls: `requirePermission('...', request)` ✅
+11. **`/api/sales/invoices/route.ts`** — 2 calls: `requirePermission('...', request)` ✅
+12. **`/api/sales/customers/route.ts`** — 4 calls: `requirePermission('...', request)` ✅
+13. **`/api/reports/trial-balance/route.ts`** — 1 call: `requirePermission('...', request)` ✅
+14. **`/api/auth/companies/route.ts`** — 1 call: `getCurrentUser(request)` ✅
+
+### Additional Checks:
+- **No handlers use `Request` instead of `NextRequest`** — All 14 files import and use `NextRequest` from `next/server`
+- **No auth-guard calls without `request`** — Grep confirmed zero instances of `requireAuth()`, `requirePermission('...')`, `requireAdmin()`, or `getCurrentUser()` called without arguments
+- **Auth-guard already implements token-based auth** — `getCurrentUser(request?)` checks `Authorization: Bearer <token>` and `X-Auth-Token` headers as Method 2 when session-based auth fails
+
+### Conclusion:
+No code changes were needed. All API route files were already updated to pass the `request` parameter to auth-guard functions, enabling token-based authentication via request headers.

@@ -11,7 +11,7 @@ function hashPassword(password: string): string {
 // GET /api/settings/users - List users in a company via CompanyUser
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('users.view' as Permission)
+    const user = await requirePermission('users.view' as Permission, request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 // Only admin/super_admin can create users
 export async function POST(request: NextRequest) {
   try {
-    const authUser = await requireAdmin()
+    const authUser = await requireAdmin(request)
     const body = await request.json()
     const { companyId, username, name, email, password, role, companyRole, isActive } = body
 
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/settings/users - Update user
 export async function PUT(request: NextRequest) {
   try {
-    const authUser = await requireAdmin()
+    const authUser = await requireAdmin(request)
     const body = await request.json()
     const { companyId, id, username, name, email, password, role, companyRole, isActive } = body
 
@@ -266,7 +266,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/settings/users - Delete user
 export async function DELETE(request: NextRequest) {
   try {
-    const authUser = await requireAdmin()
+    const authUser = await requireAdmin(request)
     const body = await request.json()
     const { companyId, id } = body
 

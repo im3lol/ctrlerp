@@ -6,7 +6,7 @@ import { requirePermission } from '@/lib/auth-guard'
 // GET /api/purchases/invoices - List purchase invoices with filters
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('purchases.view')
+    const user = await requirePermission('purchases.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 // POST /api/purchases/invoices - Create purchase invoice
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission('purchases.create')
+    const user = await requirePermission('purchases.create', request)
     const body = await request.json()
     const {
       companyId,

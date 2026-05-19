@@ -15,7 +15,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { setUser, setCompanies, setCurrentCompany } = useAppStore()
+  const { setUser, setCompanies, setCurrentCompany, setAccessToken } = useAppStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,59 +23,63 @@ export default function LoginForm() {
     setLoading(true)
 
     try {
-      // Sign in with NextAuth
-      const result = await signIn('credentials', {
-        username,
-        password,
-        redirect: false,
+      // Step 1: Verify credentials and get user data + token via our custom login API
+      const loginRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
       })
 
-      if (result?.error) {
-        setError(result.error === 'CredentialsSignin' 
-          ? 'اسم المستخدم أو كلمة المرور غير صحيحة' 
-          : result.error)
+      const loginData = await loginRes.json()
+
+      if (!loginRes.ok) {
+        setError(loginData.error || 'اسم المستخدم أو كلمة المرور غير صحيحة')
         setLoading(false)
         return
       }
 
-      if (result?.ok) {
-        // Wait a moment for session to be fully established
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Fetch session to get user info
-        const sessionRes = await fetch('/api/auth/session')
-        const session = await sessionRes.json()
+      // Step 2: Store the access token (used as fallback when cookies don't work)
+      if (loginData.token) {
+        setAccessToken(loginData.token)
+      }
 
-        if (session?.user) {
-          const userData = {
-            id: (session.user as any).id || '',
-            name: session.user.name || '',
-            username: (session.user as any).username || '',
-            role: (session.user as any).role || 'viewer',
-            email: session.user.email || undefined,
-          }
-          setUser(userData)
+      // Step 3: Try to establish NextAuth session cookie (best effort)
+      try {
+        await signIn('credentials', {
+          username,
+          password,
+          redirect: false,
+        })
+      } catch (e) {
+        // NextAuth signIn may fail in proxy environments, but we have the token
+        console.warn('NextAuth signIn failed (non-critical):', e)
+      }
 
-          // Fetch companies for this user
-          try {
-            const companiesRes = await fetch('/api/auth/companies')
-            if (companiesRes.ok) {
-              const companiesData = await companiesRes.json()
-              setCompanies(companiesData)
-              
-              // Auto-select if only one company
-              if (companiesData.length === 1) {
-                setCurrentCompany(companiesData[0].id)
-              }
-            }
-          } catch (err) {
-            console.error('Failed to fetch companies:', err)
-          }
-        } else {
-          setError('فشل في استرجاع بيانات الجلسة. يرجى المحاولة مرة أخرى')
+      // Step 4: Set user data from our verified login response
+      if (loginData.user) {
+        const userData = {
+          id: loginData.user.id || '',
+          name: loginData.user.name || '',
+          username: loginData.user.username || '',
+          role: loginData.user.role || 'viewer',
+          email: loginData.user.email || undefined,
         }
+        setUser(userData)
+
+        // Set companies from login response
+        if (loginData.companies && loginData.companies.length > 0) {
+          setCompanies(loginData.companies)
+
+          // Auto-select if only one company
+          if (loginData.companies.length === 1) {
+            setCurrentCompany(loginData.companies[0].id)
+          }
+        }
+      } else {
+        setError('فشل في استرجاع بيانات المستخدم')
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى')
     } finally {
       setLoading(false)

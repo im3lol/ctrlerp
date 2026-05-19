@@ -5,7 +5,7 @@ import { requirePermission } from '@/lib/auth-guard'
 // GET /api/inventory/item-balances - List item balances with filters
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.view')
+    const user = await requirePermission('inventory.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {

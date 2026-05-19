@@ -5,7 +5,7 @@ import { requirePermission } from '@/lib/auth-guard'
 // GET /api/reports/trial-balance
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('reports.view')
+    const user = await requirePermission('reports.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {

@@ -5,7 +5,7 @@ import { requirePermission } from '@/lib/auth-guard'
 // GET /api/inventory/categories - List all categories for a company
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.view')
+    const user = await requirePermission('inventory.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 // POST /api/inventory/categories - Create category
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.create')
+    const user = await requirePermission('inventory.create', request)
     const body = await request.json()
     const { companyId, code, nameAr, nameEn, parentId, isActive } = body
 
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/inventory/categories - Update category
 export async function PUT(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.edit')
+    const user = await requirePermission('inventory.edit', request)
     const body = await request.json()
     const { companyId, id, code, nameAr, nameEn, parentId, isActive } = body
 
@@ -215,7 +215,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/inventory/categories - Delete category
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.delete')
+    const user = await requirePermission('inventory.delete', request)
     const body = await request.json()
     const { companyId, id } = body
 

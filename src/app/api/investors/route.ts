@@ -7,7 +7,7 @@ const DEFAULT_COMPANY_ID = 'company-default'
 // GET /api/investors - List investors with total investments
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('investors.view')
+    const user = await requirePermission('investors.view', request)
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const activeOnly = searchParams.get('activeOnly')
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 // POST /api/investors - Create investor with auto accounts
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission('investors.create')
+    const user = await requirePermission('investors.create', request)
     const body = await request.json()
     const { fullName, phone, email, nationalId, status } = body
 

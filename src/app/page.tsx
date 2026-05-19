@@ -647,6 +647,28 @@ function AppContent() {
   const { data: session, status } = useSession()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  // ── Global fetch interceptor: attach auth token to all /api/ requests ──
+  useEffect(() => {
+    const originalFetch = window.fetch
+    window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
+      const token = useAppStore.getState().accessToken
+      
+      if (token && url.startsWith('/api/')) {
+        const headers = new Headers(init?.headers)
+        headers.set('X-Auth-Token', token)
+        init = { ...init, headers }
+      }
+      
+      return originalFetch.call(this, input, init)
+    }
+    
+    return () => {
+      window.fetch = originalFetch
+    }
+  }, [])
+
   const [setupWizardOpen, setSetupWizardOpen] = useState(false)
 
   // ── Sync session with store ──
@@ -654,6 +676,7 @@ function AppContent() {
     if (status === 'loading') return
 
     if (session?.user && !isAuthenticated) {
+      // Session exists but store doesn't know about it yet (e.g. page refresh)
       const userData = {
         id: (session.user as any).id,
         name: session.user.name || '',
@@ -675,16 +698,16 @@ function AppContent() {
           }
         })
         .catch(console.error)
-    } else if (!session && isAuthenticated && status !== 'loading') {
-      // Session expired but store thinks we're logged in
-      logout()
     }
+    // Note: We do NOT auto-logout when session is null but store is authenticated.
+    // The login form sets user data directly via our custom /api/auth/login endpoint,
+    // and NextAuth session cookies may not propagate properly through the Caddy proxy.
+    // Session validation happens server-side on each API call via auth-guard.ts.
   }, [session, status, isAuthenticated, logout])
 
   // ── Loading state ──
-  // Show spinner when session is loading, or when session is authenticated
-  // but store hasn't been synced yet (user data not in store)
-  const isLoading = status === 'loading' || (!!session?.user && !isAuthenticated)
+  // Show spinner only when session is loading AND store doesn't have user data yet
+  const isLoading = status === 'loading' && !isAuthenticated
 
   if (isLoading) {
     return (

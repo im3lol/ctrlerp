@@ -5,7 +5,7 @@ import { requirePermission } from '@/lib/auth-guard'
 // GET /api/inventory/stock-movements - List stock movements with filters
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.view')
+    const user = await requirePermission('inventory.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 // POST /api/inventory/stock-movements - Create stock movement (manual adjustment)
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission('inventory.create')
+    const user = await requirePermission('inventory.create', request)
     const body = await request.json()
     const { companyId, type, itemId, warehouseId, quantity, unitCost, reason, date } = body
 

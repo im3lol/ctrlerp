@@ -6,7 +6,7 @@ import { requirePermission } from '@/lib/auth-guard'
 // GET /api/accounting/journal-entries - List journal entries with lines
 export async function GET(request: NextRequest) {
   try {
-    const user = await requirePermission('accounting.view')
+    const user = await requirePermission('accounting.view', request)
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 // POST /api/accounting/journal-entries - Create journal entry
 export async function POST(request: NextRequest) {
   try {
-    const user = await requirePermission('accounting.create')
+    const user = await requirePermission('accounting.create', request)
     const body = await request.json()
     const { companyId, date, description, sourceType, sourceId, lines } = body
 
