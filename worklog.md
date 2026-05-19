@@ -558,3 +558,112 @@ Stage Summary:
 - Three new form page components created: supplier-form-page, purchase-order-form-page, purchase-invoice-form-page
 - Three list components updated to navigate to form pages instead of using dialogs
 - editingDocId added to store for document ID passing between views
+
+---
+Task ID: 3-a
+Agent: UI Agent
+Task: Create 3 new dedicated full-page form components for the Sales module
+
+Work Log:
+- Created `src/components/sales/customer-form-page.tsx` - Full-page form for adding/editing customers
+  - Fields: code (auto), nameAr*, nameEn, phone, email, address, creditLimit, paymentTerms, isActive switch
+  - Back button navigates to `setModule('sales')` + `setView('customers')`
+  - Uses `editingDocId` from store for editing existing customers
+  - Save button creates new (POST) or updates existing (PUT) via `/api/sales/customers`
+  - Loads existing customer data when `editingDocId` is set
+  - RTL Arabic layout with emerald color scheme, shadcn/ui components
+
+- Created `src/components/sales/sales-order-form-page.tsx` - Full-page form with Save/Submit workflow
+  - Header: customer select, date, due date
+  - Lines: item, quantity, unit price, discount, tax, line total (qty * unitPrice - discount + tax)
+  - Footer: order-level discount, tax percent, totals summary
+  - Notes textarea
+  - **Save (حفظ كمسودة)** → creates/updates as DRAFT via POST/PUT `/api/sales/orders`
+  - **Submit (تأكيد)** → saves then confirms via PUT action "confirm"
+  - When DRAFT/NEW: fields are editable, both buttons visible
+  - When CONFIRMED/CLOSED/CANCELLED: fields are read-only, no edit buttons
+  - Status badge visible in header
+  - Back button → `setModule('sales')` + `setView('sales-orders')`
+  - Auto-fills unit price from item's sellPrice when item selected
+  - Follows exact same pattern as PurchaseOrderFormPage
+
+- Created `src/components/sales/sales-invoice-form-page.tsx` - Full-page form with Save/Submit workflow
+  - Header: customer select, date, due date
+  - Lines: item, quantity, unit price, discount, tax, line total
+  - Footer: invoice-level discount, tax percent, totals summary
+  - Notes textarea
+  - **Save (حفظ كمسودة)** → creates/updates as DRAFT via POST/PUT `/api/sales/invoices`
+  - **Submit (تأكيد)** → saves then confirms via PUT action "confirm"
+  - When DRAFT/NEW: fields are editable, both buttons visible
+  - When CONFIRMED/PAID/CANCELLED: fields are read-only
+  - Status badge visible in header
+  - Back button → `setModule('sales')` + `setView('sales-invoices')`
+  - Auto-fills unit price from item's sellPrice when item selected
+  - Support pre-fill from localStorage `pendingSalesInvoice` (for workflow from Delivery Note)
+  - Follows exact same pattern as PurchaseInvoiceFormPage
+
+- Updated `src/app/page.tsx`:
+  - Added imports for CustomerFormPage, SalesOrderFormPage, SalesInvoiceFormPage
+  - Added view titles: 'customer-form', 'sales-order-form', 'sales-invoice-form'
+  - Added route cases in Sales switch block for all 3 new form views
+
+- Updated `src/components/sales/customers-list.tsx`:
+  - Removed Dialog-based create/edit form and related state (formData, submitting, editingId, dialogOpen)
+  - Removed unused imports (Label, Switch, Dialog components)
+  - Added setView, setEditingDocId from store
+  - handleOpenAdd now navigates to 'customer-form' view
+  - handleOpenEdit now navigates to 'customer-form' view with editingDocId
+  - Table rows are clickable to edit
+  - Delete dialog kept as-is
+
+- Updated `src/components/sales/sales-orders-list.tsx`:
+  - Removed Sheet-based create/edit form and all related state/logic
+  - Removed unused interfaces (Item, OrderLineInput, emptyLine) and functions (calcLineTotal, calcSubtotal, calcTaxAmount, calcTotal, handleItemSelect, addLine, removeLine, updateLine, handleSubmit)
+  - Added setView, setEditingDocId from store
+  - handleOpenNew now navigates to 'sales-order-form' view
+  - handleOpenEdit now navigates to 'sales-order-form' view with editingDocId
+  - Kept detail dialog, confirm dialog, cancel dialog, and "Create Delivery Note" workflow
+  - Removed fetchItems and items state (no longer needed)
+
+- Updated `src/components/sales/sales-invoices-list.tsx`:
+  - Removed Sheet-based create/edit form and all related state/logic
+  - Removed unused interfaces (Item, InvoiceLineInput, emptyLine) and functions (calcLineTotal, calcSubtotal, calcTotal, handleItemSelect, addLine, removeLine, updateLine, handleSubmit)
+  - Added setView, setEditingDocId from store
+  - handleOpenNew now navigates to 'sales-invoice-form' view
+  - handleOpenEdit now navigates to 'sales-invoice-form' view with editingDocId
+  - Kept detail dialog, confirm dialog, cancel dialog
+  - Updated localStorage pendingSalesInvoice handler to navigate to form page instead of opening sheet
+  - Removed fetchItems and items state (no longer needed)
+
+Stage Summary:
+- Sales module now uses full pages for create/edit instead of popup dialogs/sheets
+- 3 new form page components created: customer-form-page, sales-order-form-page, sales-invoice-form-page
+- 3 list components updated to navigate to form pages instead of using dialogs/sheets
+- All form pages follow the same pattern as their Purchase module counterparts
+- Lint passes cleanly, dev server running successfully
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix bugs and convert Sales module to dedicated pages
+
+Work Log:
+- Fixed supplier-form-page.tsx bug: replaced undefined `editingId` with `editingDocId` in 3 places (loadSupplier call, useEffect dependency, payload id field)
+- Updated store.ts types: added missing view IDs to InventoryView (item-detail, stock-transfer-form, material-requests, delivery-notes, purchase-receipts, pick-lists) and SalesView (sales-orders, customer-form, sales-order-form, sales-invoice-form)
+- Created customer-form-page.tsx: Full-page form for adding/editing customers with Save button, edit support via editingDocId
+- Created sales-order-form-page.tsx: Full-page form with Save (حفظ كمسودة) / Submit (تأكيد) workflow, line items, totals, status badges, read-only when confirmed
+- Created sales-invoice-form-page.tsx: Full-page form with Save/Submit workflow, pre-fill from localStorage (pendingSalesInvoice), status badges for all states
+- Updated page.tsx: Added imports and route cases for all 3 new sales form pages
+- Updated customers-list.tsx: Removed Dialog popup, navigates to customer-form page
+- Updated sales-orders-list.tsx: Removed Sheet popup, navigates to sales-order-form page
+- Updated sales-invoices-list.tsx: Removed Sheet popup, navigates to sales-invoice-form page
+- All components follow same pattern as Purchase module form pages
+- Lint passes cleanly
+
+Stage Summary:
+- Sales module now uses full dedicated pages instead of popup dialogs (matching Purchases module pattern)
+- Both Purchases and Sales modules now consistently use: list → form page navigation
+- Save (حفظ كمسودة) creates DRAFT, Submit (تأكيد) confirms the document
+- All form pages support edit mode via editingDocId from store
+- Supplier form page bug fixed (editingId → editingDocId)
+- Store types updated to include all view IDs

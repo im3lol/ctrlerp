@@ -101,9 +101,12 @@ import PurchaseOrderFormPage from '@/components/purchases/purchase-order-form-pa
 import PurchaseInvoiceFormPage from '@/components/purchases/purchase-invoice-form-page'
 import PurchaseOrdersList from '@/components/purchases/purchase-orders-list'
 import CustomersList from '@/components/sales/customers-list'
+import CustomerFormPage from '@/components/sales/customer-form-page'
 import SalesInvoicesList from '@/components/sales/sales-invoices-list'
+import SalesInvoiceFormPage from '@/components/sales/sales-invoice-form-page'
 import ReceiptVouchersList from '@/components/sales/receipt-vouchers-list'
 import SalesOrdersList from '@/components/sales/sales-orders-list'
+import SalesOrderFormPage from '@/components/sales/sales-order-form-page'
 import TrialBalanceReport from '@/components/reports/trial-balance'
 import BalanceSheetReport from '@/components/reports/balance-sheet'
 import IncomeStatementReport from '@/components/reports/income-statement'
@@ -292,6 +295,9 @@ const viewTitles: Record<string, string> = {
   'sales-orders': 'أوامر البيع',
   'sales-invoices': 'فواتير البيع',
   'receipt-vouchers': 'سندات القبض',
+  'customer-form': 'إضافة عميل',
+  'sales-order-form': 'أمر بيع جديد',
+  'sales-invoice-form': 'فاتورة بيع جديدة',
   suppliers: 'الموردين',
   'purchase-orders': 'أوامر الشراء',
   'purchase-invoices': 'فواتير الشراء',
@@ -935,10 +941,16 @@ function AppContent() {
       switch (currentView) {
         case 'customers':
           return <CustomersList />
+        case 'customer-form':
+          return <CustomerFormPage />
         case 'sales-orders':
           return <SalesOrdersList />
+        case 'sales-order-form':
+          return <SalesOrderFormPage />
         case 'sales-invoices':
           return <SalesInvoicesList />
+        case 'sales-invoice-form':
+          return <SalesInvoiceFormPage />
         case 'receipt-vouchers':
           return <ReceiptVouchersList />
         default:

@@ -9,19 +9,17 @@ import {
   FileText,
   CheckCircle2,
   XCircle,
-  Pencil,
   Eye,
   DollarSign,
-  Trash2,
+  X,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -55,30 +53,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { useAppStore } from '@/lib/store'
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/erp-utils'
-import { X } from 'lucide-react'
 
 interface Customer {
   id: string
   code: string
   nameAr: string
   nameEn: string | null
-}
-
-interface Item {
-  id: string
-  code: string
-  nameAr: string
-  nameEn: string | null
-  sellPrice: number
 }
 
 interface InvoiceLine {
@@ -89,7 +71,7 @@ interface InvoiceLine {
   discountAmount: number
   taxAmount: number
   totalAmount: number
-  item?: Item & { uom?: { nameAr: string; code: string } | null }
+  item?: { id: string; code: string; nameAr: string; uom?: { nameAr: string; code: string } | null }
   costAmount?: number
 }
 
@@ -123,46 +105,19 @@ interface SalesInvoice {
   }>
 }
 
-interface InvoiceLineInput {
-  itemId: string
-  quantity: number
-  unitPrice: number
-  discountAmount: number
-  taxAmount: number
-}
-
-const emptyLine: InvoiceLineInput = {
-  itemId: '',
-  quantity: 1,
-  unitPrice: 0,
-  discountAmount: 0,
-  taxAmount: 0,
-}
-
 export default function SalesInvoicesList() {
   const companyId = useAppStore(state => state.currentCompanyId)
+  const setView = useAppStore(state => state.setView)
+  const setEditingDocId = useAppStore(state => state.setEditingDocId)
   const itemFilter = useAppStore(state => state.itemFilter)
   const setItemFilter = useAppStore(state => state.setItemFilter)
   const [invoices, setInvoices] = useState<SalesInvoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
-  const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [customerFilter, setCustomerFilter] = useState('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-
-  // New/Edit invoice state
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [editingInvoice, setEditingInvoice] = useState<SalesInvoice | null>(null)
-  const [invoiceCustomerId, setInvoiceCustomerId] = useState('')
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0])
-  const [invoiceDueDate, setInvoiceDueDate] = useState('')
-  const [invoiceNotes, setInvoiceNotes] = useState('')
-  const [invoiceLines, setInvoiceLines] = useState<InvoiceLineInput[]>([{ ...emptyLine }])
-  const [invoiceDiscountAmount, setInvoiceDiscountAmount] = useState(0)
-  const [invoiceTaxAmount, setInvoiceTaxAmount] = useState(0)
-  const [submitting, setSubmitting] = useState(false)
 
   // Confirm dialog
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
@@ -184,28 +139,10 @@ export default function SalesInvoicesList() {
     try {
       const pending = localStorage.getItem('pendingSalesInvoice')
       if (pending) {
-        const data = JSON.parse(pending)
         localStorage.removeItem('pendingSalesInvoice')
-
-        // Pre-fill the new invoice form
-        setEditingInvoice(null)
-        setInvoiceCustomerId(data.customerId || '')
-        setInvoiceNotes(`مرتبط بإذن صرف رقم ${data.number || ''}`)
-        if (data.lines && data.lines.length > 0) {
-          const prefillLines: InvoiceLineInput[] = data.lines.map((l: { itemId: string; quantity: number }) => ({
-            itemId: l.itemId,
-            quantity: l.quantity,
-            unitPrice: 0,
-            discountAmount: 0,
-            taxAmount: 0,
-          }))
-          if (prefillLines.length > 0) {
-            setInvoiceLines(prefillLines)
-          }
-        }
-
-        // Open new invoice sheet
-        setSheetOpen(true)
+        // Navigate to form page with pre-fill data
+        setEditingDocId(null)
+        setView('sales-invoice-form')
       }
     } catch {
       // silently fail
@@ -215,7 +152,6 @@ export default function SalesInvoicesList() {
   useEffect(() => {
     fetchInvoices()
     fetchCustomers()
-    fetchItems()
   }, [])
 
   const fetchInvoices = useCallback(async () => {
@@ -255,198 +191,16 @@ export default function SalesInvoicesList() {
     }
   }
 
-  const fetchItems = async () => {
-    try {
-      const res = await fetch(`/api/inventory/items?activeOnly=true&companyId=${companyId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setItems(data)
-      }
-    } catch {
-      // silently fail
-    }
-  }
-
-  const fetchInvoiceDetail = async (id: string) => {
-    setDetailLoading(true)
-    try {
-      const res = await fetch(`/api/sales/invoices/${id}?companyId=${companyId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setDetailInvoice(data)
-        setDetailDialogOpen(true)
-      }
-    } catch {
-      toast.error('فشل في تحميل تفاصيل الفاتورة')
-    } finally {
-      setDetailLoading(false)
-    }
-  }
-
-  // Calculate line total
-  const calcLineTotal = (line: InvoiceLineInput) => {
-    return line.quantity * line.unitPrice - line.discountAmount + line.taxAmount
-  }
-
-  // Calculate subtotal
-  const calcSubtotal = () => {
-    return invoiceLines.reduce((sum, l) => sum + calcLineTotal(l), 0)
-  }
-
-  // Calculate total
-  const calcTotal = () => {
-    return calcSubtotal() - invoiceDiscountAmount + invoiceTaxAmount
-  }
-
-  // Handle item select in line
-  const handleItemSelect = (index: number, itemId: string) => {
-    const item = items.find((i) => i.id === itemId)
-    setInvoiceLines((prev) => {
-      const newLines = [...prev]
-      newLines[index] = {
-        ...newLines[index],
-        itemId,
-        unitPrice: item?.sellPrice || 0,
-      }
-      return newLines
-    })
-  }
-
-  // Add line
-  const addLine = () => {
-    setInvoiceLines((prev) => [...prev, { ...emptyLine }])
-  }
-
-  // Remove line
-  const removeLine = (index: number) => {
-    setInvoiceLines((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // Update line field
-  const updateLine = (index: number, field: keyof InvoiceLineInput, value: number | string) => {
-    setInvoiceLines((prev) => {
-      const newLines = [...prev]
-      newLines[index] = { ...newLines[index], [field]: value }
-      return newLines
-    })
-  }
-
-  // Open new invoice sheet
+  // Navigate to create new invoice
   const handleOpenNew = () => {
-    setEditingInvoice(null)
-    setInvoiceCustomerId('')
-    setInvoiceDate(new Date().toISOString().split('T')[0])
-    setInvoiceDueDate('')
-    setInvoiceNotes('')
-    setInvoiceLines([{ ...emptyLine }])
-    setInvoiceDiscountAmount(0)
-    setInvoiceTaxAmount(0)
-    setSheetOpen(true)
+    setEditingDocId(null)
+    setView('sales-invoice-form')
   }
 
-  // Open edit invoice
-  const handleOpenEdit = (invoice: SalesInvoice) => {
-    setEditingInvoice(invoice)
-    setInvoiceCustomerId(invoice.customerId)
-    setInvoiceDate(new Date(invoice.date).toISOString().split('T')[0])
-    setInvoiceDueDate(invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '')
-    setInvoiceNotes(invoice.notes || '')
-    setInvoiceDiscountAmount(invoice.discountAmount)
-    setInvoiceTaxAmount(invoice.taxAmount)
-    setInvoiceLines(
-      invoice.lines.map((l) => ({
-        itemId: l.itemId,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        discountAmount: l.discountAmount,
-        taxAmount: l.taxAmount,
-      }))
-    )
-    setSheetOpen(true)
-  }
-
-  // Submit invoice
-  const handleSubmit = async () => {
-    if (!invoiceCustomerId) {
-      toast.error('يرجى اختيار العميل')
-      return
-    }
-
-    const validLines = invoiceLines.filter((l) => l.itemId && l.quantity > 0)
-    if (validLines.length === 0) {
-      toast.error('يجب إضافة سطر واحد على الأقل')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      if (editingInvoice) {
-        // Update existing DRAFT
-        const res = await fetch(`/api/sales/invoices/${editingInvoice.id}?companyId=${companyId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'update',
-            customerId: invoiceCustomerId,
-            date: invoiceDate,
-            dueDate: invoiceDueDate || null,
-            discountAmount: invoiceDiscountAmount,
-            taxAmount: invoiceTaxAmount,
-            notes: invoiceNotes || null,
-            lines: validLines.map((l) => ({
-              itemId: l.itemId,
-              quantity: l.quantity,
-              unitPrice: l.unitPrice,
-              discountAmount: l.discountAmount,
-              taxAmount: l.taxAmount,
-            })),
-            companyId,
-          }),
-        })
-        if (res.ok) {
-          toast.success('تم تحديث الفاتورة بنجاح')
-          setSheetOpen(false)
-          fetchInvoices()
-        } else {
-          const err = await res.json()
-          toast.error(err.error || 'فشل في تحديث الفاتورة')
-        }
-      } else {
-        // Create new
-        const res = await fetch(`/api/sales/invoices?companyId=${companyId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: invoiceCustomerId,
-            date: invoiceDate,
-            dueDate: invoiceDueDate || null,
-            discountAmount: invoiceDiscountAmount,
-            taxAmount: invoiceTaxAmount,
-            notes: invoiceNotes || null,
-            lines: validLines.map((l) => ({
-              itemId: l.itemId,
-              quantity: l.quantity,
-              unitPrice: l.unitPrice,
-              discountAmount: l.discountAmount,
-              taxAmount: l.taxAmount,
-            })),
-            companyId,
-          }),
-        })
-        if (res.ok) {
-          toast.success('تم إنشاء الفاتورة بنجاح')
-          setSheetOpen(false)
-          fetchInvoices()
-        } else {
-          const err = await res.json()
-          toast.error(err.error || 'فشل في إنشاء الفاتورة')
-        }
-      }
-    } catch {
-      toast.error('حدث خطأ أثناء حفظ الفاتورة')
-    } finally {
-      setSubmitting(false)
-    }
+  // Navigate to edit existing invoice
+  const handleOpenEdit = (id: string) => {
+    setEditingDocId(id)
+    setView('sales-invoice-form')
   }
 
   // Confirm invoice
@@ -472,6 +226,22 @@ export default function SalesInvoicesList() {
       setConfirming(false)
       setConfirmDialogOpen(false)
       setConfirmingId(null)
+    }
+  }
+
+  const fetchInvoiceDetail = async (id: string) => {
+    setDetailLoading(true)
+    try {
+      const res = await fetch(`/api/sales/invoices/${id}?companyId=${companyId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setDetailInvoice(data)
+        setDetailDialogOpen(true)
+      }
+    } catch {
+      toast.error('فشل في تحميل تفاصيل الفاتورة')
+    } finally {
+      setDetailLoading(false)
     }
   }
 
@@ -688,11 +458,11 @@ export default function SalesInvoicesList() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleOpenEdit(inv)}
+                                onClick={() => handleOpenEdit(inv.id)}
                                 className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
                                 title="تعديل"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -776,228 +546,6 @@ export default function SalesInvoicesList() {
           </div>
         </CardContent>
       </Card>
-
-      {/* New/Edit Invoice Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="left" className="w-full sm:max-w-3xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>
-              {editingInvoice ? 'تعديل فاتورة البيع' : 'فاتورة بيع جديدة'}
-            </SheetTitle>
-            <SheetDescription>
-              {editingInvoice ? 'قم بتعديل بيانات الفاتورة' : 'أدخل بيانات فاتورة البيع الجديدة'}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-6">
-            {/* Invoice Header */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>
-                  العميل <span className="text-red-500">*</span>
-                </Label>
-                <Select value={invoiceCustomerId} onValueChange={setInvoiceCustomerId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر العميل" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nameAr} ({c.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>التاريخ</Label>
-                <Input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>تاريخ الاستحقاق</Label>
-                <Input
-                  type="date"
-                  value={invoiceDueDate}
-                  onChange={(e) => setInvoiceDueDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>ملاحظات</Label>
-                <Input
-                  value={invoiceNotes}
-                  onChange={(e) => setInvoiceNotes(e.target.value)}
-                  placeholder="ملاحظات إضافية"
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Invoice Lines */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">بنود الفاتورة</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addLine}
-                  className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                >
-                  <Plus className="h-3 w-3" />
-                  إضافة بند
-                </Button>
-              </div>
-
-              {invoiceLines.map((line, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-12 gap-2 items-end border border-slate-100 rounded-lg p-3 bg-slate-50/50"
-                >
-                  <div className="col-span-12 sm:col-span-4 space-y-1">
-                    <Label className="text-xs">الصنف</Label>
-                    <Select
-                      value={line.itemId}
-                      onValueChange={(val) => handleItemSelect(index, val)}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="اختر الصنف" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {items.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.nameAr} ({item.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
-                    <Label className="text-xs">الكمية</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={line.quantity}
-                      onChange={(e) => updateLine(index, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="h-9 text-sm"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
-                    <Label className="text-xs">سعر الوحدة</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.unitPrice}
-                      onChange={(e) => updateLine(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="h-9 text-sm"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
-                    <Label className="text-xs">الخصم</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.discountAmount}
-                      onChange={(e) => updateLine(index, 'discountAmount', parseFloat(e.target.value) || 0)}
-                      className="h-9 text-sm"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="col-span-8 sm:col-span-1 space-y-1">
-                    <Label className="text-xs">الإجمالي</Label>
-                    <div className="h-9 px-2 flex items-center bg-white border rounded-md text-sm font-mono" dir="ltr">
-                      {formatCurrency(calcLineTotal(line))}
-                    </div>
-                  </div>
-                  <div className="col-span-4 sm:col-span-1 flex justify-center">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLine(index)}
-                      disabled={invoiceLines.length <= 1}
-                      className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Separator />
-
-            {/* Totals */}
-            <div className="space-y-3 bg-slate-50/50 rounded-lg p-4">
-              <div className="flex items-center gap-4">
-                <Label className="w-24 text-sm">خصم الفاتورة</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={invoiceDiscountAmount}
-                  onChange={(e) => setInvoiceDiscountAmount(parseFloat(e.target.value) || 0)}
-                  className="h-9 w-32"
-                  dir="ltr"
-                />
-              </div>
-              <div className="flex items-center gap-4">
-                <Label className="w-24 text-sm">الضريبة</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={invoiceTaxAmount}
-                  onChange={(e) => setInvoiceTaxAmount(parseFloat(e.target.value) || 0)}
-                  className="h-9 w-32"
-                  dir="ltr"
-                />
-              </div>
-              <Separator />
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">المجموع الفرعي</span>
-                <span className="font-mono" dir="ltr">{formatCurrency(calcSubtotal())}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">الخصم</span>
-                <span className="font-mono text-red-500" dir="ltr">-{formatCurrency(invoiceDiscountAmount)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">الضريبة</span>
-                <span className="font-mono text-orange-500" dir="ltr">+{formatCurrency(invoiceTaxAmount)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>الإجمالي</span>
-                <span className="font-mono text-emerald-700" dir="ltr">{formatCurrency(calcTotal())}</span>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setSheetOpen(false)}>
-                إلغاء
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                حفظ كمسودة
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {/* Confirm Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>

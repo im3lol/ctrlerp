@@ -8,16 +8,15 @@ import {
   FileText,
   CheckCircle2,
   XCircle,
-  Pencil,
   Eye,
-  Trash2,
   Truck,
+  X,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -53,16 +52,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { useAppStore } from '@/lib/store'
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/erp-utils'
-import { X } from 'lucide-react'
 
 // ── Extended status helpers (CLOSED is not in erp-utils) ──
 
@@ -85,14 +76,6 @@ interface Customer {
   nameEn: string | null
 }
 
-interface Item {
-  id: string
-  code: string
-  nameAr: string
-  nameEn: string | null
-  sellPrice: number
-}
-
 interface OrderLine {
   id?: string
   itemId: string
@@ -103,7 +86,7 @@ interface OrderLine {
   taxAmount: number
   totalAmount: number
   notes?: string | null
-  item?: Item & { uom?: { nameAr: string; code: string } | null }
+  item?: { id: string; code: string; nameAr: string; uom?: { nameAr: string; code: string } | null }
 }
 
 interface DeliveryNoteRef {
@@ -152,28 +135,17 @@ const emptyLine: OrderLineInput = {
 
 export default function SalesOrdersList() {
   const companyId = useAppStore(state => state.currentCompanyId)
+  const setView = useAppStore(state => state.setView)
+  const setEditingDocId = useAppStore(state => state.setEditingDocId)
   const itemFilter = useAppStore(state => state.itemFilter)
   const setItemFilter = useAppStore(state => state.setItemFilter)
   const [orders, setOrders] = useState<SalesOrder[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
-  const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [customerFilter, setCustomerFilter] = useState('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-
-  // New/Edit order state
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null)
-  const [orderCustomerId, setOrderCustomerId] = useState('')
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0])
-  const [orderDueDate, setOrderDueDate] = useState('')
-  const [orderNotes, setOrderNotes] = useState('')
-  const [orderLines, setOrderLines] = useState<OrderLineInput[]>([{ ...emptyLine }])
-  const [orderDiscountAmount, setOrderDiscountAmount] = useState(0)
-  const [orderTaxPercent, setOrderTaxPercent] = useState(0)
-  const [submitting, setSubmitting] = useState(false)
 
   // Confirm dialog
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
@@ -193,7 +165,6 @@ export default function SalesOrdersList() {
   useEffect(() => {
     fetchOrders()
     fetchCustomers()
-    fetchItems()
   }, [])
 
   const fetchOrders = useCallback(async () => {
@@ -221,29 +192,7 @@ export default function SalesOrdersList() {
     fetchOrders()
   }, [fetchOrders])
 
-  const fetchCustomers = async () => {
-    try {
-      const res = await fetch(`/api/sales/customers?activeOnly=true&companyId=${companyId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setCustomers(data)
-      }
-    } catch {
-      // silently fail
-    }
-  }
 
-  const fetchItems = async () => {
-    try {
-      const res = await fetch(`/api/inventory/items?activeOnly=true&companyId=${companyId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setItems(data)
-      }
-    } catch {
-      // silently fail
-    }
-  }
 
   const fetchOrderDetail = async (id: string) => {
     setDetailLoading(true)
@@ -261,178 +210,16 @@ export default function SalesOrdersList() {
     }
   }
 
-  // Calculate line total
-  const calcLineTotal = (line: OrderLineInput) => {
-    return line.quantity * line.unitPrice - line.discountAmount + line.taxAmount
-  }
-
-  // Calculate subtotal
-  const calcSubtotal = () => {
-    return invoiceLines.reduce((sum, l) => sum + calcLineTotal(l), 0)
-  }
-
-  // Calculate tax from percent
-  const calcTaxAmount = () => {
-    return Math.round(calcSubtotal() * orderTaxPercent / 100 * 100) / 100
-  }
-
-  // Calculate total
-  const calcTotal = () => {
-    return calcSubtotal() - orderDiscountAmount + calcTaxAmount()
-  }
-
-  // Handle item select in line
-  const handleItemSelect = (index: number, itemId: string) => {
-    const item = items.find((i) => i.id === itemId)
-    setOrderLines((prev) => {
-      const newLines = [...prev]
-      newLines[index] = {
-        ...newLines[index],
-        itemId,
-        unitPrice: item?.sellPrice || 0,
-      }
-      return newLines
-    })
-  }
-
-  // Alias for use inside calcSubtotal/calcTotal
-  const invoiceLines = orderLines
-
-  // Add line
-  const addLine = () => {
-    setOrderLines((prev) => [...prev, { ...emptyLine }])
-  }
-
-  // Remove line
-  const removeLine = (index: number) => {
-    setOrderLines((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // Update line field
-  const updateLine = (index: number, field: keyof OrderLineInput, value: number | string) => {
-    setOrderLines((prev) => {
-      const newLines = [...prev]
-      newLines[index] = { ...newLines[index], [field]: value }
-      return newLines
-    })
-  }
-
-  // Open new order sheet
+  // Navigate to create new order
   const handleOpenNew = () => {
-    setEditingOrder(null)
-    setOrderCustomerId('')
-    setOrderDate(new Date().toISOString().split('T')[0])
-    setOrderDueDate('')
-    setOrderNotes('')
-    setOrderLines([{ ...emptyLine }])
-    setOrderDiscountAmount(0)
-    setOrderTaxPercent(0)
-    setSheetOpen(true)
+    setEditingDocId(null)
+    setView('sales-order-form')
   }
 
-  // Open edit order
-  const handleOpenEdit = (order: SalesOrder) => {
-    setEditingOrder(order)
-    setOrderCustomerId(order.customerId)
-    setOrderDate(new Date(order.date).toISOString().split('T')[0])
-    setOrderDueDate(order.dueDate ? new Date(order.dueDate).toISOString().split('T')[0] : '')
-    setOrderNotes(order.notes || '')
-    setOrderDiscountAmount(order.discountAmount)
-    setOrderTaxPercent(order.taxPercent)
-    setOrderLines(
-      order.lines.map((l) => ({
-        itemId: l.itemId,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        discountAmount: l.discountAmount,
-        taxAmount: l.taxAmount,
-      }))
-    )
-    setSheetOpen(true)
-  }
-
-  // Submit order
-  const handleSubmit = async () => {
-    if (!orderCustomerId) {
-      toast.error('يرجى اختيار العميل')
-      return
-    }
-
-    const validLines = orderLines.filter((l) => l.itemId && l.quantity > 0)
-    if (validLines.length === 0) {
-      toast.error('يجب إضافة سطر واحد على الأقل')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      if (editingOrder) {
-        // Update existing DRAFT
-        const res = await fetch(`/api/sales/orders/${editingOrder.id}?companyId=${companyId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'update',
-            customerId: orderCustomerId,
-            date: orderDate,
-            dueDate: orderDueDate || null,
-            discountAmount: orderDiscountAmount,
-            taxPercent: orderTaxPercent,
-            notes: orderNotes || null,
-            lines: validLines.map((l) => ({
-              itemId: l.itemId,
-              quantity: l.quantity,
-              unitPrice: l.unitPrice,
-              discountAmount: l.discountAmount,
-              taxAmount: l.taxAmount,
-            })),
-            companyId,
-          }),
-        })
-        if (res.ok) {
-          toast.success('تم تحديث أمر البيع بنجاح')
-          setSheetOpen(false)
-          fetchOrders()
-        } else {
-          const err = await res.json()
-          toast.error(err.error || 'فشل في تحديث أمر البيع')
-        }
-      } else {
-        // Create new
-        const res = await fetch(`/api/sales/orders?companyId=${companyId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: orderCustomerId,
-            date: orderDate,
-            dueDate: orderDueDate || null,
-            discountAmount: orderDiscountAmount,
-            taxPercent: orderTaxPercent,
-            notes: orderNotes || null,
-            lines: validLines.map((l) => ({
-              itemId: l.itemId,
-              quantity: l.quantity,
-              unitPrice: l.unitPrice,
-              discountAmount: l.discountAmount,
-              taxAmount: l.taxAmount,
-            })),
-            companyId,
-          }),
-        })
-        if (res.ok) {
-          toast.success('تم إنشاء أمر البيع بنجاح')
-          setSheetOpen(false)
-          fetchOrders()
-        } else {
-          const err = await res.json()
-          toast.error(err.error || 'فشل في إنشاء أمر البيع')
-        }
-      }
-    } catch {
-      toast.error('حدث خطأ أثناء حفظ أمر البيع')
-    } finally {
-      setSubmitting(false)
-    }
+  // Navigate to edit existing order
+  const handleOpenEdit = (id: string) => {
+    setEditingDocId(id)
+    setView('sales-order-form')
   }
 
   // Confirm order
@@ -715,11 +502,11 @@ export default function SalesOrdersList() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleOpenEdit(order)}
+                                  onClick={() => handleOpenEdit(order.id)}
                                   className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
                                   title="تعديل"
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                  <Eye className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -802,229 +589,6 @@ export default function SalesOrdersList() {
           </div>
         </CardContent>
       </Card>
-
-      {/* New/Edit Order Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="left" className="w-full sm:max-w-3xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>
-              {editingOrder ? 'تعديل أمر البيع' : 'أمر بيع جديد'}
-            </SheetTitle>
-            <SheetDescription>
-              {editingOrder ? 'قم بتعديل بيانات أمر البيع' : 'أدخل بيانات أمر البيع الجديد'}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-6">
-            {/* Order Header */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>
-                  العميل <span className="text-red-500">*</span>
-                </Label>
-                <Select value={orderCustomerId} onValueChange={setOrderCustomerId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر العميل" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nameAr} ({c.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>التاريخ</Label>
-                <Input
-                  type="date"
-                  value={orderDate}
-                  onChange={(e) => setOrderDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>تاريخ الاستحقاق</Label>
-                <Input
-                  type="date"
-                  value={orderDueDate}
-                  onChange={(e) => setOrderDueDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>ملاحظات</Label>
-                <Input
-                  value={orderNotes}
-                  onChange={(e) => setOrderNotes(e.target.value)}
-                  placeholder="ملاحظات إضافية"
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Order Lines */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">بنود أمر البيع</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addLine}
-                  className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                >
-                  <Plus className="h-3 w-3" />
-                  إضافة بند
-                </Button>
-              </div>
-
-              {orderLines.map((line, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-12 gap-2 items-end border border-slate-100 rounded-lg p-3 bg-slate-50/50"
-                >
-                  <div className="col-span-12 sm:col-span-4 space-y-1">
-                    <Label className="text-xs">الصنف</Label>
-                    <Select
-                      value={line.itemId}
-                      onValueChange={(val) => handleItemSelect(index, val)}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="اختر الصنف" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {items.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.nameAr} ({item.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
-                    <Label className="text-xs">الكمية</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={line.quantity}
-                      onChange={(e) => updateLine(index, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="h-9 text-sm"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
-                    <Label className="text-xs">سعر الوحدة</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.unitPrice}
-                      onChange={(e) => updateLine(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="h-9 text-sm"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="col-span-4 sm:col-span-2 space-y-1">
-                    <Label className="text-xs">الخصم</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.discountAmount}
-                      onChange={(e) => updateLine(index, 'discountAmount', parseFloat(e.target.value) || 0)}
-                      className="h-9 text-sm"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="col-span-8 sm:col-span-1 space-y-1">
-                    <Label className="text-xs">الإجمالي</Label>
-                    <div className="h-9 px-2 flex items-center bg-white border rounded-md text-sm font-mono" dir="ltr">
-                      {formatCurrency(calcLineTotal(line))}
-                    </div>
-                  </div>
-                  <div className="col-span-4 sm:col-span-1 flex justify-center">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLine(index)}
-                      disabled={orderLines.length <= 1}
-                      className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Separator />
-
-            {/* Totals */}
-            <div className="space-y-3 bg-slate-50/50 rounded-lg p-4">
-              <div className="flex items-center gap-4">
-                <Label className="w-24 text-sm">خصم الأمر</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={orderDiscountAmount}
-                  onChange={(e) => setOrderDiscountAmount(parseFloat(e.target.value) || 0)}
-                  className="h-9 w-32"
-                  dir="ltr"
-                />
-              </div>
-              <div className="flex items-center gap-4">
-                <Label className="w-24 text-sm">نسبة الضريبة %</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={orderTaxPercent}
-                  onChange={(e) => setOrderTaxPercent(parseFloat(e.target.value) || 0)}
-                  className="h-9 w-32"
-                  dir="ltr"
-                />
-              </div>
-              <Separator />
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">المجموع الفرعي</span>
-                <span className="font-mono" dir="ltr">{formatCurrency(calcSubtotal())}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">الخصم</span>
-                <span className="font-mono text-red-500" dir="ltr">-{formatCurrency(orderDiscountAmount)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">الضريبة ({orderTaxPercent}%)</span>
-                <span className="font-mono text-orange-500" dir="ltr">+{formatCurrency(calcTaxAmount())}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>الإجمالي</span>
-                <span className="font-mono text-emerald-700" dir="ltr">{formatCurrency(calcTotal())}</span>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setSheetOpen(false)}>
-                إلغاء
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                حفظ كمسودة
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {/* Confirm Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>

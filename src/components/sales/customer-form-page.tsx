@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Save, Send, ArrowRight, Loader2, Building2 } from 'lucide-react'
+import { Save, ArrowRight, Loader2, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,76 +12,77 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useAppStore } from '@/lib/store'
 
-interface SupplierFormData {
+interface CustomerFormData {
   code: string
   nameAr: string
   nameEn: string
   phone: string
   email: string
   address: string
+  creditLimit: string
   paymentTerms: string
   isActive: boolean
 }
 
-const initialFormData: SupplierFormData = {
+const initialFormData: CustomerFormData = {
   code: '',
   nameAr: '',
   nameEn: '',
   phone: '',
   email: '',
   address: '',
+  creditLimit: '0',
   paymentTerms: '30',
   isActive: true,
 }
 
-export default function SupplierFormPage() {
+export default function CustomerFormPage() {
   const companyId = useAppStore(state => state.currentCompanyId)
   const setModule = useAppStore(state => state.setModule)
   const setView = useAppStore(state => state.setView)
   const editingDocId = useAppStore(state => state.editingDocId)
-  const [formData, setFormData] = useState<SupplierFormData>(initialFormData)
+  const [formData, setFormData] = useState<CustomerFormData>(initialFormData)
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [currentStatus, setCurrentStatus] = useState<string>('NEW')
 
   // Check if editing
   useEffect(() => {
     if (editingDocId && editingDocId !== 'new') {
-      loadSupplier(editingDocId)
+      loadCustomer(editingDocId)
     }
   }, [editingDocId, companyId])
 
-  const loadSupplier = async (id: string) => {
+  const loadCustomer = async (id: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/purchases/suppliers?companyId=${companyId}`)
+      const res = await fetch(`/api/sales/customers?companyId=${companyId}`)
       if (res.ok) {
-        const suppliers = await res.json()
-        const supplier = suppliers.find((s: { id: string }) => s.id === id)
-        if (supplier) {
+        const customers = await res.json()
+        const customer = customers.find((c: { id: string }) => c.id === id)
+        if (customer) {
           setFormData({
-            code: supplier.code,
-            nameAr: supplier.nameAr,
-            nameEn: supplier.nameEn || '',
-            phone: supplier.phone || '',
-            email: supplier.email || '',
-            address: supplier.address || '',
-            paymentTerms: String(supplier.paymentTerms),
-            isActive: supplier.isActive,
+            code: customer.code,
+            nameAr: customer.nameAr,
+            nameEn: customer.nameEn || '',
+            phone: customer.phone || '',
+            email: customer.email || '',
+            address: customer.address || '',
+            creditLimit: String(customer.creditLimit),
+            paymentTerms: String(customer.paymentTerms),
+            isActive: customer.isActive,
           })
-          setCurrentStatus('ACTIVE') // Suppliers don't have draft/confirmed
         }
       }
     } catch {
-      toast.error('فشل في تحميل بيانات المورد')
+      toast.error('فشل في تحميل بيانات العميل')
     } finally {
       setLoading(false)
     }
   }
 
   const handleGoBack = () => {
-    setModule('purchases')
-    setView('suppliers')
+    setModule('sales')
+    setView('customers')
   }
 
   const handleSave = async () => {
@@ -100,12 +101,13 @@ export default function SupplierFormPage() {
         phone: formData.phone || null,
         email: formData.email || null,
         address: formData.address || null,
+        creditLimit: parseFloat(formData.creditLimit) || 0,
         paymentTerms: parseInt(formData.paymentTerms) || 30,
         isActive: formData.isActive,
         companyId,
       }
 
-      const url = '/api/purchases/suppliers'
+      const url = '/api/sales/customers'
       const method = editingDocId && editingDocId !== 'new' ? 'PUT' : 'POST'
 
       const res = await fetch(url, {
@@ -115,7 +117,7 @@ export default function SupplierFormPage() {
       })
 
       if (res.ok) {
-        toast.success(editingDocId && editingDocId !== 'new' ? 'تم تحديث المورد بنجاح' : 'تم إضافة المورد بنجاح')
+        toast.success(editingDocId && editingDocId !== 'new' ? 'تم تحديث العميل بنجاح' : 'تم إضافة العميل بنجاح')
         handleGoBack()
       } else {
         const err = await res.json()
@@ -146,14 +148,14 @@ export default function SupplierFormPage() {
           </Button>
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-emerald-600" />
+              <Users className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">
-                {editingDocId && editingDocId !== 'new' ? 'تعديل مورد' : 'إضافة مورد جديد'}
+                {editingDocId && editingDocId !== 'new' ? 'تعديل عميل' : 'إضافة عميل جديد'}
               </h2>
               <p className="text-xs text-slate-400">
-                {editingDocId && editingDocId !== 'new' ? 'تعديل بيانات المورد' : 'أدخل بيانات المورد الجديد'}
+                {editingDocId && editingDocId !== 'new' ? 'تعديل بيانات العميل' : 'أدخل بيانات العميل الجديد'}
               </p>
             </div>
           </div>
@@ -176,70 +178,83 @@ export default function SupplierFormPage() {
       {/* Form */}
       <Card className="border shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">بيانات المورد</CardTitle>
+          <CardTitle className="text-base">بيانات العميل</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="supplier-code">الكود</Label>
+              <Label htmlFor="customer-code">الكود</Label>
               <Input
-                id="supplier-code"
+                id="customer-code"
                 value={formData.code}
                 onChange={(e) => setFormData((p) => ({ ...p, code: e.target.value }))}
-                placeholder="تلقائي S-0001"
+                placeholder="تلقائي C-0001"
                 dir="ltr"
                 className="text-left"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-nameAr">
+              <Label htmlFor="customer-nameAr">
                 الاسم بالعربية <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="supplier-nameAr"
+                id="customer-nameAr"
                 value={formData.nameAr}
                 onChange={(e) => setFormData((p) => ({ ...p, nameAr: e.target.value }))}
-                placeholder="شركة الأمل للتوريدات"
+                placeholder="اسم العميل بالعربية"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-nameEn">الاسم بالإنجليزية</Label>
+              <Label htmlFor="customer-nameEn">الاسم بالإنجليزية</Label>
               <Input
-                id="supplier-nameEn"
+                id="customer-nameEn"
                 value={formData.nameEn}
                 onChange={(e) => setFormData((p) => ({ ...p, nameEn: e.target.value }))}
-                placeholder="Al-Amal Supplies Co."
+                placeholder="Customer Name"
                 dir="ltr"
                 className="text-left"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-phone">الهاتف</Label>
+              <Label htmlFor="customer-phone">الهاتف</Label>
               <Input
-                id="supplier-phone"
+                id="customer-phone"
                 value={formData.phone}
                 onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="0551234567"
+                placeholder="05XXXXXXXX"
                 dir="ltr"
                 className="text-left"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-email">البريد الإلكتروني</Label>
+              <Label htmlFor="customer-email">البريد الإلكتروني</Label>
               <Input
-                id="supplier-email"
+                id="customer-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                placeholder="info@supplier.com"
+                placeholder="email@example.com"
                 dir="ltr"
                 className="text-left"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-paymentTerms">شروط الدفع (أيام)</Label>
+              <Label htmlFor="customer-creditLimit">حد الائتمان</Label>
               <Input
-                id="supplier-paymentTerms"
+                id="customer-creditLimit"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.creditLimit}
+                onChange={(e) => setFormData((p) => ({ ...p, creditLimit: e.target.value }))}
+                dir="ltr"
+                className="text-left"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customer-paymentTerms">شروط الدفع (أيام)</Label>
+              <Input
+                id="customer-paymentTerms"
                 type="number"
                 min="0"
                 value={formData.paymentTerms}
@@ -249,12 +264,12 @@ export default function SupplierFormPage() {
               />
             </div>
             <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-              <Label htmlFor="supplier-address">العنوان</Label>
+              <Label htmlFor="customer-address">العنوان</Label>
               <Textarea
-                id="supplier-address"
+                id="customer-address"
                 value={formData.address}
                 onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))}
-                placeholder="عنوان المورد..."
+                placeholder="عنوان العميل..."
                 rows={2}
               />
             </div>

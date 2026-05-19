@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, Users, Search, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Users, Search } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -19,14 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,41 +44,15 @@ interface Customer {
   isActive: boolean
 }
 
-interface CustomerFormData {
-  code: string
-  nameAr: string
-  nameEn: string
-  phone: string
-  email: string
-  address: string
-  creditLimit: string
-  paymentTerms: string
-  isActive: boolean
-}
-
-const initialFormData: CustomerFormData = {
-  code: '',
-  nameAr: '',
-  nameEn: '',
-  phone: '',
-  email: '',
-  address: '',
-  creditLimit: '0',
-  paymentTerms: '30',
-  isActive: true,
-}
-
 export default function CustomersList() {
   const companyId = useAppStore(state => state.currentCompanyId)
+  const setView = useAppStore(state => state.setView)
+  const setEditingDocId = useAppStore(state => state.setEditingDocId)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<CustomerFormData>(initialFormData)
-  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!companyId) return
@@ -121,77 +85,18 @@ export default function CustomersList() {
   })
 
   const handleOpenAdd = () => {
-    setEditingId(null)
-    setFormData(initialFormData)
-    setDialogOpen(true)
+    setEditingDocId(null)
+    setView('customer-form')
   }
 
-  const handleOpenEdit = (customer: Customer) => {
-    setEditingId(customer.id)
-    setFormData({
-      code: customer.code,
-      nameAr: customer.nameAr,
-      nameEn: customer.nameEn || '',
-      phone: customer.phone || '',
-      email: customer.email || '',
-      address: customer.address || '',
-      creditLimit: String(customer.creditLimit),
-      paymentTerms: String(customer.paymentTerms),
-      isActive: customer.isActive,
-    })
-    setDialogOpen(true)
+  const handleOpenEdit = (id: string) => {
+    setEditingDocId(id)
+    setView('customer-form')
   }
 
   const handleOpenDelete = (id: string) => {
     setDeletingId(id)
     setDeleteDialogOpen(true)
-  }
-
-  const handleSubmit = async () => {
-    if (!formData.nameAr.trim()) {
-      toast.error('الاسم بالعربية مطلوب')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const url = editingId
-        ? '/api/sales/customers'
-        : '/api/sales/customers'
-      const method = editingId ? 'PUT' : 'POST'
-
-      const payload = {
-        ...(editingId && { id: editingId }),
-        code: formData.code.trim() || undefined,
-        nameAr: formData.nameAr.trim(),
-        nameEn: formData.nameEn.trim() || null,
-        phone: formData.phone.trim() || null,
-        email: formData.email.trim() || null,
-        address: formData.address.trim() || null,
-        creditLimit: parseFloat(formData.creditLimit) || 0,
-        paymentTerms: parseInt(formData.paymentTerms) || 30,
-        isActive: formData.isActive,
-      }
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, companyId }),
-      })
-
-      if (res.ok) {
-        toast.success(editingId ? 'تم تحديث العميل بنجاح' : 'تم إضافة العميل بنجاح')
-        setDialogOpen(false)
-        fetchCustomers()
-      } else {
-        const err = await res.json()
-        toast.error(err.error || 'فشل في حفظ البيانات')
-      }
-    } catch {
-      toast.error('حدث خطأ أثناء حفظ البيانات')
-    } finally {
-      setSubmitting(false)
-    }
   }
 
   const handleDelete = async () => {
@@ -320,7 +225,7 @@ export default function CustomersList() {
                   </TableRow>
                 ) : (
                   filteredCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
+                    <TableRow key={customer.id} className="cursor-pointer hover:bg-slate-50/50" onClick={() => handleOpenEdit(customer.id)}>
                       <TableCell className="font-mono text-sm">{customer.code}</TableCell>
                       <TableCell>
                         <div>
@@ -375,15 +280,15 @@ export default function CustomersList() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleOpenEdit(customer)}
+                            onClick={(e) => { e.stopPropagation(); handleOpenEdit(customer.id) }}
                             className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Users className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleOpenDelete(customer.id)}
+                            onClick={(e) => { e.stopPropagation(); handleOpenDelete(customer.id) }}
                             className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -398,133 +303,6 @@ export default function CustomersList() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingId ? 'تعديل العميل' : 'إضافة عميل جديد'}</DialogTitle>
-            <DialogDescription>
-              {editingId ? 'قم بتعديل بيانات العميل' : 'أدخل بيانات العميل الجديد'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="customer-code">الكود</Label>
-              <Input
-                id="customer-code"
-                value={formData.code}
-                onChange={(e) => setFormData((p) => ({ ...p, code: e.target.value }))}
-                placeholder="توليد تلقائي"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer-nameAr">
-                الاسم بالعربية <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="customer-nameAr"
-                value={formData.nameAr}
-                onChange={(e) => setFormData((p) => ({ ...p, nameAr: e.target.value }))}
-                placeholder="اسم العميل بالعربية"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer-nameEn">الاسم بالإنجليزية</Label>
-              <Input
-                id="customer-nameEn"
-                value={formData.nameEn}
-                onChange={(e) => setFormData((p) => ({ ...p, nameEn: e.target.value }))}
-                placeholder="Customer Name"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer-phone">الهاتف</Label>
-              <Input
-                id="customer-phone"
-                value={formData.phone}
-                onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="05XXXXXXXX"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer-email">البريد الإلكتروني</Label>
-              <Input
-                id="customer-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                placeholder="email@example.com"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer-address">العنوان</Label>
-              <Input
-                id="customer-address"
-                value={formData.address}
-                onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))}
-                placeholder="عنوان العميل"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer-creditLimit">حد الائتمان</Label>
-              <Input
-                id="customer-creditLimit"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.creditLimit}
-                onChange={(e) => setFormData((p) => ({ ...p, creditLimit: e.target.value }))}
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer-paymentTerms">شروط الدفع (أيام)</Label>
-              <Input
-                id="customer-paymentTerms"
-                type="number"
-                min="0"
-                step="1"
-                value={formData.paymentTerms}
-                onChange={(e) => setFormData((p) => ({ ...p, paymentTerms: e.target.value }))}
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <Switch
-                checked={formData.isActive}
-                onCheckedChange={(checked) =>
-                  setFormData((p) => ({ ...p, isActive: checked }))
-                }
-              />
-              <Label className="text-sm">نشط</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              إلغاء
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? 'تحديث' : 'إضافة'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
