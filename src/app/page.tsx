@@ -1,9 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, type ElementType } from 'react'
+import { useState, useEffect, useCallback, useRef, type ElementType } from 'react'
+import { SessionProvider, useSession, signOut } from 'next-auth/react'
 import { useAppStore } from '@/lib/store'
 import type { Module } from '@/lib/store'
 import { formatCurrency, formatDate } from '@/lib/erp-utils'
+import { roleLabels, canManageCompany } from '@/lib/permissions'
+import LoginForm from '@/components/auth/login-form'
+import CompanySelector from '@/components/auth/company-selector'
 import {
   LayoutDashboard,
   Settings,
@@ -31,11 +35,14 @@ import {
   CreditCard,
   PieChart,
   TrendingUp,
+  HandCoins,
   Bell,
   LogOut,
   Activity,
   PanelRightClose,
   PanelRightOpen,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -53,6 +60,17 @@ import {
 } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import CompanySwitcher from '@/components/companies/company-switcher'
+import SetupWizard from '@/components/companies/setup-wizard'
 import CompanyForm from '@/components/settings/company-form'
 import CurrenciesList from '@/components/settings/currencies-list'
 import UOMList from '@/components/settings/uom-list'
@@ -78,6 +96,7 @@ import SalesReport from '@/components/reports/sales-report'
 import PurchaseReport from '@/components/reports/purchase-report'
 import CustomerAgingReport from '@/components/reports/customer-aging'
 import SupplierAgingReport from '@/components/reports/supplier-aging'
+import InvestorsList from '@/components/investors/investors-list'
 
 // ─── Navigation Configuration ────────────────────────────────────────────────
 
@@ -154,6 +173,14 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    id: 'investors',
+    label: 'المستثمرون',
+    icon: HandCoins,
+    children: [
+      { id: 'investors-list', label: 'المستثمرون', icon: Users },
+    ],
+  },
+  {
     id: 'reports',
     label: 'التقارير',
     icon: BarChart3,
@@ -180,6 +207,7 @@ const moduleTitles: Record<string, string> = {
   sales: 'المبيعات',
   purchases: 'المشتريات',
   reports: 'التقارير',
+  investors: 'المستثمرون',
 }
 
 const viewTitles: Record<string, string> = {
@@ -208,6 +236,7 @@ const viewTitles: Record<string, string> = {
   'purchase-report': 'تقرير المشتريات',
   'customer-aging': 'أرصدة العملاء',
   'supplier-aging': 'أرصدة الموردين',
+  'investors-list': 'المستثمرون',
 }
 
 // ─── Sidebar Navigation Component ────────────────────────────────────────────
@@ -229,13 +258,11 @@ function SidebarNav({
   onSubClick,
   isCollapsed,
 }: SidebarNavProps) {
-  // ── Collapsed Mode: Icon-only ──
   if (isCollapsed) {
     return (
       <nav className="space-y-1 p-2">
         {navigation.map((item) => {
-          const isActive =
-            currentModule === item.id
+          const isActive = currentModule === item.id
           return (
             <button
               key={item.id}
@@ -256,7 +283,6 @@ function SidebarNav({
     )
   }
 
-  // ── Expanded Mode: Full text with collapsible sub-items ──
   return (
     <nav className="space-y-1 p-3">
       {navigation.map((item) => {
@@ -265,7 +291,6 @@ function SidebarNav({
         const isParentActive = currentModule === item.id
         const hasChildren = !!item.children
 
-        // ── Item with children (Collapsible) ──
         if (hasChildren) {
           return (
             <Collapsible
@@ -322,7 +347,6 @@ function SidebarNav({
           )
         }
 
-        // ── Simple item (no children) ──
         return (
           <button
             key={item.id}
@@ -371,12 +395,14 @@ const dashboardStatDefs = [
 ]
 
 function DashboardContent() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
+    if (!companyId) return
     try {
-      const res = await fetch('/api/dashboard')
+      const res = await fetch(`/api/dashboard?companyId=${companyId}`)
       if (res.ok) {
         setData(await res.json())
       }
@@ -385,7 +411,7 @@ function DashboardContent() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [companyId])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -558,22 +584,99 @@ function ModulePlaceholder({ title }: { title: string }) {
   )
 }
 
-// ─── Main Page Component ─────────────────────────────────────────────────────
+// ─── Auth-aware App Content ──────────────────────────────────────────────────
 
-export default function Home() {
+function AppContent() {
   const {
+    user,
+    currentCompanyId,
+    companies,
+    isAuthenticated,
     currentModule,
     currentView,
     sidebarOpen,
     setModule,
     setView,
     toggleSidebar,
+    setCurrentCompany,
+    logout,
   } = useAppStore()
+
+  const { data: session, status } = useSession()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [mobileOpen, setMobileOpen] = useState(false)
+  const sessionProcessedRef = useRef(false)
+
+  // ── Sync session with store on mount ──
+  useEffect(() => {
+    if (status === 'loading') return
+    if (sessionProcessedRef.current) return
+    sessionProcessedRef.current = true
+
+    if (session?.user && !isAuthenticated) {
+      const userData = {
+        id: (session.user as any).id,
+        name: session.user.name || '',
+        username: (session.user as any).username || '',
+        role: (session.user as any).role || 'viewer',
+        email: session.user.email || undefined,
+      }
+      useAppStore.getState().setUser(userData)
+
+      // Fetch companies
+      fetch('/api/auth/companies')
+        .then(res => res.ok ? res.json() : [])
+        .then((companiesData) => {
+          useAppStore.getState().setCompanies(companiesData)
+
+          // Auto-select if only one company
+          if (companiesData.length === 1) {
+            useAppStore.getState().setCurrentCompany(companiesData[0].id)
+          }
+        })
+        .catch(console.error)
+    } else if (!session && isAuthenticated) {
+      // Session expired but store thinks we're logged in
+      logout()
+    }
+  }, [session, status, isAuthenticated, logout])
+
+  // ── Loading state ──
+  // Show spinner when session is loading, or when session is authenticated
+  // but store hasn't been synced yet (user data not in store)
+  const isLoading = status === 'loading' || (!!session?.user && !isAuthenticated)
+
+  if (isLoading) {
+    return (
+      <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+          <p className="text-sm text-slate-500">جاري التحميل...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Not Authenticated → Show Login ──
+  if (!isAuthenticated) {
+    return <LoginForm />
+  }
+
+  // ── Authenticated but no company → Show Company Selector ──
+  if (!currentCompanyId) {
+    return (
+      <CompanySelector
+        onSelect={(companyId) => setCurrentCompany(companyId)}
+      />
+    )
+  }
+
+  // ── Authenticated with company → Show ERP Layout ──
+
+  // Current company info
+  const currentCompany = companies.find((c) => c.id === currentCompanyId)
 
   // ── Navigation Handlers ──
-
   const handleNavClick = (id: string, hasChildren: boolean) => {
     if (hasChildren) {
       setModule(id as Module)
@@ -594,7 +697,6 @@ export default function Home() {
 
   const handleCollapsedNavClick = (id: string, hasChildren: boolean) => {
     if (hasChildren) {
-      // Expand sidebar first, then navigate
       if (!sidebarOpen) {
         toggleSidebar()
       }
@@ -607,19 +709,22 @@ export default function Home() {
     }
   }
 
-  // ── Current Title ──
+  // ── Logout Handler ──
+  const handleLogout = async () => {
+    logout()
+    await signOut({ redirect: false })
+  }
 
+  // ── Current Title ──
   const currentTitle = currentView
     ? viewTitles[currentView] || currentView
     : moduleTitles[currentModule] || currentModule
 
   // ── Render Content ──
-
   const renderContent = () => {
     if (currentModule === 'dashboard' && !currentView) {
       return <DashboardContent />
     }
-    // Settings views
     if (currentModule === 'settings') {
       switch (currentView) {
         case 'company':
@@ -636,7 +741,6 @@ export default function Home() {
           return <ModulePlaceholder title={currentTitle} />
       }
     }
-    // Inventory views
     if (currentModule === 'inventory') {
       switch (currentView) {
         case 'warehouses':
@@ -653,7 +757,6 @@ export default function Home() {
           return <ModulePlaceholder title={currentTitle} />
       }
     }
-    // Accounting views
     if (currentModule === 'accounting') {
       switch (currentView) {
         case 'journal-entries':
@@ -664,7 +767,6 @@ export default function Home() {
           return <ModulePlaceholder title={currentTitle} />
       }
     }
-    // Sales views
     if (currentModule === 'sales') {
       switch (currentView) {
         case 'customers':
@@ -677,7 +779,6 @@ export default function Home() {
           return <ModulePlaceholder title={currentTitle} />
       }
     }
-    // Purchases views
     if (currentModule === 'purchases') {
       switch (currentView) {
         case 'suppliers':
@@ -690,7 +791,14 @@ export default function Home() {
           return <ModulePlaceholder title={currentTitle} />
       }
     }
-    // Reports views
+    if (currentModule === 'investors') {
+      switch (currentView) {
+        case 'investors-list':
+          return <InvestorsList />
+        default:
+          return <InvestorsList />
+      }
+    }
     if (currentModule === 'reports') {
       switch (currentView) {
         case 'trial-balance':
@@ -729,7 +837,6 @@ export default function Home() {
           </SheetTrigger>
           <SheetContent side="right" className="w-72 p-0">
             <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
-            {/* Mobile sidebar header */}
             <div className="h-14 flex items-center gap-3 px-4 border-b shrink-0">
               <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
                 <LayoutDashboard className="h-4 w-4 text-white" />
@@ -738,7 +845,6 @@ export default function Home() {
                 نظام ERP
               </span>
             </div>
-            {/* Mobile navigation */}
             <ScrollArea className="h-[calc(100dvh-3.5rem)]">
               <SidebarNav
                 currentModule={currentModule}
@@ -750,20 +856,13 @@ export default function Home() {
               />
               {/* Mobile user section */}
               <div className="border-t p-3 mt-2">
-                <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                  <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <Users className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 truncate">
-                      مدير النظام
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      admin@erp.com
-                    </p>
-                  </div>
-                  <LogOut className="h-4 w-4 text-slate-400" />
-                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="text-sm font-medium">تسجيل خروج</span>
+                </button>
               </div>
             </ScrollArea>
           </SheetContent>
@@ -789,21 +888,49 @@ export default function Home() {
 
         <div className="flex-1" />
 
+        {/* Company Switcher */}
+        <CompanySwitcher onOpenSetup={() => setSetupWizardOpen(true)} />
+
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5 text-slate-500" />
           <span className="absolute top-2 end-2 h-2 w-2 bg-red-500 rounded-full" />
         </Button>
 
-        {/* User avatar */}
-        <div className="hidden sm:flex items-center gap-2 ms-2">
-          <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center">
-            <Users className="h-4 w-4 text-emerald-600" />
-          </div>
-          <span className="text-sm font-medium text-slate-700">
-            مدير النظام
-          </span>
-        </div>
+        {/* User menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="hidden sm:flex items-center gap-2 ms-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-bold">
+                  {user?.name?.charAt(0) || 'م'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-700 leading-tight truncate max-w-[100px]">
+                  {user?.name || 'مستخدم'}
+                </p>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  {roleLabels[user?.role || 'viewer']}
+                </p>
+              </div>
+              <ChevronDown className="h-3 w-3 text-slate-400" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">{user?.name}</p>
+                <p className="text-xs text-slate-500">{user?.email || user?.username}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 gap-2 cursor-pointer">
+              <LogOut className="h-4 w-4" />
+              تسجيل خروج
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {/* ── Body ── */}
@@ -839,9 +966,7 @@ export default function Home() {
               currentModule={currentModule}
               currentView={currentView}
               expandedItems={sidebarOpen ? expandedItems : []}
-              onNavClick={
-                sidebarOpen ? handleNavClick : handleCollapsedNavClick
-              }
+              onNavClick={sidebarOpen ? handleNavClick : handleCollapsedNavClick}
               onSubClick={handleSubClick}
               isCollapsed={!sidebarOpen}
             />
@@ -850,27 +975,26 @@ export default function Home() {
           {/* Sidebar footer - user section */}
           {sidebarOpen && (
             <div className="border-t p-3 shrink-0">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
-                <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <Users className="h-4 w-4 text-emerald-600" />
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+              >
+                <div className="h-8 w-8 bg-red-50 rounded-full flex items-center justify-center">
+                  <LogOut className="h-4 w-4 text-red-500" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">
-                    مدير النظام
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">
-                    admin@erp.com
-                  </p>
-                </div>
-                <LogOut className="h-4 w-4 text-slate-400" />
-              </div>
+                <span className="text-sm font-medium">تسجيل خروج</span>
+              </button>
             </div>
           )}
           {!sidebarOpen && (
             <div className="border-t p-2 shrink-0">
-              <button className="w-full flex items-center justify-center p-3 rounded-lg hover:bg-slate-50 transition-colors" title="مدير النظام">
-                <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <Users className="h-4 w-4 text-emerald-600" />
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center p-3 rounded-lg hover:bg-red-50 transition-colors"
+                title="تسجيل خروج"
+              >
+                <div className="h-8 w-8 bg-red-50 rounded-full flex items-center justify-center">
+                  <LogOut className="h-4 w-4 text-red-500" />
                 </div>
               </button>
             </div>
@@ -882,6 +1006,18 @@ export default function Home() {
           <div className="p-4 md:p-6 max-w-7xl mx-auto">{renderContent()}</div>
         </main>
       </div>
+      {/* Setup Wizard */}
+      <SetupWizard open={setupWizardOpen} onClose={() => setSetupWizardOpen(false)} />
     </div>
+  )
+}
+
+// ─── Main Page Component with SessionProvider ────────────────────────────────
+
+export default function Home() {
+  return (
+    <SessionProvider>
+      <AppContent />
+    </SessionProvider>
   )
 }

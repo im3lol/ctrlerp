@@ -62,6 +62,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/erp-utils'
 
 interface Customer {
@@ -138,6 +139,7 @@ const emptyLine: InvoiceLineInput = {
 }
 
 export default function SalesInvoicesList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [invoices, setInvoices] = useState<SalesInvoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -188,7 +190,7 @@ export default function SalesInvoicesList() {
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
 
-      const res = await fetch(`/api/sales/invoices?${params.toString()}`)
+      const res = await fetch(`/api/sales/invoices?companyId=${companyId}&${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
         setInvoices(data)
@@ -206,7 +208,7 @@ export default function SalesInvoicesList() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('/api/sales/customers?activeOnly=true')
+      const res = await fetch(`/api/sales/customers?activeOnly=true&companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setCustomers(data)
@@ -218,7 +220,7 @@ export default function SalesInvoicesList() {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch('/api/inventory/items?activeOnly=true')
+      const res = await fetch(`/api/inventory/items?activeOnly=true&companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setItems(data)
@@ -231,7 +233,7 @@ export default function SalesInvoicesList() {
   const fetchInvoiceDetail = async (id: string) => {
     setDetailLoading(true)
     try {
-      const res = await fetch(`/api/sales/invoices/${id}`)
+      const res = await fetch(`/api/sales/invoices/${id}?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setDetailInvoice(data)
@@ -343,7 +345,7 @@ export default function SalesInvoicesList() {
     try {
       if (editingInvoice) {
         // Update existing DRAFT
-        const res = await fetch(`/api/sales/invoices/${editingInvoice.id}`, {
+        const res = await fetch(`/api/sales/invoices/${editingInvoice.id}?companyId=${companyId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -361,6 +363,7 @@ export default function SalesInvoicesList() {
               discountAmount: l.discountAmount,
               taxAmount: l.taxAmount,
             })),
+            companyId,
           }),
         })
         if (res.ok) {
@@ -373,7 +376,7 @@ export default function SalesInvoicesList() {
         }
       } else {
         // Create new
-        const res = await fetch('/api/sales/invoices', {
+        const res = await fetch(`/api/sales/invoices?companyId=${companyId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -390,6 +393,7 @@ export default function SalesInvoicesList() {
               discountAmount: l.discountAmount,
               taxAmount: l.taxAmount,
             })),
+            companyId,
           }),
         })
         if (res.ok) {
@@ -413,10 +417,10 @@ export default function SalesInvoicesList() {
     if (!confirmingId) return
     setConfirming(true)
     try {
-      const res = await fetch(`/api/sales/invoices/${confirmingId}`, {
+      const res = await fetch(`/api/sales/invoices/${confirmingId}?companyId=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'confirm' }),
+        body: JSON.stringify({ action: 'confirm', companyId }),
       })
       if (res.ok) {
         toast.success('تم تأكيد الفاتورة بنجاح')
@@ -439,10 +443,10 @@ export default function SalesInvoicesList() {
     if (!cancellingId) return
     setCancelling(true)
     try {
-      const res = await fetch(`/api/sales/invoices/${cancellingId}`, {
+      const res = await fetch(`/api/sales/invoices/${cancellingId}?companyId=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel' }),
+        body: JSON.stringify({ action: 'cancel', companyId }),
       })
       if (res.ok) {
         toast.success('تم إلغاء الفاتورة بنجاح')

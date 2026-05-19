@@ -1,14 +1,19 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/purchases/suppliers - List suppliers with filters
+// GET /api/purchases/suppliers - List suppliers with filters for a company
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const search = searchParams.get('search')
     const activeOnly = searchParams.get('activeOnly')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (search) {
       where.OR = [
@@ -42,7 +47,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, nameAr, nameEn, phone, email, address, paymentTerms, isActive } = body
+    const { companyId, code, nameAr, nameEn, phone, email, address, paymentTerms, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!nameAr) {
       return NextResponse.json(
@@ -55,7 +64,7 @@ export async function POST(request: NextRequest) {
     let supplierCode = code
     if (!supplierCode) {
       const lastSupplier = await db.supplier.findFirst({
-        where: { code: { startsWith: 'S-' } },
+        where: { companyId, code: { startsWith: 'S-' } },
         orderBy: { code: 'desc' },
         select: { code: true },
       })
@@ -68,8 +77,10 @@ export async function POST(request: NextRequest) {
       supplierCode = `S-${String(seq).padStart(4, '0')}`
     }
 
-    // Check if code already exists
-    const existing = await db.supplier.findUnique({ where: { code: supplierCode } })
+    // Check if code already exists within company
+    const existing = await db.supplier.findUnique({
+      where: { companyId_code: { companyId, code: supplierCode } },
+    })
     if (existing) {
       return NextResponse.json(
         { error: `كود المورد "${supplierCode}" مستخدم بالفعل` },
@@ -79,6 +90,7 @@ export async function POST(request: NextRequest) {
 
     const supplier = await db.supplier.create({
       data: {
+        companyId,
         code: supplierCode,
         nameAr,
         nameEn: nameEn || null,
@@ -104,7 +116,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, code, nameAr, nameEn, phone, email, address, paymentTerms, isActive } = body
+    const { companyId, id, code, nameAr, nameEn, phone, email, address, paymentTerms, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -121,9 +137,19 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // If code is being changed, check for uniqueness
+    // Verify the supplier belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Supplier does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
+    // If code is being changed, check for uniqueness within company
     if (code && code !== existing.code) {
-      const codeExists = await db.supplier.findUnique({ where: { code } })
+      const codeExists = await db.supplier.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
       if (codeExists) {
         return NextResponse.json(
           { error: `كود المورد "${code}" مستخدم بالفعل` },
@@ -160,7 +186,11 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id } = body
+    const { companyId, id } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -177,6 +207,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'المورد غير موجود' },
         { status: 404 }
+      )
+    }
+
+    // Verify the supplier belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Supplier does not belong to this company' },
+        { status: 403 }
       )
     }
 

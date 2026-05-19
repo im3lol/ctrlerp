@@ -11,6 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { useAppStore } from '@/lib/store'
 import { Printer, BarChart3, Loader2, Calendar, TrendingUp, ShoppingCart, DollarSign, Percent } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -31,6 +32,7 @@ interface SalesData {
 }
 
 export default function SalesReport() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const today = new Date().toISOString().split('T')[0]
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
   const [fromDate, setFromDate] = useState(firstOfMonth)
@@ -42,7 +44,7 @@ export default function SalesReport() {
 
   const fetchCustomers = useCallback(async () => {
     try {
-      const res = await fetch('/api/sales/customers')
+      const res = await fetch(`/api/sales/customers?companyId=${companyId}`)
       if (res.ok) setCustomers(await res.json())
     } catch (err) { console.error(err) }
   }, [])
@@ -54,7 +56,7 @@ export default function SalesReport() {
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
       if (customerId && customerId !== 'all') params.set('customerId', customerId)
-      const res = await fetch(`/api/reports/sales-report?${params}`)
+      const res = await fetch(`/api/reports/sales-report?companyId=${companyId}&${params}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)

@@ -1,14 +1,22 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/settings/company - Get company info (first record)
-export async function GET() {
+// GET /api/settings/company - Get company info by companyId
+export async function GET(request: NextRequest) {
   try {
-    const company = await db.company.findFirst()
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
+    const company = await db.company.findUnique({
+      where: { id: companyId },
+    })
 
     if (!company) {
       return NextResponse.json(
-        { error: 'No company found. Please seed the database first.' },
+        { error: 'Company not found' },
         { status: 404 }
       )
     }
@@ -27,20 +35,25 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nameAr, nameEn, address, phone, email, taxNumber, logo, baseCurrencyId, fiscalYearStart } = body
+    const { companyId, nameAr, nameEn, address, phone, email, taxNumber, logo, baseCurrencyId, fiscalYearStart, vatRate, status } = body
 
-    // Get the first (and likely only) company record
-    const existingCompany = await db.company.findFirst()
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
+    const existingCompany = await db.company.findUnique({
+      where: { id: companyId },
+    })
 
     if (!existingCompany) {
       return NextResponse.json(
-        { error: 'No company found. Please seed the database first.' },
+        { error: 'Company not found' },
         { status: 404 }
       )
     }
 
     const updatedCompany = await db.company.update({
-      where: { id: existingCompany.id },
+      where: { id: companyId },
       data: {
         ...(nameAr !== undefined && { nameAr }),
         ...(nameEn !== undefined && { nameEn }),
@@ -51,6 +64,8 @@ export async function PUT(request: NextRequest) {
         ...(logo !== undefined && { logo }),
         ...(baseCurrencyId !== undefined && { baseCurrencyId }),
         ...(fiscalYearStart !== undefined && { fiscalYearStart }),
+        ...(vatRate !== undefined && { vatRate }),
+        ...(status !== undefined && { status }),
       },
     })
 

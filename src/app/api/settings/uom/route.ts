@@ -1,10 +1,17 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/settings/uom - List all units of measure
-export async function GET() {
+// GET /api/settings/uom - List all units of measure for a company
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const uoms = await db.unitOfMeasure.findMany({
+      where: { companyId },
       orderBy: { code: 'asc' },
     })
 
@@ -22,7 +29,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, nameAr, nameEn, isActive } = body
+    const { companyId, code, nameAr, nameEn, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!code || !nameAr || !nameEn) {
       return NextResponse.json(
@@ -31,17 +42,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if UOM code already exists
-    const existing = await db.unitOfMeasure.findUnique({ where: { code } })
+    // Check if UOM code already exists within the company
+    const existing = await db.unitOfMeasure.findUnique({
+      where: { companyId_code: { companyId, code } },
+    })
     if (existing) {
       return NextResponse.json(
-        { error: `Unit of measure with code "${code}" already exists` },
+        { error: `Unit of measure with code "${code}" already exists in this company` },
         { status: 409 }
       )
     }
 
     const uom = await db.unitOfMeasure.create({
       data: {
+        companyId,
         code,
         nameAr,
         nameEn,
@@ -63,7 +77,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, code, nameAr, nameEn, isActive } = body
+    const { companyId, id, code, nameAr, nameEn, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -78,6 +96,27 @@ export async function PUT(request: NextRequest) {
         { error: 'Unit of measure not found' },
         { status: 404 }
       )
+    }
+
+    // Verify the UOM belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Unit of measure does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
+    // If code is being changed, check for uniqueness within company
+    if (code && code !== existing.code) {
+      const codeExists = await db.unitOfMeasure.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
+      if (codeExists) {
+        return NextResponse.json(
+          { error: `Unit of measure with code "${code}" already exists in this company` },
+          { status: 409 }
+        )
+      }
     }
 
     const uom = await db.unitOfMeasure.update({
@@ -104,7 +143,11 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id } = body
+    const { companyId, id } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -118,6 +161,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unit of measure not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify the UOM belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Unit of measure does not belong to this company' },
+        { status: 403 }
       )
     }
 

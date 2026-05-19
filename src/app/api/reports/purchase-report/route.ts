@@ -5,11 +5,19 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
     const supplierId = searchParams.get('supplierId')
 
-    const where: Record<string, unknown> = { status: { in: ['CONFIRMED', 'POSTED', 'PAID', 'PARTIAL_PAID'] } }
+    const where: Record<string, unknown> = {
+      companyId,
+      status: { in: ['CONFIRMED', 'POSTED', 'PAID', 'PARTIAL_PAID'] },
+    }
     if (supplierId) where.supplierId = supplierId
     if (fromDate || toDate) {
       where.date = {

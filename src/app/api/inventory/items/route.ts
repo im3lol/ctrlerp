@@ -1,15 +1,20 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/inventory/items - List all items with filters
+// GET /api/inventory/items - List all items with filters, include codes and image
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const search = searchParams.get('search')
     const categoryId = searchParams.get('categoryId')
     const activeOnly = searchParams.get('activeOnly')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (search) {
       where.OR = [
@@ -32,6 +37,7 @@ export async function GET(request: NextRequest) {
       include: {
         category: true,
         uom: true,
+        codes: true,
         _count: {
           select: {
             balances: true,
@@ -56,6 +62,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
+      companyId,
       code,
       nameAr,
       nameEn,
@@ -66,8 +73,14 @@ export async function POST(request: NextRequest) {
       minStock,
       maxStock,
       description,
+      image,
       isActive,
+      codes,
     } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!code || !nameAr) {
       return NextResponse.json(
@@ -90,17 +103,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if item code already exists
-    const existing = await db.item.findUnique({ where: { code } })
+    // Check if item code already exists within the company
+    const existing = await db.item.findUnique({
+      where: { companyId_code: { companyId, code } },
+    })
     if (existing) {
       return NextResponse.json(
-        { error: `Item with code "${code}" already exists` },
+        { error: `Item with code "${code}" already exists in this company` },
         { status: 409 }
       )
     }
 
     const item = await db.item.create({
       data: {
+        companyId,
         code,
         nameAr,
         nameEn,
@@ -111,11 +127,22 @@ export async function POST(request: NextRequest) {
         minStock: minStock ?? 0,
         maxStock,
         description,
+        image,
         isActive: isActive ?? true,
+        codes: codes && codes.length > 0
+          ? {
+              create: codes.map((c: { codeType: string; value: string; isPrimary?: boolean }) => ({
+                codeType: c.codeType,
+                value: c.value,
+                isPrimary: c.isPrimary ?? false,
+              })),
+            }
+          : undefined,
       },
       include: {
         category: true,
         uom: true,
+        codes: true,
       },
     })
 
@@ -134,6 +161,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const {
+      companyId,
       id,
       code,
       nameAr,
@@ -145,8 +173,14 @@ export async function PUT(request: NextRequest) {
       minStock,
       maxStock,
       description,
+      image,
       isActive,
+      codes,
     } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -160,6 +194,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { error: 'Item not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify the item belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Item does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -177,15 +219,24 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // If code is being changed, check for uniqueness
+    // If code is being changed, check for uniqueness within company
     if (code && code !== existing.code) {
-      const codeExists = await db.item.findUnique({ where: { code } })
+      const codeExists = await db.item.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
       if (codeExists) {
         return NextResponse.json(
-          { error: `Item with code "${code}" already exists` },
+          { error: `Item with code "${code}" already exists in this company` },
           { status: 409 }
         )
       }
+    }
+
+    // If codes are provided, delete old and create new
+    if (codes !== undefined) {
+      await db.itemCode.deleteMany({
+        where: { itemId: id },
+      })
     }
 
     const item = await db.item.update({
@@ -201,11 +252,24 @@ export async function PUT(request: NextRequest) {
         ...(minStock !== undefined && { minStock }),
         ...(maxStock !== undefined && { maxStock }),
         ...(description !== undefined && { description }),
+        ...(image !== undefined && { image }),
         ...(isActive !== undefined && { isActive }),
+        ...(codes !== undefined && codes.length > 0
+          ? {
+              codes: {
+                create: codes.map((c: { codeType: string; value: string; isPrimary?: boolean }) => ({
+                  codeType: c.codeType,
+                  value: c.value,
+                  isPrimary: c.isPrimary ?? false,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         category: true,
         uom: true,
+        codes: true,
       },
     })
 
@@ -223,7 +287,11 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id } = body
+    const { companyId, id } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -237,6 +305,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'Item not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify the item belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Item does not belong to this company' },
+        { status: 403 }
       )
     }
 

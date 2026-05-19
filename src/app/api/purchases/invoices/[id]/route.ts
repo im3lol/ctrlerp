@@ -4,11 +4,16 @@ import { generateDocNumber } from '@/lib/erp-utils'
 
 // GET /api/purchases/invoices/[id] - Get single invoice with full details
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     const invoice = await db.purchaseInvoice.findUnique({
       where: { id },
@@ -40,6 +45,14 @@ export async function GET(
       )
     }
 
+    // Verify the invoice belongs to the company
+    if (invoice.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Invoice does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
     return NextResponse.json(invoice)
   } catch (error) {
     console.error('Get purchase invoice error:', error)
@@ -58,7 +71,11 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { action } = body
+    const { companyId, action } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     const invoice = await db.purchaseInvoice.findUnique({
       where: { id },
@@ -75,6 +92,14 @@ export async function PUT(
       return NextResponse.json(
         { error: 'فاتورة الشراء غير موجودة' },
         { status: 404 }
+      )
+    }
+
+    // Verify the invoice belongs to the company
+    if (invoice.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Invoice does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -98,7 +123,7 @@ export async function PUT(
           // Create StockMovement
           const smPrefix = `SM-${new Date(invoice.date).getFullYear()}`
           const lastSM = await tx.stockMovement.findFirst({
-            where: { number: { startsWith: smPrefix } },
+            where: { companyId, number: { startsWith: smPrefix } },
             orderBy: { number: 'desc' },
             select: { number: true },
           })
@@ -110,6 +135,7 @@ export async function PUT(
 
           await tx.stockMovement.create({
             data: {
+              companyId,
               number: smNumber,
               type: 'IN',
               itemId: line.itemId,
@@ -172,13 +198,16 @@ export async function PUT(
           }
         }
 
-        // 4. Create Journal Entry
-        //   - Debit: المخزون (1104) = subtotal (total cost before invoice-level tax)
-        //   - Debit: الضريبة المستحقة (2102) = taxAmount (if any)
-        //   - Credit: الموردين (2101) = totalAmount
-        const inventoryAccount = await tx.account.findUnique({ where: { code: '1104' } })
-        const taxAccount = await tx.account.findUnique({ where: { code: '2102' } })
-        const supplierAccount = await tx.account.findUnique({ where: { code: '2101' } })
+        // 4. Create Journal Entry - look up accounts by companyId + code
+        const inventoryAccount = await tx.account.findFirst({
+          where: { companyId, code: '1104' },
+        })
+        const taxAccount = await tx.account.findFirst({
+          where: { companyId, code: '2102' },
+        })
+        const supplierAccount = await tx.account.findFirst({
+          where: { companyId, code: '2101' },
+        })
 
         if (!inventoryAccount) {
           throw new Error('حساب المخزون (1104) غير موجود في شجرة الحسابات')
@@ -191,7 +220,7 @@ export async function PUT(
         const jeYear = new Date(invoice.date).getFullYear()
         const jePrefix = `JV-${jeYear}`
         const lastJE = await tx.journalEntry.findFirst({
-          where: { number: { startsWith: jePrefix } },
+          where: { companyId, number: { startsWith: jePrefix } },
           orderBy: { number: 'desc' },
           select: { number: true },
         })
@@ -228,6 +257,7 @@ export async function PUT(
 
         await tx.journalEntry.create({
           data: {
+            companyId,
             number: jeNumber,
             date: invoice.date,
             description: `تأكيد فاتورة شراء ${invoice.number} - ${invoice.number}`,
@@ -294,7 +324,7 @@ export async function PUT(
             // Create reverse StockMovement
             const smPrefix = `SM-${new Date().getFullYear()}`
             const lastSM = await tx.stockMovement.findFirst({
-              where: { number: { startsWith: smPrefix } },
+              where: { companyId, number: { startsWith: smPrefix } },
               orderBy: { number: 'desc' },
               select: { number: true },
             })
@@ -306,6 +336,7 @@ export async function PUT(
 
             await tx.stockMovement.create({
               data: {
+                companyId,
                 number: smNumber,
                 type: 'OUT',
                 itemId: line.itemId,
@@ -321,7 +352,6 @@ export async function PUT(
             })
 
             // Reduce FifoLayer remaining
-            // Find the fifo layer created by this invoice for this item
             const fifoLayer = await tx.fifoLayer.findFirst({
               where: {
                 itemId: line.itemId,
@@ -366,16 +396,22 @@ export async function PUT(
             }
           }
 
-          // 2. Create reversal Journal Entry
-          const inventoryAccount = await tx.account.findUnique({ where: { code: '1104' } })
-          const taxAccount = await tx.account.findUnique({ where: { code: '2102' } })
-          const supplierAccount = await tx.account.findUnique({ where: { code: '2101' } })
+          // 2. Create reversal Journal Entry - look up accounts by companyId + code
+          const inventoryAccount = await tx.account.findFirst({
+            where: { companyId, code: '1104' },
+          })
+          const taxAccount = await tx.account.findFirst({
+            where: { companyId, code: '2102' },
+          })
+          const supplierAccount = await tx.account.findFirst({
+            where: { companyId, code: '2101' },
+          })
 
           if (inventoryAccount && supplierAccount) {
             const jeYear = new Date().getFullYear()
             const jePrefix = `JV-${jeYear}`
             const lastJE = await tx.journalEntry.findFirst({
-              where: { number: { startsWith: jePrefix } },
+              where: { companyId, number: { startsWith: jePrefix } },
               orderBy: { number: 'desc' },
               select: { number: true },
             })
@@ -411,6 +447,7 @@ export async function PUT(
 
             await tx.journalEntry.create({
               data: {
+                companyId,
                 number: jeNumber,
                 date: new Date(),
                 description: `إلغاء فاتورة شراء ${invoice.number}`,

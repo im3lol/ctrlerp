@@ -6,13 +6,18 @@ import { generateDocNumber } from '@/lib/erp-utils'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const status = searchParams.get('status')
     const sourceType = searchParams.get('sourceType')
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
     const limit = parseInt(searchParams.get('limit') || '50', 10)
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (status) {
       where.status = status
@@ -63,7 +68,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { date, description, sourceType, sourceId, lines } = body
+    const { companyId, date, description, sourceType, sourceId, lines } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     // Validate required fields
     if (!date) {
@@ -116,17 +125,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate all accounts are leaf and active
+    // Validate all accounts are leaf, active, and belong to the company
     const accountIds = lines.map((l: { accountId: string }) => l.accountId)
     const accounts = await db.account.findMany({
-      where: { id: { in: accountIds } },
+      where: { id: { in: accountIds }, companyId },
     })
 
     for (const line of lines) {
       const account = accounts.find((a) => a.id === line.accountId)
       if (!account) {
         return NextResponse.json(
-          { error: `الحساب غير موجود` },
+          { error: `الحساب غير موجود أو لا ينتمي لهذه الشركة` },
           { status: 404 }
         )
       }
@@ -150,7 +159,7 @@ export async function POST(request: NextRequest) {
     const prefix = `JV-${year}`
 
     const lastEntry = await db.journalEntry.findFirst({
-      where: { number: { startsWith: prefix } },
+      where: { companyId, number: { startsWith: prefix } },
       orderBy: { number: 'desc' },
       select: { number: true },
     })
@@ -166,6 +175,7 @@ export async function POST(request: NextRequest) {
     // Create the journal entry with all lines
     const entry = await db.journalEntry.create({
       data: {
+        companyId,
         number,
         date: entryDate,
         description: description || null,

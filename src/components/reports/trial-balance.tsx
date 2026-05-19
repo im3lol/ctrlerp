@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { useAppStore } from '@/lib/store'
 import { Printer, Scale, Loader2, Calendar } from 'lucide-react'
 
 interface TrialBalanceLine {
@@ -37,6 +38,7 @@ const accountTypeColors: Record<string, string> = {
 }
 
 export default function TrialBalanceReport() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split('T')[0])
   const [data, setData] = useState<TrialBalanceData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -44,7 +46,7 @@ export default function TrialBalanceReport() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/reports/trial-balance?asOfDate=${asOfDate}`)
+      const res = await fetch(`/api/reports/trial-balance?companyId=${companyId}&asOfDate=${asOfDate}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)

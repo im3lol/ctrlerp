@@ -1,10 +1,17 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/inventory/warehouses - List all warehouses
-export async function GET() {
+// GET /api/inventory/warehouses - List all warehouses for a company
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const warehouses = await db.warehouse.findMany({
+      where: { companyId },
       include: {
         _count: {
           select: {
@@ -30,7 +37,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, nameAr, nameEn, location, manager, isActive } = body
+    const { companyId, code, nameAr, nameEn, location, manager, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!code || !nameAr) {
       return NextResponse.json(
@@ -39,17 +50,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if warehouse code already exists
-    const existing = await db.warehouse.findUnique({ where: { code } })
+    // Check if warehouse code already exists within the company
+    const existing = await db.warehouse.findUnique({
+      where: { companyId_code: { companyId, code } },
+    })
     if (existing) {
       return NextResponse.json(
-        { error: `Warehouse with code "${code}" already exists` },
+        { error: `Warehouse with code "${code}" already exists in this company` },
         { status: 409 }
       )
     }
 
     const warehouse = await db.warehouse.create({
       data: {
+        companyId,
         code,
         nameAr,
         nameEn,
@@ -73,7 +87,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, code, nameAr, nameEn, location, manager, isActive } = body
+    const { companyId, id, code, nameAr, nameEn, location, manager, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -90,12 +108,22 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // If code is being changed, check for uniqueness
+    // Verify the warehouse belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Warehouse does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
+    // If code is being changed, check for uniqueness within company
     if (code && code !== existing.code) {
-      const codeExists = await db.warehouse.findUnique({ where: { code } })
+      const codeExists = await db.warehouse.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
       if (codeExists) {
         return NextResponse.json(
-          { error: `Warehouse with code "${code}" already exists` },
+          { error: `Warehouse with code "${code}" already exists in this company` },
           { status: 409 }
         )
       }
@@ -127,7 +155,11 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id } = body
+    const { companyId, id } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -141,6 +173,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'Warehouse not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify the warehouse belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Warehouse does not belong to this company' },
+        { status: 403 }
       )
     }
 

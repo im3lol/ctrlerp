@@ -1,8 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, Package, Search, Loader2 } from 'lucide-react'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Package,
+  Search,
+  Loader2,
+  Upload,
+  X,
+  Star,
+  Eye,
+  Image as ImageIcon,
+  Barcode,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,6 +57,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency } from '@/lib/erp-utils'
 
 interface Category {
@@ -61,6 +75,13 @@ interface UOM {
   nameEn: string
 }
 
+interface ItemCode {
+  id?: string
+  codeType: string
+  value: string
+  isPrimary: boolean
+}
+
 interface Item {
   id: string
   code: string
@@ -73,9 +94,12 @@ interface Item {
   minStock: number
   maxStock: number | null
   description: string | null
+  image: string | null
   isActive: boolean
   category?: Category | null
   uom?: UOM | null
+  codes?: ItemCode[]
+  primaryCode?: string | null
   _count?: { stockMovements: number }
 }
 
@@ -107,7 +131,24 @@ const initialFormData: ItemFormData = {
   isActive: true,
 }
 
+const CODE_TYPE_OPTIONS = [
+  { value: 'UPC', label: 'UPC' },
+  { value: 'EAN', label: 'EAN' },
+  { value: 'SKU', label: 'SKU' },
+  { value: 'ASIN', label: 'ASIN' },
+  { value: 'FNSKU', label: 'FNSKU' },
+]
+
+const CODE_TYPE_COLORS: Record<string, string> = {
+  UPC: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  EAN: 'bg-teal-50 text-teal-700 border-teal-200',
+  SKU: 'bg-amber-50 text-amber-700 border-amber-200',
+  ASIN: 'bg-purple-50 text-purple-700 border-purple-200',
+  FNSKU: 'bg-rose-50 text-rose-700 border-rose-200',
+}
+
 export default function ItemsList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [items, setItems] = useState<Item[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [uoms, setUoms] = useState<UOM[]>([])
@@ -121,6 +162,19 @@ export default function ItemsList() {
   const [formData, setFormData] = useState<ItemFormData>(initialFormData)
   const [submitting, setSubmitting] = useState(false)
 
+  // Product codes
+  const [itemCodes, setItemCodes] = useState<ItemCode[]>([])
+
+  // Product image
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Detail view
+  const [detailItem, setDetailItem] = useState<Item | null>(null)
+  const [detailCodes, setDetailCodes] = useState<ItemCode[]>([])
+
   useEffect(() => {
     fetchItems()
     fetchCategories()
@@ -129,7 +183,7 @@ export default function ItemsList() {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch('/api/inventory/items')
+      const res = await fetch(`/api/inventory/items?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setItems(data)
@@ -143,26 +197,39 @@ export default function ItemsList() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/inventory/categories')
+      const res = await fetch(`/api/inventory/categories?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setCategories(data)
       }
     } catch {
-      // silently fail - categories are for dropdown
+      // silently fail
     }
   }
 
   const fetchUoms = async () => {
     try {
-      const res = await fetch('/api/settings/uom')
+      const res = await fetch(`/api/settings/uom?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setUoms(data)
       }
     } catch {
-      // silently fail - uoms are for dropdown
+      // silently fail
     }
+  }
+
+  const fetchItemCodes = async (itemId: string) => {
+    try {
+      const res = await fetch(`/api/inventory/item-codes?companyId=${companyId}&itemId=${itemId}`)
+      if (res.ok) {
+        const data = await res.json()
+        return data
+      }
+    } catch {
+      // silently fail
+    }
+    return []
   }
 
   const getCategoryName = (categoryId: string | null) => {
@@ -175,6 +242,15 @@ export default function ItemsList() {
     if (!uomId) return '—'
     const uom = uoms.find((u) => u.id === uomId)
     return uom?.nameAr || '—'
+  }
+
+  // Get primary code for an item (from codes loaded on items)
+  const getPrimaryCode = (item: Item) => {
+    if (item.codes && item.codes.length > 0) {
+      const primary = item.codes.find((c) => c.isPrimary)
+      return primary || item.codes[0]
+    }
+    return null
   }
 
   // Filter items
@@ -194,10 +270,13 @@ export default function ItemsList() {
   const handleOpenAdd = () => {
     setEditingId(null)
     setFormData(initialFormData)
+    setItemCodes([{ codeType: 'SKU', value: '', isPrimary: true }])
+    setImagePreview(null)
+    setImageFile(null)
     setDialogOpen(true)
   }
 
-  const handleOpenEdit = (item: Item) => {
+  const handleOpenEdit = async (item: Item) => {
     setEditingId(item.id)
     setFormData({
       code: item.code,
@@ -212,6 +291,17 @@ export default function ItemsList() {
       description: item.description || '',
       isActive: item.isActive,
     })
+    setImagePreview(item.image || null)
+    setImageFile(null)
+
+    // Load existing codes
+    const codes = await fetchItemCodes(item.id)
+    if (codes.length > 0) {
+      setItemCodes(codes)
+    } else {
+      setItemCodes([{ codeType: 'SKU', value: '', isPrimary: true }])
+    }
+
     setDialogOpen(true)
   }
 
@@ -220,6 +310,91 @@ export default function ItemsList() {
     setDeleteDialogOpen(true)
   }
 
+  const handleOpenDetail = async (item: Item) => {
+    const codes = await fetchItemCodes(item.id)
+    setDetailItem(item)
+    setDetailCodes(codes)
+  }
+
+  // ── Image handling ──
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('نوع الملف غير مدعوم. يُسمح بـ JPEG, PNG, WebP فقط')
+      return
+    }
+
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImagePreview(ev.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveImage = () => {
+    setImagePreview(null)
+    setImageFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('نوع الملف غير مدعوم. يُسمح بـ JPEG, PNG, WebP فقط')
+      return
+    }
+
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImagePreview(ev.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // ── Code handling ──
+  const addCodeEntry = () => {
+    setItemCodes((prev) => [...prev, { codeType: 'SKU', value: '', isPrimary: false }])
+  }
+
+  const removeCodeEntry = (index: number) => {
+    setItemCodes((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const updateCodeEntry = (index: number, field: keyof ItemCode, value: string | boolean) => {
+    setItemCodes((prev) =>
+      prev.map((c, i) => {
+        if (i !== index) return c
+        // If setting isPrimary, unset others
+        if (field === 'isPrimary' && value === true) {
+          return { ...c, isPrimary: true }
+        }
+        return { ...c, [field]: value }
+      })
+    )
+    // If isPrimary was set, unset others
+    if (field === 'isPrimary' && value === true) {
+      setItemCodes((prev) =>
+        prev.map((c, i) => (i === index ? { ...c, isPrimary: true } : { ...c, isPrimary: false }))
+      )
+    }
+  }
+
+  // ── Submit ──
   const handleSubmit = async () => {
     if (!formData.code.trim() || !formData.nameAr.trim()) {
       toast.error('يرجى ملء الحقول المطلوبة')
@@ -228,9 +403,10 @@ export default function ItemsList() {
 
     setSubmitting(true)
     try {
+      // 1. Save item
       const url = editingId
-        ? `/api/inventory/items/${editingId}`
-        : '/api/inventory/items'
+        ? `/api/inventory/items/${editingId}?companyId=${companyId}`
+        : `/api/inventory/items?companyId=${companyId}`
       const method = editingId ? 'PUT' : 'POST'
 
       const payload = {
@@ -250,17 +426,75 @@ export default function ItemsList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, companyId }),
       })
 
-      if (res.ok) {
-        toast.success(editingId ? 'تم تحديث الصنف بنجاح' : 'تم إضافة الصنف بنجاح')
-        setDialogOpen(false)
-        fetchItems()
-      } else {
+      if (!res.ok) {
         const err = await res.json()
         toast.error(err.error || 'فشل في حفظ البيانات')
+        setSubmitting(false)
+        return
       }
+
+      const savedItem = await res.json()
+      const itemId = savedItem.id
+
+      // 2. Upload image if new
+      if (imageFile && itemId) {
+        setUploadingImage(true)
+        try {
+          const imgFormData = new FormData()
+          imgFormData.append('file', imageFile)
+          imgFormData.append('itemId', itemId)
+          imgFormData.append('companyId', companyId || '')
+          const imgRes = await fetch(`/api/inventory/items/image?companyId=${companyId}`, {
+            method: 'POST',
+            body: imgFormData,
+          })
+          if (!imgRes.ok) {
+            toast.error('فشل في رفع الصورة')
+          }
+        } catch {
+          toast.error('فشل في رفع الصورة')
+        }
+        setUploadingImage(false)
+      }
+
+      // 3. Save codes
+      const validCodes = itemCodes.filter((c) => c.value.trim())
+      if (validCodes.length > 0 && itemId) {
+        // If editing, delete existing codes first then recreate
+        if (editingId) {
+          const existingCodes = await fetchItemCodes(itemId)
+          for (const ec of existingCodes) {
+            if (ec.id) {
+              await fetch(`/api/inventory/item-codes?companyId=${companyId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: ec.id, companyId }),
+              })
+            }
+          }
+        }
+
+        for (const code of validCodes) {
+          await fetch(`/api/inventory/item-codes?companyId=${companyId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              itemId,
+              codeType: code.codeType,
+              value: code.value,
+              isPrimary: code.isPrimary,
+              companyId,
+            }),
+          })
+        }
+      }
+
+      toast.success(editingId ? 'تم تحديث الصنف بنجاح' : 'تم إضافة الصنف بنجاح')
+      setDialogOpen(false)
+      fetchItems()
     } catch {
       toast.error('حدث خطأ أثناء حفظ البيانات')
     } finally {
@@ -271,9 +505,7 @@ export default function ItemsList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch(`/api/inventory/items/${deletingId}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/inventory/items/${deletingId}?companyId=${companyId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success('تم حذف الصنف بنجاح')
         fetchItems()
@@ -366,12 +598,12 @@ export default function ItemsList() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                  <TableHead className="text-right font-semibold w-12"></TableHead>
                   <TableHead className="text-right font-semibold">الكود</TableHead>
                   <TableHead className="text-right font-semibold">الاسم عربي</TableHead>
                   <TableHead className="text-right font-semibold">الفئة</TableHead>
                   <TableHead className="text-right font-semibold">الوحدة</TableHead>
                   <TableHead className="text-right font-semibold">سعر البيع</TableHead>
-                  <TableHead className="text-right font-semibold">الحد الأدنى</TableHead>
                   <TableHead className="text-right font-semibold">طريقة التكلفة</TableHead>
                   <TableHead className="text-right font-semibold">الحالة</TableHead>
                   <TableHead className="text-right font-semibold">إجراءات</TableHead>
@@ -397,66 +629,92 @@ export default function ItemsList() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-mono text-sm">{item.code}</TableCell>
-                      <TableCell className="font-medium">{item.nameAr}</TableCell>
-                      <TableCell className="text-slate-500">
-                        {getCategoryName(item.categoryId)}
-                      </TableCell>
-                      <TableCell className="text-slate-500">
-                        {getUOMName(item.uomId)}
-                      </TableCell>
-                      <TableCell className="font-mono" dir="ltr">
-                        {formatCurrency(item.sellPrice)}
-                      </TableCell>
-                      <TableCell className="font-mono" dir="ltr">
-                        {item.minStock.toLocaleString('ar-EG')}
-                      </TableCell>
-                      <TableCell>
-                        {item.costMethod === 'FIFO' ? (
-                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                            FIFO
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-teal-50 text-teal-700 border-teal-200">
-                            WAC
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {item.isActive ? (
-                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                            نشط
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="bg-slate-100 text-slate-500">
-                            غير نشط
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenEdit(item)}
-                            className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenDelete(item.id)}
-                            className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredItems.map((item) => {
+                    const primaryCode = getPrimaryCode(item)
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className="cursor-pointer group"
+                        onClick={() => handleOpenDetail(item)}
+                      >
+                        <TableCell>
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.nameAr}
+                              className="h-8 w-8 rounded-md object-cover border border-slate-100"
+                            />
+                          ) : (
+                            <div className="h-8 w-8 rounded-md bg-slate-50 flex items-center justify-center border border-slate-100">
+                              <Package className="h-4 w-4 text-slate-300" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <span className="font-mono text-sm">{item.code}</span>
+                            {primaryCode && (
+                              <p className="text-xs text-slate-400 font-mono" dir="ltr">
+                                {primaryCode.value}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{item.nameAr}</TableCell>
+                        <TableCell className="text-slate-500">
+                          {getCategoryName(item.categoryId)}
+                        </TableCell>
+                        <TableCell className="text-slate-500">
+                          {getUOMName(item.uomId)}
+                        </TableCell>
+                        <TableCell className="font-mono" dir="ltr">
+                          {formatCurrency(item.sellPrice)}
+                        </TableCell>
+                        <TableCell>
+                          {item.costMethod === 'FIFO' ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                              FIFO
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-teal-50 text-teal-700 border-teal-200">
+                              WAC
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {item.isActive ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                              نشط
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-slate-100 text-slate-500">
+                              غير نشط
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenEdit(item)}
+                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenDelete(item.id)}
+                              className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
@@ -466,164 +724,282 @@ export default function ItemsList() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'تعديل الصنف' : 'إضافة صنف جديد'}</DialogTitle>
             <DialogDescription>
               {editingId ? 'قم بتعديل بيانات الصنف' : 'أدخل بيانات الصنف الجديد'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+          <div className="space-y-6 py-2">
+            {/* Image Upload Area */}
             <div className="space-y-2">
-              <Label htmlFor="item-code">
-                الكود <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="item-code"
-                value={formData.code}
-                onChange={(e) => setFormData((p) => ({ ...p, code: e.target.value }))}
-                placeholder="ITEM-001"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-nameAr">
-                الاسم عربي <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="item-nameAr"
-                value={formData.nameAr}
-                onChange={(e) => setFormData((p) => ({ ...p, nameAr: e.target.value }))}
-                placeholder="لابتوب HP"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-nameEn">الاسم إنجليزي</Label>
-              <Input
-                id="item-nameEn"
-                value={formData.nameEn}
-                onChange={(e) => setFormData((p) => ({ ...p, nameEn: e.target.value }))}
-                placeholder="HP Laptop"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-category">الفئة</Label>
-              <Select
-                value={formData.categoryId}
-                onValueChange={(val) =>
-                  setFormData((p) => ({ ...p, categoryId: val === '_none_' ? '' : val }))
-                }
+              <Label>صورة المنتج</Label>
+              <div
+                className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="اختر الفئة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none_">بدون فئة</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.nameAr}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {imagePreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="h-32 w-32 rounded-lg object-cover mx-auto"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRemoveImage()
+                      }}
+                      className="absolute -top-2 -left-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="py-4">
+                    <Upload className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+                    <p className="text-sm text-slate-500">اضغط لرفع الصورة أو اسحبها هنا</p>
+                    <p className="text-xs text-slate-300 mt-1">JPEG, PNG, WebP</p>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-uom">وحدة القياس</Label>
-              <Select
-                value={formData.uomId}
-                onValueChange={(val) =>
-                  setFormData((p) => ({ ...p, uomId: val === '_none_' ? '' : val }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="اختر الوحدة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none_">بدون وحدة</SelectItem>
-                  {uoms.map((uom) => (
-                    <SelectItem key={uom.id} value={uom.id}>
-                      {uom.nameAr} ({uom.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Main Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="item-code">
+                  الكود <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="item-code"
+                  value={formData.code}
+                  onChange={(e) => setFormData((p) => ({ ...p, code: e.target.value }))}
+                  placeholder="ITEM-001"
+                  dir="ltr"
+                  className="text-left"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-nameAr">
+                  الاسم عربي <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="item-nameAr"
+                  value={formData.nameAr}
+                  onChange={(e) => setFormData((p) => ({ ...p, nameAr: e.target.value }))}
+                  placeholder="لابتوب HP"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-nameEn">الاسم إنجليزي</Label>
+                <Input
+                  id="item-nameEn"
+                  value={formData.nameEn}
+                  onChange={(e) => setFormData((p) => ({ ...p, nameEn: e.target.value }))}
+                  placeholder="HP Laptop"
+                  dir="ltr"
+                  className="text-left"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-category">الفئة</Label>
+                <Select
+                  value={formData.categoryId}
+                  onValueChange={(val) =>
+                    setFormData((p) => ({ ...p, categoryId: val === '_none_' ? '' : val }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="اختر الفئة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none_">بدون فئة</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.nameAr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-uom">وحدة القياس</Label>
+                <Select
+                  value={formData.uomId}
+                  onValueChange={(val) =>
+                    setFormData((p) => ({ ...p, uomId: val === '_none_' ? '' : val }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="اختر الوحدة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none_">بدون وحدة</SelectItem>
+                    {uoms.map((uom) => (
+                      <SelectItem key={uom.id} value={uom.id}>
+                        {uom.nameAr} ({uom.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-costMethod">طريقة التكلفة</Label>
+                <Select
+                  value={formData.costMethod}
+                  onValueChange={(val) => setFormData((p) => ({ ...p, costMethod: val }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FIFO">FIFO - الوارد أولاً يصرف أولاً</SelectItem>
+                    <SelectItem value="WAC">WAC - متوسط التكلفة المرجح</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-sellPrice">سعر البيع</Label>
+                <Input
+                  id="item-sellPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.sellPrice}
+                  onChange={(e) => setFormData((p) => ({ ...p, sellPrice: e.target.value }))}
+                  dir="ltr"
+                  className="text-left"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-minStock">الحد الأدنى</Label>
+                <Input
+                  id="item-minStock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.minStock}
+                  onChange={(e) => setFormData((p) => ({ ...p, minStock: e.target.value }))}
+                  dir="ltr"
+                  className="text-left"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="item-maxStock">الحد الأقصى</Label>
+                <Input
+                  id="item-maxStock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.maxStock}
+                  onChange={(e) => setFormData((p) => ({ ...p, maxStock: e.target.value }))}
+                  placeholder="غير محدد"
+                  dir="ltr"
+                  className="text-left"
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) =>
+                    setFormData((p) => ({ ...p, isActive: checked }))
+                  }
+                />
+                <Label className="text-sm">نشط</Label>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="item-description">الوصف</Label>
+                <Textarea
+                  id="item-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="وصف الصنف..."
+                  rows={3}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-costMethod">طريقة التكلفة</Label>
-              <Select
-                value={formData.costMethod}
-                onValueChange={(val) => setFormData((p) => ({ ...p, costMethod: val }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FIFO">FIFO - الوارد أولاً يصرف أولاً</SelectItem>
-                  <SelectItem value="WAC">WAC - متوسط التكلفة المرجح</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-sellPrice">سعر البيع</Label>
-              <Input
-                id="item-sellPrice"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.sellPrice}
-                onChange={(e) => setFormData((p) => ({ ...p, sellPrice: e.target.value }))}
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-minStock">الحد الأدنى</Label>
-              <Input
-                id="item-minStock"
-                type="number"
-                min="0"
-                step="1"
-                value={formData.minStock}
-                onChange={(e) => setFormData((p) => ({ ...p, minStock: e.target.value }))}
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-maxStock">الحد الأقصى</Label>
-              <Input
-                id="item-maxStock"
-                type="number"
-                min="0"
-                step="1"
-                value={formData.maxStock}
-                onChange={(e) => setFormData((p) => ({ ...p, maxStock: e.target.value }))}
-                placeholder="غير محدد"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-            <div className="flex items-center gap-2 pt-6">
-              <Switch
-                checked={formData.isActive}
-                onCheckedChange={(checked) =>
-                  setFormData((p) => ({ ...p, isActive: checked }))
-                }
-              />
-              <Label className="text-sm">نشط</Label>
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="item-description">الوصف</Label>
-              <Textarea
-                id="item-description"
-                value={formData.description}
-                onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
-                placeholder="وصف الصنف..."
-                rows={3}
-              />
+
+            {/* Product Codes Section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Barcode className="h-4 w-4 text-slate-500" />
+                  <Label className="text-sm font-semibold">أكواد المنتج</Label>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addCodeEntry}
+                  className="gap-1"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  إضافة كود
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {itemCodes.map((codeEntry, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Select
+                      value={codeEntry.codeType}
+                      onValueChange={(val) => updateCodeEntry(index, 'codeType', val)}
+                    >
+                      <SelectTrigger className="w-28 shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CODE_TYPE_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={codeEntry.value}
+                      onChange={(e) => updateCodeEntry(index, 'value', e.target.value)}
+                      placeholder="قيمة الكود"
+                      dir="ltr"
+                      className="text-left flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => updateCodeEntry(index, 'isPrimary', !codeEntry.isPrimary)}
+                      className={`h-9 w-9 shrink-0 ${
+                        codeEntry.isPrimary
+                          ? 'text-amber-500 hover:bg-amber-50'
+                          : 'text-slate-300 hover:text-amber-400'
+                      }`}
+                      title="رئيسي"
+                    >
+                      <Star className={`h-4 w-4 ${codeEntry.isPrimary ? 'fill-current' : ''}`} />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeCodeEntry(index)}
+                      className="h-9 w-9 shrink-0 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -632,13 +1008,135 @@ export default function ItemsList() {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || uploadingImage}
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
             >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? 'تحديث' : 'إضافة'}
+              {(submitting || uploadingImage) && <Loader2 className="h-4 w-4 animate-spin" />}
+              {uploadingImage ? 'جاري رفع الصورة...' : editingId ? 'تحديث' : 'إضافة'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Item Detail Dialog */}
+      <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          {detailItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  {detailItem.image ? (
+                    <img
+                      src={detailItem.image}
+                      alt={detailItem.nameAr}
+                      className="h-12 w-12 rounded-lg object-cover border border-slate-100"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
+                      <Package className="h-6 w-6 text-slate-300" />
+                    </div>
+                  )}
+                  {detailItem.nameAr}
+                </DialogTitle>
+                <DialogDescription>
+                  {detailItem.code} {detailItem.nameEn && `| ${detailItem.nameEn}`}
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Large Image */}
+              {detailItem.image && (
+                <div className="flex justify-center mb-4">
+                  <img
+                    src={detailItem.image}
+                    alt={detailItem.nameAr}
+                    className="h-48 w-48 rounded-xl object-cover border border-slate-100 shadow-sm"
+                  />
+                </div>
+              )}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-400">الفئة</p>
+                  <p className="font-medium">{getCategoryName(detailItem.categoryId)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">وحدة القياس</p>
+                  <p className="font-medium">{getUOMName(detailItem.uomId)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">طريقة التكلفة</p>
+                  <p className="font-medium">{detailItem.costMethod}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">سعر البيع</p>
+                  <p className="font-medium font-mono" dir="ltr">{formatCurrency(detailItem.sellPrice)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">الحد الأدنى</p>
+                  <p className="font-medium">{detailItem.minStock.toLocaleString('ar-EG')}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">الحالة</p>
+                  <p className="font-medium">
+                    {detailItem.isActive ? (
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">نشط</Badge>
+                    ) : (
+                      <Badge variant="secondary">غير نشط</Badge>
+                    )}
+                  </p>
+                </div>
+                {detailItem.description && (
+                  <div className="col-span-full">
+                    <p className="text-slate-400">الوصف</p>
+                    <p className="font-medium">{detailItem.description}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Product Codes */}
+              {detailCodes.length > 0 && (
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Barcode className="h-4 w-4 text-slate-500" />
+                    <p className="text-sm font-semibold">أكواد المنتج</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {detailCodes.map((code) => (
+                      <div
+                        key={code.id || code.value}
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+                          CODE_TYPE_COLORS[code.codeType] || 'bg-slate-50 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        <span className="text-xs font-semibold">{code.codeType}</span>
+                        <span className="text-sm font-mono" dir="ltr">{code.value}</span>
+                        {code.isPrimary && (
+                          <Star className="h-3 w-3 text-amber-500 fill-current" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDetailItem(null)}>
+                  إغلاق
+                </Button>
+                <Button
+                  onClick={() => {
+                    setDetailItem(null)
+                    handleOpenEdit(detailItem)
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                >
+                  <Pencil className="h-4 w-4" />
+                  تعديل
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

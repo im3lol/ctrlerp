@@ -6,12 +6,17 @@ import { generateDocNumber } from '@/lib/erp-utils'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const status = searchParams.get('status')
     const customerId = searchParams.get('customerId')
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (status) {
       where.status = status
@@ -59,6 +64,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
+      companyId,
       customerId,
       date,
       dueDate,
@@ -69,6 +75,10 @@ export async function POST(request: NextRequest) {
       notes,
       lines,
     } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     // Validate customer
     if (!customerId) {
@@ -83,6 +93,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'العميل غير موجود' },
         { status: 404 }
+      )
+    }
+    if (customer.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Customer does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -149,7 +165,7 @@ export async function POST(request: NextRequest) {
     const prefix = `SI-${year}`
 
     const lastInvoice = await db.salesInvoice.findFirst({
-      where: { number: { startsWith: prefix } },
+      where: { companyId, number: { startsWith: prefix } },
       orderBy: { number: 'desc' },
       select: { number: true },
     })
@@ -165,6 +181,7 @@ export async function POST(request: NextRequest) {
     // Create the invoice
     const invoice = await db.salesInvoice.create({
       data: {
+        companyId,
         number,
         customerId,
         date: invoiceDate,

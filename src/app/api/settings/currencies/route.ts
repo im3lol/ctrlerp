@@ -1,10 +1,17 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/settings/currencies - List all currencies
-export async function GET() {
+// GET /api/settings/currencies - List all currencies for a company
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const currencies = await db.currency.findMany({
+      where: { companyId },
       orderBy: [{ isBase: 'desc' }, { code: 'asc' }],
     })
 
@@ -22,7 +29,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, nameAr, nameEn, symbol, isBase, exchangeRate, isActive } = body
+    const { companyId, code, nameAr, nameEn, symbol, isBase, exchangeRate, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!code || !nameAr || !nameEn || !symbol) {
       return NextResponse.json(
@@ -31,25 +42,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if currency code already exists
-    const existing = await db.currency.findUnique({ where: { code } })
+    // Check if currency code already exists within the company
+    const existing = await db.currency.findUnique({
+      where: { companyId_code: { companyId, code } },
+    })
     if (existing) {
       return NextResponse.json(
-        { error: `Currency with code "${code}" already exists` },
+        { error: `Currency with code "${code}" already exists in this company` },
         { status: 409 }
       )
     }
 
-    // If setting as base, unset any existing base currency
+    // If setting as base, unset any existing base currency in this company
     if (isBase) {
       await db.currency.updateMany({
-        where: { isBase: true },
+        where: { companyId, isBase: true },
         data: { isBase: false },
       })
     }
 
     const currency = await db.currency.create({
       data: {
+        companyId,
         code,
         nameAr,
         nameEn,
@@ -74,7 +88,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, code, nameAr, nameEn, symbol, isBase, exchangeRate, isActive } = body
+    const { companyId, id, code, nameAr, nameEn, symbol, isBase, exchangeRate, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -91,10 +109,31 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // If setting as base, unset any existing base currency
+    // Verify the currency belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Currency does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
+    // If code is being changed, check for uniqueness within company
+    if (code && code !== existing.code) {
+      const codeExists = await db.currency.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
+      if (codeExists) {
+        return NextResponse.json(
+          { error: `Currency with code "${code}" already exists in this company` },
+          { status: 409 }
+        )
+      }
+    }
+
+    // If setting as base, unset any existing base currency in this company
     if (isBase && !existing.isBase) {
       await db.currency.updateMany({
-        where: { isBase: true },
+        where: { companyId, isBase: true },
         data: { isBase: false },
       })
     }
@@ -126,7 +165,11 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id } = body
+    const { companyId, id } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -140,6 +183,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'Currency not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify the currency belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Currency does not belong to this company' },
+        { status: 403 }
       )
     }
 

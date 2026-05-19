@@ -34,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency, formatDate } from '@/lib/erp-utils'
 
 interface Customer {
@@ -87,6 +88,7 @@ interface ReceiptVoucher {
 }
 
 export default function ReceiptVouchersList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [receipts, setReceipts] = useState<ReceiptVoucher[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,7 +120,7 @@ export default function ReceiptVouchersList() {
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
 
-      const res = await fetch(`/api/sales/receipts?${params.toString()}`)
+      const res = await fetch(`/api/sales/receipts?companyId=${companyId}&${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
         setReceipts(data)
@@ -136,7 +138,7 @@ export default function ReceiptVouchersList() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('/api/sales/customers?activeOnly=true')
+      const res = await fetch(`/api/sales/customers?activeOnly=true&companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setCustomers(data)
@@ -154,11 +156,11 @@ export default function ReceiptVouchersList() {
       return
     }
     try {
-      const res = await fetch(`/api/sales/invoices?customerId=${customerId}&status=CONFIRMED`)
+      const res = await fetch(`/api/sales/invoices?companyId=${companyId}&customerId=${customerId}&status=CONFIRMED`)
       if (res.ok) {
         const invoices = await res.json()
         // Also get PARTIAL_PAID
-        const res2 = await fetch(`/api/sales/invoices?customerId=${customerId}&status=PARTIAL_PAID`)
+        const res2 = await fetch(`/api/sales/invoices?companyId=${companyId}&customerId=${customerId}&status=PARTIAL_PAID`)
         let allInvoices = invoices
         if (res2.ok) {
           const partialInvoices = await res2.json()
@@ -244,7 +246,7 @@ export default function ReceiptVouchersList() {
     try {
       const activeLines = rcptLines.filter((l) => l.amount > 0)
 
-      const res = await fetch('/api/sales/receipts', {
+      const res = await fetch(`/api/sales/receipts?companyId=${companyId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -255,6 +257,7 @@ export default function ReceiptVouchersList() {
           reference: rcptReference.trim() || null,
           notes: rcptNotes.trim() || null,
           receiptLines: activeLines.length > 0 ? activeLines : undefined,
+          companyId,
         }),
       })
 

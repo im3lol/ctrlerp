@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency } from '@/lib/erp-utils'
 
 interface Item {
@@ -50,6 +51,7 @@ interface ItemBalance {
 }
 
 export default function ItemBalancesList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [balances, setBalances] = useState<ItemBalance[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
@@ -65,7 +67,7 @@ export default function ItemBalancesList() {
 
   const fetchBalances = async () => {
     try {
-      const res = await fetch('/api/inventory/item-balances')
+      const res = await fetch(`/api/inventory/item-balances?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setBalances(data)
@@ -79,7 +81,7 @@ export default function ItemBalancesList() {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch('/api/inventory/items')
+      const res = await fetch(`/api/inventory/items?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setItems(data)
@@ -91,7 +93,7 @@ export default function ItemBalancesList() {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await fetch('/api/inventory/warehouses')
+      const res = await fetch(`/api/inventory/warehouses?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setWarehouses(data)

@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/erp-utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ const emptyLine: InvoiceLine = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PurchaseInvoicesList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
@@ -163,7 +165,7 @@ export default function PurchaseInvoicesList() {
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
 
-      const res = await fetch(`/api/purchases/invoices?${params.toString()}`)
+      const res = await fetch(`/api/purchases/invoices?companyId=${companyId}&${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
         setInvoices(data)
@@ -177,21 +179,21 @@ export default function PurchaseInvoicesList() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch('/api/purchases/suppliers?activeOnly=true')
+      const res = await fetch(`/api/purchases/suppliers?activeOnly=true&companyId=${companyId}`)
       if (res.ok) setSuppliers(await res.json())
     } catch { /* silent */ }
   }
 
   const fetchWarehouses = async () => {
     try {
-      const res = await fetch('/api/inventory/warehouses?activeOnly=true')
+      const res = await fetch(`/api/inventory/warehouses?activeOnly=true&companyId=${companyId}`)
       if (res.ok) setWarehouses(await res.json())
     } catch { /* silent */ }
   }
 
   const fetchItems = async () => {
     try {
-      const res = await fetch('/api/inventory/items?activeOnly=true')
+      const res = await fetch(`/api/inventory/items?activeOnly=true&companyId=${companyId}`)
       if (res.ok) setItems(await res.json())
     } catch { /* silent */ }
   }
@@ -279,7 +281,7 @@ export default function PurchaseInvoicesList() {
 
     setSubmitting(true)
     try {
-      const res = await fetch('/api/purchases/invoices', {
+      const res = await fetch(`/api/purchases/invoices?companyId=${companyId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -296,6 +298,7 @@ export default function PurchaseInvoicesList() {
             discountAmount: parseFloat(l.discountAmount) || 0,
             taxAmount: parseFloat(l.taxAmount) || 0,
           })),
+          companyId,
         }),
       })
 
@@ -331,7 +334,7 @@ export default function PurchaseInvoicesList() {
     setDetailLoading(true)
     setDetailDialogOpen(true)
     try {
-      const res = await fetch(`/api/purchases/invoices/${invoiceId}`)
+      const res = await fetch(`/api/purchases/invoices/${invoiceId}?companyId=${companyId}`)
       if (res.ok) {
         setDetailInvoice(await res.json())
       }
@@ -348,10 +351,10 @@ export default function PurchaseInvoicesList() {
     if (!confirmInvoiceId) return
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/purchases/invoices/${confirmInvoiceId}`, {
+      const res = await fetch(`/api/purchases/invoices/${confirmInvoiceId}?companyId=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: confirmAction }),
+        body: JSON.stringify({ action: confirmAction, companyId }),
       })
       if (res.ok) {
         toast.success(

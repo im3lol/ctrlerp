@@ -5,16 +5,22 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const asOfDate = searchParams.get('asOfDate') || new Date().toISOString().split('T')[0]
 
     const accounts = await db.account.findMany({
-      where: { type: { in: ['ASSET', 'LIABILITY', 'EQUITY'] } },
+      where: { companyId, type: { in: ['ASSET', 'LIABILITY', 'EQUITY'] } },
       orderBy: { code: 'asc' },
     })
 
     const entryLines = await db.journalEntryLine.findMany({
       where: {
         journalEntry: {
+          companyId,
           status: 'POSTED',
           date: { lte: new Date(asOfDate) },
         },
@@ -62,11 +68,12 @@ export async function GET(request: NextRequest) {
 
     // Calculate net income (revenue - expenses) to add to equity
     const revenueExpAccounts = await db.account.findMany({
-      where: { type: { in: ['REVENUE', 'EXPENSE'] } },
+      where: { companyId, type: { in: ['REVENUE', 'EXPENSE'] } },
     })
     const revenueExpLines = await db.journalEntryLine.findMany({
       where: {
         journalEntry: {
+          companyId,
           status: 'POSTED',
           date: { lte: new Date(asOfDate) },
         },

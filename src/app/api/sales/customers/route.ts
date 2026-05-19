@@ -1,14 +1,19 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/sales/customers - List customers with filters
+// GET /api/sales/customers - List customers with filters for a company
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const search = searchParams.get('search')
     const activeOnly = searchParams.get('activeOnly')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (search) {
       where.OR = [
@@ -43,6 +48,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
+      companyId,
       code,
       nameAr,
       nameEn,
@@ -53,6 +59,10 @@ export async function POST(request: NextRequest) {
       paymentTerms,
       isActive,
     } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!nameAr || !nameAr.trim()) {
       return NextResponse.json(
@@ -65,7 +75,7 @@ export async function POST(request: NextRequest) {
     let customerCode = code
     if (!customerCode || !customerCode.trim()) {
       const lastCustomer = await db.customer.findFirst({
-        where: { code: { startsWith: 'C-' } },
+        where: { companyId, code: { startsWith: 'C-' } },
         orderBy: { code: 'desc' },
         select: { code: true },
       })
@@ -77,8 +87,10 @@ export async function POST(request: NextRequest) {
       customerCode = `C-${String(seq).padStart(4, '0')}`
     }
 
-    // Check code uniqueness
-    const existing = await db.customer.findUnique({ where: { code: customerCode } })
+    // Check code uniqueness within company
+    const existing = await db.customer.findUnique({
+      where: { companyId_code: { companyId, code: customerCode } },
+    })
     if (existing) {
       return NextResponse.json(
         { error: `كود العميل "${customerCode}" مستخدم بالفعل` },
@@ -88,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     const customer = await db.customer.create({
       data: {
+        companyId,
         code: customerCode,
         nameAr: nameAr.trim(),
         nameEn: nameEn?.trim() || null,
@@ -115,6 +128,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const {
+      companyId,
       id,
       code,
       nameAr,
@@ -126,6 +140,10 @@ export async function PUT(request: NextRequest) {
       paymentTerms,
       isActive,
     } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -142,9 +160,19 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // If code is being changed, check uniqueness
+    // Verify the customer belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Customer does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
+    // If code is being changed, check uniqueness within company
     if (code && code !== existing.code) {
-      const codeExists = await db.customer.findUnique({ where: { code } })
+      const codeExists = await db.customer.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
       if (codeExists) {
         return NextResponse.json(
           { error: `كود العميل "${code}" مستخدم بالفعل` },
@@ -182,7 +210,11 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id } = body
+    const { companyId, id } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -196,6 +228,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'العميل غير موجود' },
         { status: 404 }
+      )
+    }
+
+    // Verify the customer belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Customer does not belong to this company' },
+        { status: 403 }
       )
     }
 

@@ -37,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency } from '@/lib/erp-utils'
 
 interface Supplier {
@@ -75,6 +76,7 @@ const initialFormData: SupplierFormData = {
 }
 
 export default function SuppliersList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -86,12 +88,13 @@ export default function SuppliersList() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     fetchSuppliers()
-  }, [])
+  }, [companyId])
 
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch('/api/purchases/suppliers')
+      const res = await fetch(`/api/purchases/suppliers?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setSuppliers(data)
@@ -169,7 +172,7 @@ export default function SuppliersList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, companyId }),
       })
 
       if (res.ok) {
@@ -190,10 +193,10 @@ export default function SuppliersList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch('/api/purchases/suppliers', {
+      const res = await fetch(`/api/purchases/suppliers?companyId=${companyId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: deletingId }),
+        body: JSON.stringify({ id: deletingId, companyId }),
       })
       if (res.ok) {
         toast.success('تم حذف المورد بنجاح')

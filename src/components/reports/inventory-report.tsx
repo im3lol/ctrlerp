@@ -12,6 +12,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { useAppStore } from '@/lib/store'
 import { Printer, Package, Loader2, AlertTriangle, Calendar } from 'lucide-react'
 
 interface InventoryLine {
@@ -33,6 +34,7 @@ interface InventoryData {
 }
 
 export default function InventoryReport() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [warehouseId, setWarehouseId] = useState<string>('all')
   const [data, setData] = useState<InventoryData | null>(null)
   const [warehouses, setWarehouses] = useState<Array<{ id: string; code: string; nameAr: string }>>([])
@@ -40,7 +42,7 @@ export default function InventoryReport() {
 
   const fetchWarehouses = useCallback(async () => {
     try {
-      const res = await fetch('/api/inventory/warehouses')
+      const res = await fetch(`/api/inventory/warehouses?companyId=${companyId}`)
       if (res.ok) setWarehouses(await res.json())
     } catch (err) { console.error(err) }
   }, [])
@@ -50,7 +52,7 @@ export default function InventoryReport() {
     try {
       const params = new URLSearchParams()
       if (warehouseId && warehouseId !== 'all') params.set('warehouseId', warehouseId)
-      const res = await fetch(`/api/reports/inventory-report?${params}`)
+      const res = await fetch(`/api/reports/inventory-report?companyId=${companyId}&${params}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)

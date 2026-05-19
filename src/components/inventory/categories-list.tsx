@@ -43,6 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 
 interface Category {
   id: string
@@ -119,6 +120,7 @@ function buildTree(categories: Category[]): Category[] {
 }
 
 export default function CategoriesList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -129,12 +131,13 @@ export default function CategoriesList() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     fetchCategories()
-  }, [])
+  }, [companyId])
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/inventory/categories')
+      const res = await fetch(`/api/inventory/categories?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setCategories(data)
@@ -194,7 +197,7 @@ export default function CategoriesList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, companyId }),
       })
 
       if (res.ok) {
@@ -215,9 +218,7 @@ export default function CategoriesList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch(`/api/inventory/categories/${deletingId}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/inventory/categories/${deletingId}?companyId=${companyId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success('تم حذف الفئة بنجاح')
         fetchCategories()

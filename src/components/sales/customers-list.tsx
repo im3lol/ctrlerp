@@ -37,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency } from '@/lib/erp-utils'
 
 interface Customer {
@@ -78,6 +79,7 @@ const initialFormData: CustomerFormData = {
 }
 
 export default function CustomersList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -89,12 +91,13 @@ export default function CustomersList() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     fetchCustomers()
-  }, [])
+  }, [companyId])
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('/api/sales/customers')
+      const res = await fetch(`/api/sales/customers?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setCustomers(data)
@@ -173,7 +176,7 @@ export default function CustomersList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, companyId }),
       })
 
       if (res.ok) {
@@ -194,10 +197,10 @@ export default function CustomersList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch('/api/sales/customers', {
+      const res = await fetch(`/api/sales/customers?companyId=${companyId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: deletingId }),
+        body: JSON.stringify({ id: deletingId, companyId }),
       })
       if (res.ok) {
         toast.success('تم حذف العميل بنجاح')

@@ -43,6 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 import { getRoleLabel } from '@/lib/erp-utils'
 
 interface User {
@@ -87,6 +88,9 @@ function getRoleBadgeColor(role: string): string {
 }
 
 export default function UsersList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
+  const currentUser = useAppStore(state => state.user)
+  const canAddUser = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -97,12 +101,13 @@ export default function UsersList() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     fetchUsers()
-  }, [])
+  }, [companyId])
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/settings/users')
+      const res = await fetch(`/api/settings/users?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setUsers(data)
@@ -164,7 +169,7 @@ export default function UsersList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, companyId }),
       })
 
       if (res.ok) {
@@ -185,9 +190,7 @@ export default function UsersList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch(`/api/settings/users/${deletingId}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/settings/users/${deletingId}?companyId=${companyId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success('تم حذف المستخدم بنجاح')
         fetchUsers()
@@ -234,6 +237,7 @@ export default function UsersList() {
               </div>
               <CardTitle className="text-lg">المستخدمين</CardTitle>
             </div>
+            {canAddUser && (
             <Button
               onClick={handleOpenAdd}
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
@@ -241,6 +245,7 @@ export default function UsersList() {
               <Plus className="h-4 w-4" />
               إضافة مستخدم
             </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="px-0">

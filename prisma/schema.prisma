@@ -11,27 +11,84 @@ datasource db {
 }
 
 // ============================================
+// AUTH & MULTI-COMPANY
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  name      String
+  email     String?  @unique
+  password  String
+  role      String   @default("viewer") // super_admin, admin, accountant, sales, purchase, inventory, viewer
+  isActive  Boolean  @default(true)
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyUsers CompanyUser[]
+}
+
+model Company {
+  id              String   @id @default(cuid())
+  nameAr          String
+  nameEn          String   @default("My Company")
+  legalName       String?
+  slug            String?  @unique
+  address         String?
+  phone           String?
+  email           String?
+  taxNumber       String?
+  logo            String?
+  baseCurrencyId  String?
+  fiscalYearStart String?
+  vatRate         Float    @default(14.0)
+  status          String   @default("active") // active, inactive
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  companyUsers     CompanyUser[]
+  currencies       Currency[]
+  unitOfMeasures   UnitOfMeasure[]
+  warehouses       Warehouse[]
+  itemCategories   ItemCategory[]
+  items            Item[]
+  accounts         Account[]
+  journalEntries   JournalEntry[]
+  customers        Customer[]
+  salesInvoices    SalesInvoice[]
+  receiptVouchers  ReceiptVoucher[]
+  suppliers        Supplier[]
+  purchaseInvoices PurchaseInvoice[]
+  paymentVouchers  PaymentVoucher[]
+  investors        Investor[]
+  investments      Investment[]
+  profitDistributions ProfitDistribution[]
+  withdrawals      Withdrawal[]
+}
+
+model CompanyUser {
+  id        String   @id @default(cuid())
+  companyId String
+  userId    String
+  role      String   @default("viewer") // admin, accountant, sales, purchase, inventory, viewer
+  isActive  Boolean  @default(true)
+  joinedAt  DateTime @default(now())
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+}
+
+// ============================================
 // SETTINGS MODULE
 // ============================================
 
-model Company {
-  id             String   @id @default(cuid())
-  nameAr         String   @default("شركتي")
-  nameEn         String   @default("My Company")
-  address        String?
-  phone          String?
-  email          String?
-  taxNumber      String?
-  logo           String?
-  baseCurrencyId String?
-  fiscalYearStart String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
 model Currency {
   id           String   @id @default(cuid())
-  code         String   @unique
+  companyId    String
+  code         String
   nameAr       String
   nameEn       String
   symbol       String
@@ -40,30 +97,26 @@ model Currency {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, code])
 }
 
 model UnitOfMeasure {
   id        String   @id @default(cuid())
-  code      String   @unique
+  companyId String
+  code      String
   nameAr    String
   nameEn    String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items Item[]
-}
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  items   Item[]
 
-model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  name      String
-  email     String?
-  password  String
-  role      String   @default("viewer")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@unique([companyId, code])
 }
 
 // ============================================
@@ -72,7 +125,8 @@ model User {
 
 model Warehouse {
   id        String   @id @default(cuid())
-  code      String   @unique
+  companyId String
+  code      String
   nameAr    String
   nameEn    String?
   location  String?
@@ -81,15 +135,19 @@ model Warehouse {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stockMovements   StockMovement[]
-  itemBalances     ItemBalance[]
-  fifoLayers       FifoLayer[]
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stockMovements  StockMovement[]
+  itemBalances    ItemBalance[]
+  fifoLayers      FifoLayer[]
   purchaseInvoices PurchaseInvoice[]
+
+  @@unique([companyId, code])
 }
 
 model ItemCategory {
   id        String   @id @default(cuid())
-  code      String   @unique
+  companyId String
+  code      String
   nameAr    String
   nameEn    String?
   parentId  String?
@@ -97,14 +155,18 @@ model ItemCategory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  parent   ItemCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent  ItemCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children ItemCategory[] @relation("CategoryHierarchy")
-  items    Item[]
+  items   Item[]
+
+  @@unique([companyId, code])
 }
 
 model Item {
   id          String   @id @default(cuid())
-  code        String   @unique
+  companyId   String
+  code        String
   nameAr      String
   nameEn      String?
   categoryId  String?
@@ -114,17 +176,34 @@ model Item {
   minStock    Float    @default(0)
   maxStock    Float?
   description String?
+  image       String?  // Product image URL/path
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category       ItemCategory?    @relation(fields: [categoryId], references: [id])
-  uom            UnitOfMeasure?   @relation(fields: [uomId], references: [id])
-  balances       ItemBalance[]
-  fifoLayers     FifoLayer[]
-  stockMovements StockMovement[]
-  salesLines     SalesInvoiceLine[]
-  purchaseLines  PurchaseInvoiceLine[]
+  company         Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category        ItemCategory?       @relation(fields: [categoryId], references: [id])
+  uom             UnitOfMeasure?      @relation(fields: [uomId], references: [id])
+  balances        ItemBalance[]
+  fifoLayers      FifoLayer[]
+  stockMovements  StockMovement[]
+  salesLines      SalesInvoiceLine[]
+  purchaseLines   PurchaseInvoiceLine[]
+  codes           ItemCode[]
+
+  @@unique([companyId, code])
+}
+
+model ItemCode {
+  id       String  @id @default(cuid())
+  itemId   String
+  codeType String  // UPC, EAN, SKU, ASIN, FNSKU
+  value    String  // The actual code value
+  isPrimary Boolean @default(false)
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, codeType])
 }
 
 model ItemBalance {
@@ -158,8 +237,9 @@ model FifoLayer {
 
 model StockMovement {
   id            String   @id @default(cuid())
-  number        String   @unique
-  type          String
+  companyId     String
+  number        String
+  type          String   // IN, OUT, ADJ
   itemId        String
   warehouseId   String
   quantity      Float
@@ -173,6 +253,8 @@ model StockMovement {
 
   item      Item      @relation(fields: [itemId], references: [id])
   warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([companyId, number])
 }
 
 // ============================================
@@ -181,36 +263,44 @@ model StockMovement {
 
 model Account {
   id        String   @id @default(cuid())
-  code      String   @unique
+  companyId String
+  code      String
   nameAr    String
   nameEn    String?
-  type      String
+  type      String   // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
   parentId  String?
   isLeaf    Boolean  @default(true)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   parent     Account?           @relation("AccountHierarchy", fields: [parentId], references: [id])
   children   Account[]          @relation("AccountHierarchy")
   entryLines JournalEntryLine[]
+
+  @@unique([companyId, code])
 }
 
 model JournalEntry {
   id           String   @id @default(cuid())
-  number       String   @unique
+  companyId    String
+  number       String
   date         DateTime
   description  String?
-  status       String   @default("DRAFT")
+  status       String   @default("DRAFT") // DRAFT, POSTED, REVERSED
   sourceType   String?
   sourceId     String?
   reversedById String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   lines      JournalEntryLine[]
-  reversedBy JournalEntry?  @relation("JournalReversal", fields: [reversedById], references: [id])
-  reversalOf JournalEntry[] @relation("JournalReversal")
+  reversedBy JournalEntry?      @relation("JournalReversal", fields: [reversedById], references: [id])
+  reversalOf JournalEntry[]     @relation("JournalReversal")
+
+  @@unique([companyId, number])
 }
 
 model JournalEntryLine {
@@ -231,7 +321,8 @@ model JournalEntryLine {
 
 model Customer {
   id           String   @id @default(cuid())
-  code         String   @unique
+  companyId    String
+  code         String
   nameAr       String
   nameEn       String?
   phone        String?
@@ -244,13 +335,17 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   salesInvoices   SalesInvoice[]
   receiptVouchers ReceiptVoucher[]
+
+  @@unique([companyId, code])
 }
 
 model SalesInvoice {
   id              String   @id @default(cuid())
-  number          String   @unique
+  companyId       String
+  number          String
   customerId      String
   date            DateTime
   dueDate         DateTime?
@@ -267,9 +362,12 @@ model SalesInvoice {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  customer     Customer            @relation(fields: [customerId], references: [id])
-  lines        SalesInvoiceLine[]
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer   Customer           @relation(fields: [customerId], references: [id])
+  lines      SalesInvoiceLine[]
   receiptLines ReceiptLine[]
+
+  @@unique([companyId, number])
 }
 
 model SalesInvoiceLine {
@@ -289,7 +387,8 @@ model SalesInvoiceLine {
 
 model ReceiptVoucher {
   id            String   @id @default(cuid())
-  number        String   @unique
+  companyId     String
+  number        String
   customerId    String
   date          DateTime
   amount        Float
@@ -299,8 +398,11 @@ model ReceiptVoucher {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  company  Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer Customer     @relation(fields: [customerId], references: [id])
   lines    ReceiptLine[]
+
+  @@unique([companyId, number])
 }
 
 model ReceiptLine {
@@ -319,7 +421,8 @@ model ReceiptLine {
 
 model Supplier {
   id           String   @id @default(cuid())
-  code         String   @unique
+  companyId    String
+  code         String
   nameAr       String
   nameEn       String?
   phone        String?
@@ -331,13 +434,17 @@ model Supplier {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   purchaseInvoices PurchaseInvoice[]
   paymentVouchers  PaymentVoucher[]
+
+  @@unique([companyId, code])
 }
 
 model PurchaseInvoice {
   id              String   @id @default(cuid())
-  number          String   @unique
+  companyId       String
+  number          String
   supplierId      String
   warehouseId     String
   date            DateTime
@@ -355,10 +462,13 @@ model PurchaseInvoice {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  supplier      Supplier             @relation(fields: [supplierId], references: [id])
-  warehouse     Warehouse            @relation(fields: [warehouseId], references: [id])
-  lines         PurchaseInvoiceLine[]
-  paymentLines  PaymentLine[]
+  company    Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  warehouse  Warehouse           @relation(fields: [warehouseId], references: [id])
+  lines      PurchaseInvoiceLine[]
+  paymentLines PaymentLine[]
+
+  @@unique([companyId, number])
 }
 
 model PurchaseInvoiceLine {
@@ -377,7 +487,8 @@ model PurchaseInvoiceLine {
 
 model PaymentVoucher {
   id            String   @id @default(cuid())
-  number        String   @unique
+  companyId     String
+  number        String
   supplierId    String
   date          DateTime
   amount        Float
@@ -387,8 +498,11 @@ model PaymentVoucher {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  company  Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   supplier Supplier     @relation(fields: [supplierId], references: [id])
   lines    PaymentLine[]
+
+  @@unique([companyId, number])
 }
 
 model PaymentLine {
@@ -399,4 +513,92 @@ model PaymentLine {
 
   paymentVoucher  PaymentVoucher  @relation(fields: [paymentVoucherId], references: [id], onDelete: Cascade)
   purchaseInvoice PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id])
+}
+
+// ============================================
+// INVESTORS MODULE
+// ============================================
+
+model Investor {
+  id          String   @id @default(cuid())
+  companyId   String
+  code        String   // INV-001
+  fullName    String
+  phone       String?
+  email       String?
+  nationalId  String?
+  joinDate    DateTime @default(now())
+  status      String   @default("active") // active, inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  investments        Investment[]
+  investorShares     InvestorShare[]
+  withdrawals        Withdrawal[]
+
+  @@unique([companyId, code])
+}
+
+model Investment {
+  id          String   @id @default(cuid())
+  companyId   String
+  investorId  String
+  date        DateTime
+  amount      Float
+  type        String   @default("cash") // cash, bank, asset
+  accountId   String?  // Which bank/cash account received it
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  investor   Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
+}
+
+model ProfitDistribution {
+  id               String   @id @default(cuid())
+  companyId        String
+  periodName       String   // Q1 2026, H1 2026
+  periodStart      DateTime
+  periodEnd        DateTime
+  totalProfit      Float    @default(0)
+  distributionDate DateTime
+  status           String   @default("DRAFT") // DRAFT, DISTRIBUTED
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  investorShares InvestorShare[]
+}
+
+model InvestorShare {
+  id               String   @id @default(cuid())
+  distributionId   String
+  investorId       String
+  ownershipPercent Float    @default(0)
+  profitShare      Float    @default(0)
+  status           String   @default("PENDING") // PENDING, PAID
+  paymentDate      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  distribution ProfitDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  investor     Investor           @relation(fields: [investorId], references: [id], onDelete: Cascade)
+}
+
+model Withdrawal {
+  id          String   @id @default(cuid())
+  companyId   String
+  investorId  String
+  date        DateTime
+  amount      Float
+  type        String   @default("profit") // capital, profit
+  accountId   String?  // Paid from which account
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  investor Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
 }

@@ -5,9 +5,17 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const warehouseId = searchParams.get('warehouseId')
 
-    const where: Record<string, unknown> = {}
+    // Filter items by companyId through the item relation
+    const where: Record<string, unknown> = {
+      item: { companyId },
+    }
     if (warehouseId) where.warehouseId = warehouseId
 
     const balances = await db.itemBalance.findMany({

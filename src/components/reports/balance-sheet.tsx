@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { useAppStore } from '@/lib/store'
 import { Printer, PieChart, Loader2, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 interface AccountLine {
@@ -25,6 +26,7 @@ interface BalanceSheetData {
 }
 
 export default function BalanceSheetReport() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split('T')[0])
   const [data, setData] = useState<BalanceSheetData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -32,7 +34,7 @@ export default function BalanceSheetReport() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/reports/balance-sheet?asOfDate=${asOfDate}`)
+      const res = await fetch(`/api/reports/balance-sheet?companyId=${companyId}&asOfDate=${asOfDate}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)

@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency, formatDate } from '@/lib/erp-utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -98,6 +99,7 @@ const paymentMethodColors: Record<string, string> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PaymentVouchersList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [payments, setPayments] = useState<PaymentVoucher[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
@@ -132,7 +134,7 @@ export default function PaymentVouchersList() {
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
 
-      const res = await fetch(`/api/purchases/payments?${params.toString()}`)
+      const res = await fetch(`/api/purchases/payments?companyId=${companyId}&${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
         setPayments(data)
@@ -146,7 +148,7 @@ export default function PaymentVouchersList() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await fetch('/api/purchases/suppliers?activeOnly=true')
+      const res = await fetch(`/api/purchases/suppliers?activeOnly=true&companyId=${companyId}`)
       if (res.ok) setSuppliers(await res.json())
     } catch { /* silent */ }
   }
@@ -159,11 +161,11 @@ export default function PaymentVouchersList() {
   const loadUnpaidInvoices = useCallback(async (supplierId: string) => {
     setLoadingInvoices(true)
     try {
-      const res = await fetch(`/api/purchases/invoices?supplierId=${supplierId}&status=CONFIRMED`)
+      const res = await fetch(`/api/purchases/invoices?companyId=${companyId}&supplierId=${supplierId}&status=CONFIRMED`)
       if (res.ok) {
         const allInvoices = await res.json()
         // Also get PARTIAL_PAID invoices
-        const res2 = await fetch(`/api/purchases/invoices?supplierId=${supplierId}&status=PARTIAL_PAID`)
+        const res2 = await fetch(`/api/purchases/invoices?companyId=${companyId}&supplierId=${supplierId}&status=PARTIAL_PAID`)
         let partialInvoices: UnpaidInvoice[] = []
         if (res2.ok) {
           partialInvoices = await res2.json()
@@ -250,7 +252,7 @@ export default function PaymentVouchersList() {
 
     setSubmitting(true)
     try {
-      const res = await fetch('/api/purchases/payments', {
+      const res = await fetch(`/api/purchases/payments?companyId=${companyId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -264,6 +266,7 @@ export default function PaymentVouchersList() {
             purchaseInvoiceId: l.purchaseInvoiceId,
             amount: parseFloat(l.amount),
           })),
+        companyId,
         }),
       })
 

@@ -6,11 +6,16 @@ import { generateDocNumber } from '@/lib/erp-utils'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const customerId = searchParams.get('customerId')
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (customerId) {
       where.customerId = customerId
@@ -64,6 +69,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
+      companyId,
       customerId,
       date,
       amount,
@@ -72,6 +78,10 @@ export async function POST(request: NextRequest) {
       notes,
       receiptLines,
     } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     // Validate customer
     if (!customerId) {
@@ -86,6 +96,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'العميل غير موجود' },
         { status: 404 }
+      )
+    }
+    if (customer.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Customer does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -107,13 +123,19 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           )
         }
-        // Validate invoice belongs to this customer
+        // Validate invoice belongs to this customer and company
         const inv = await db.salesInvoice.findUnique({
           where: { id: line.salesInvoiceId },
         })
         if (!inv) {
           return NextResponse.json(
             { error: `فاتورة البيع في السطر ${i + 1} غير موجودة` },
+            { status: 400 }
+          )
+        }
+        if (inv.companyId !== companyId) {
+          return NextResponse.json(
+            { error: `فاتورة البيع في السطر ${i + 1} لا تنتمي لهذه الشركة` },
             { status: 400 }
           )
         }
@@ -150,7 +172,7 @@ export async function POST(request: NextRequest) {
     const prefix = `SP-${year}`
 
     const lastReceipt = await db.receiptVoucher.findFirst({
-      where: { number: { startsWith: prefix } },
+      where: { companyId, number: { startsWith: prefix } },
       orderBy: { number: 'desc' },
       select: { number: true },
     })
@@ -166,6 +188,7 @@ export async function POST(request: NextRequest) {
     // Create receipt voucher with lines
     const receipt = await db.receiptVoucher.create({
       data: {
+        companyId,
         number,
         customerId,
         date: receiptDate,
@@ -239,10 +262,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Create Journal Entry
+    // Create Journal Entry - look up accounts by companyId + code
     const accountsNeeded = ['1101', '1103']
     const accounts = await db.account.findMany({
-      where: { code: { in: accountsNeeded } },
+      where: { companyId, code: { in: accountsNeeded } },
     })
 
     const cashAccount = accounts.find((a) => a.code === '1101') // النقدية
@@ -251,7 +274,7 @@ export async function POST(request: NextRequest) {
     if (cashAccount && customersAccount) {
       const jePrefix = `JV-${receiptDate.getFullYear()}`
       const lastJE = await db.journalEntry.findFirst({
-        where: { number: { startsWith: jePrefix } },
+        where: { companyId, number: { startsWith: jePrefix } },
         orderBy: { number: 'desc' },
         select: { number: true },
       })
@@ -264,6 +287,7 @@ export async function POST(request: NextRequest) {
 
       await db.journalEntry.create({
         data: {
+          companyId,
           number: generateDocNumber('JV', receiptDate.getFullYear(), jeSeq),
           date: receiptDate,
           description: `سند قبض ${number} - ${customer.nameAr}`,

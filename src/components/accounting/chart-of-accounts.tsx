@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useAppStore } from '@/lib/store'
 import { getAccountTypeLabel } from '@/lib/erp-utils'
 import { cn } from '@/lib/utils'
 
@@ -224,6 +225,7 @@ function TreeNode({ account, level, expandedIds, onToggle, onEdit }: TreeNodePro
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function ChartOfAccounts() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -234,12 +236,13 @@ export default function ChartOfAccounts() {
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
+    if (!companyId) return
     fetchAccounts()
-  }, [])
+  }, [companyId])
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/accounting/accounts')
+      const res = await fetch(`/api/accounting/accounts?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setAccounts(data)
@@ -380,10 +383,10 @@ export default function ChartOfAccounts() {
         payload.id = editingId
       }
 
-      const res = await fetch('/api/accounting/accounts', {
+      const res = await fetch(`/api/accounting/accounts?companyId=${companyId}`, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, companyId }),
       })
 
       if (res.ok) {

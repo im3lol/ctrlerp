@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAppStore } from '@/lib/store'
 
 interface CompanyData {
   nameAr: string
@@ -30,14 +31,16 @@ const initialData: CompanyData = {
 }
 
 export default function CompanyForm() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [data, setData] = useState<CompanyData>(initialData)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     const fetchCompany = async () => {
       try {
-        const res = await fetch('/api/settings/company')
+        const res = await fetch(`/api/settings/company?companyId=${companyId}`)
         if (res.ok) {
           const result = await res.json()
           if (result) {
@@ -72,10 +75,10 @@ export default function CompanyForm() {
     }
     setSaving(true)
     try {
-      const res = await fetch('/api/settings/company', {
+      const res = await fetch(`/api/settings/company?companyId=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, companyId }),
       })
       if (res.ok) {
         toast.success('تم حفظ بيانات الشركة بنجاح')

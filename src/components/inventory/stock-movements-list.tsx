@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useAppStore } from '@/lib/store'
 import { formatCurrency, formatDate } from '@/lib/erp-utils'
 
 interface Item {
@@ -96,6 +97,7 @@ const typeBadgeStyles: Record<string, string> = {
 }
 
 export default function StockMovementsList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [movements, setMovements] = useState<StockMovement[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
@@ -116,7 +118,7 @@ export default function StockMovementsList() {
 
   const fetchMovements = async () => {
     try {
-      const res = await fetch('/api/inventory/stock-movements')
+      const res = await fetch(`/api/inventory/stock-movements?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setMovements(data)
@@ -130,7 +132,7 @@ export default function StockMovementsList() {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch('/api/inventory/items')
+      const res = await fetch(`/api/inventory/items?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setItems(data)
@@ -142,7 +144,7 @@ export default function StockMovementsList() {
 
   const fetchWarehouses = async () => {
     try {
-      const res = await fetch('/api/inventory/warehouses')
+      const res = await fetch(`/api/inventory/warehouses?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setWarehouses(data)
@@ -208,10 +210,10 @@ export default function StockMovementsList() {
         date: new Date().toISOString(),
       }
 
-      const res = await fetch('/api/inventory/stock-movements', {
+      const res = await fetch(`/api/inventory/stock-movements?companyId=${companyId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, companyId }),
       })
 
       if (res.ok) {

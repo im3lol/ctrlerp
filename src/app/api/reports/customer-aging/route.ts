@@ -1,16 +1,23 @@
 import { db } from '@/lib/db'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/reports/customer-aging
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const customers = await db.customer.findMany({
-      where: { isActive: true },
+      where: { companyId, isActive: true },
       orderBy: { nameAr: 'asc' },
     })
 
     const invoices = await db.salesInvoice.findMany({
       where: {
+        companyId,
         status: { in: ['CONFIRMED', 'POSTED', 'PARTIAL_PAID'] },
         balanceDue: { gt: 0 },
       },

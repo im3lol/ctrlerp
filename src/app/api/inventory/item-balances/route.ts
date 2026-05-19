@@ -5,11 +5,20 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const warehouseId = searchParams.get('warehouseId')
     const itemId = searchParams.get('itemId')
     const lowStock = searchParams.get('lowStock')
 
+    // We need to filter items by companyId, so we join through item
+    const itemWhere: Record<string, unknown> = { companyId }
+
     const where: Record<string, unknown> = {}
+    where.item = itemWhere
 
     if (warehouseId) {
       where.warehouseId = warehouseId

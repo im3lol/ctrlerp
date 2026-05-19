@@ -5,6 +5,11 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const type = searchParams.get('type')
     const warehouseId = searchParams.get('warehouseId')
     const itemId = searchParams.get('itemId')
@@ -12,7 +17,7 @@ export async function GET(request: NextRequest) {
     const toDate = searchParams.get('toDate')
     const limitParam = searchParams.get('limit')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (type) {
       where.type = type
@@ -62,7 +67,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { type, itemId, warehouseId, quantity, unitCost, reason, date } = body
+    const { companyId, type, itemId, warehouseId, quantity, unitCost, reason, date } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     // Validate required fields
     if (!type || !itemId || !warehouseId || quantity === undefined) {
@@ -97,7 +106,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate item exists
+    // Validate item exists and belongs to company
     const item = await db.item.findUnique({ where: { id: itemId } })
     if (!item) {
       return NextResponse.json(
@@ -105,8 +114,14 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
+    if (item.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Item does not belong to this company' },
+        { status: 403 }
+      )
+    }
 
-    // Validate warehouse exists
+    // Validate warehouse exists and belongs to company
     const warehouse = await db.warehouse.findUnique({
       where: { id: warehouseId },
     })
@@ -114,6 +129,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Warehouse not found' },
         { status: 404 }
+      )
+    }
+    if (warehouse.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Warehouse does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -146,6 +167,7 @@ export async function POST(request: NextRequest) {
 
     const lastMovement = await db.stockMovement.findFirst({
       where: {
+        companyId,
         number: { startsWith: prefix },
       },
       orderBy: { number: 'desc' },
@@ -166,6 +188,7 @@ export async function POST(request: NextRequest) {
       // Create the stock movement record
       const sm = await tx.stockMovement.create({
         data: {
+          companyId,
           number,
           type,
           itemId,

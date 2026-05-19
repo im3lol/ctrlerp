@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 
 interface UOM {
   id: string
@@ -60,6 +61,7 @@ const initialFormData: UOMFormData = {
 }
 
 export default function UOMList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [uoms, setUoms] = useState<UOM[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -70,12 +72,13 @@ export default function UOMList() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     fetchUOMs()
-  }, [])
+  }, [companyId])
 
   const fetchUOMs = async () => {
     try {
-      const res = await fetch('/api/settings/uom')
+      const res = await fetch(`/api/settings/uom?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setUoms(data)
@@ -125,7 +128,7 @@ export default function UOMList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, companyId }),
       })
 
       if (res.ok) {
@@ -146,9 +149,7 @@ export default function UOMList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch(`/api/settings/uom/${deletingId}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/settings/uom/${deletingId}?companyId=${companyId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success('تم حذف وحدة القياس بنجاح')
         fetchUOMs()

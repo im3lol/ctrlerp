@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 
 interface Warehouse {
   id: string
@@ -66,6 +67,7 @@ const initialFormData: WarehouseFormData = {
 }
 
 export default function WarehousesList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -76,12 +78,13 @@ export default function WarehousesList() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     fetchWarehouses()
-  }, [])
+  }, [companyId])
 
   const fetchWarehouses = async () => {
     try {
-      const res = await fetch('/api/inventory/warehouses')
+      const res = await fetch(`/api/inventory/warehouses?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setWarehouses(data)
@@ -133,7 +136,7 @@ export default function WarehousesList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, companyId }),
       })
 
       if (res.ok) {
@@ -154,9 +157,7 @@ export default function WarehousesList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch(`/api/inventory/warehouses/${deletingId}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/inventory/warehouses/${deletingId}?companyId=${companyId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success('تم حذف المخزن بنجاح')
         fetchWarehouses()

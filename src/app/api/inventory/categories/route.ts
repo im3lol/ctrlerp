@@ -1,10 +1,17 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/inventory/categories - List all categories
-export async function GET() {
+// GET /api/inventory/categories - List all categories for a company
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const categories = await db.itemCategory.findMany({
+      where: { companyId },
       include: {
         parent: true,
         _count: {
@@ -30,7 +37,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, nameAr, nameEn, parentId, isActive } = body
+    const { companyId, code, nameAr, nameEn, parentId, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!code || !nameAr) {
       return NextResponse.json(
@@ -39,16 +50,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if category code already exists
-    const existing = await db.itemCategory.findUnique({ where: { code } })
+    // Check if category code already exists within the company
+    const existing = await db.itemCategory.findUnique({
+      where: { companyId_code: { companyId, code } },
+    })
     if (existing) {
       return NextResponse.json(
-        { error: `Category with code "${code}" already exists` },
+        { error: `Category with code "${code}" already exists in this company` },
         { status: 409 }
       )
     }
 
-    // If parentId provided, verify parent exists
+    // If parentId provided, verify parent exists and belongs to same company
     if (parentId) {
       const parent = await db.itemCategory.findUnique({
         where: { id: parentId },
@@ -59,10 +72,17 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         )
       }
+      if (parent.companyId !== companyId) {
+        return NextResponse.json(
+          { error: 'Parent category does not belong to this company' },
+          { status: 403 }
+        )
+      }
     }
 
     const category = await db.itemCategory.create({
       data: {
+        companyId,
         code,
         nameAr,
         nameEn,
@@ -88,7 +108,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, code, nameAr, nameEn, parentId, isActive } = body
+    const { companyId, id, code, nameAr, nameEn, parentId, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -105,18 +129,28 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // If code is being changed, check for uniqueness
+    // Verify the category belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Category does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
+    // If code is being changed, check for uniqueness within company
     if (code && code !== existing.code) {
-      const codeExists = await db.itemCategory.findUnique({ where: { code } })
+      const codeExists = await db.itemCategory.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
       if (codeExists) {
         return NextResponse.json(
-          { error: `Category with code "${code}" already exists` },
+          { error: `Category with code "${code}" already exists in this company` },
           { status: 409 }
         )
       }
     }
 
-    // If parentId is being changed, verify parent exists and prevent self-reference
+    // If parentId is being changed, verify parent exists and belongs to same company and prevent self-reference
     if (parentId !== undefined && parentId !== null) {
       if (parentId === id) {
         return NextResponse.json(
@@ -131,6 +165,12 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json(
           { error: 'Parent category not found' },
           { status: 404 }
+        )
+      }
+      if (parent.companyId !== companyId) {
+        return NextResponse.json(
+          { error: 'Parent category does not belong to this company' },
+          { status: 403 }
         )
       }
     }
@@ -163,7 +203,11 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id } = body
+    const { companyId, id } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -177,6 +221,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: 'Category not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify the category belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Category does not belong to this company' },
+        { status: 403 }
       )
     }
 

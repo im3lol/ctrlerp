@@ -4,11 +4,16 @@ import { generateDocNumber } from '@/lib/erp-utils'
 
 // GET /api/accounting/journal-entries/[id] - Get single journal entry
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     const entry = await db.journalEntry.findUnique({
       where: { id },
@@ -43,6 +48,14 @@ export async function GET(
       )
     }
 
+    // Verify the entry belongs to the company
+    if (entry.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Journal entry does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
     return NextResponse.json(entry)
   } catch (error) {
     console.error('Get journal entry error:', error)
@@ -61,7 +74,11 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { action } = body
+    const { companyId, action } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     const entry = await db.journalEntry.findUnique({
       where: { id },
@@ -74,6 +91,14 @@ export async function PUT(
       return NextResponse.json(
         { error: 'القيد غير موجود' },
         { status: 404 }
+      )
+    }
+
+    // Verify the entry belongs to the company
+    if (entry.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Journal entry does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -146,7 +171,7 @@ export async function PUT(
       const year = now.getFullYear()
       const prefix = `JV-${year}`
       const lastEntry = await db.journalEntry.findFirst({
-        where: { number: { startsWith: prefix } },
+        where: { companyId, number: { startsWith: prefix } },
         orderBy: { number: 'desc' },
         select: { number: true },
       })
@@ -163,6 +188,7 @@ export async function PUT(
       const [reversalEntry] = await db.$transaction([
         db.journalEntry.create({
           data: {
+            companyId,
             number: reversalNumber,
             date: now,
             description: `عكس القيد ${entry.number}${entry.description ? ' - ' + entry.description : ''}`,
@@ -261,17 +287,17 @@ export async function PUT(
           )
         }
 
-        // Validate accounts are leaf and active
+        // Validate accounts are leaf, active, and belong to the company
         const accountIds = newLines.map((l: { accountId: string }) => l.accountId)
         const accounts = await db.account.findMany({
-          where: { id: { in: accountIds } },
+          where: { id: { in: accountIds }, companyId },
         })
 
         for (const line of newLines) {
           const account = accounts.find((a) => a.id === line.accountId)
           if (!account) {
             return NextResponse.json(
-              { error: 'الحساب غير موجود' },
+              { error: 'الحساب غير موجود أو لا ينتمي لهذه الشركة' },
               { status: 404 }
             )
           }

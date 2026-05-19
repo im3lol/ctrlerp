@@ -1,43 +1,51 @@
 import { db } from '@/lib/db'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/dashboard
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     // Total confirmed/posted sales
     const salesInvoices = await db.salesInvoice.findMany({
-      where: { status: { in: ['CONFIRMED', 'POSTED', 'PAID', 'PARTIAL_PAID'] } },
+      where: { companyId, status: { in: ['CONFIRMED', 'POSTED', 'PAID', 'PARTIAL_PAID'] } },
       select: { totalAmount: true },
     })
     const totalSales = salesInvoices.reduce((s, inv) => s + inv.totalAmount, 0)
 
     // Total confirmed/posted purchases
     const purchaseInvoices = await db.purchaseInvoice.findMany({
-      where: { status: { in: ['CONFIRMED', 'POSTED', 'PAID', 'PARTIAL_PAID'] } },
+      where: { companyId, status: { in: ['CONFIRMED', 'POSTED', 'PAID', 'PARTIAL_PAID'] } },
       select: { totalAmount: true },
     })
     const totalPurchases = purchaseInvoices.reduce((s, inv) => s + inv.totalAmount, 0)
 
     // Customer count
-    const customerCount = await db.customer.count({ where: { isActive: true } })
+    const customerCount = await db.customer.count({ where: { companyId, isActive: true } })
 
     // Supplier count
-    const supplierCount = await db.supplier.count({ where: { isActive: true } })
+    const supplierCount = await db.supplier.count({ where: { companyId, isActive: true } })
 
-    // Inventory value
+    // Inventory value - filter items by companyId
     const itemBalances = await db.itemBalance.findMany({
+      where: { item: { companyId } },
       select: { quantity: true, avgCost: true },
     })
     const inventoryValue = itemBalances.reduce((s, ib) => s + ib.quantity * ib.avgCost, 0)
 
     // Due invoices count
     const dueInvoices = await db.salesInvoice.count({
-      where: { balanceDue: { gt: 0 }, status: { in: ['CONFIRMED', 'POSTED', 'PARTIAL_PAID'] } },
+      where: { companyId, balanceDue: { gt: 0 }, status: { in: ['CONFIRMED', 'POSTED', 'PARTIAL_PAID'] } },
     })
 
     // Recent activities - last 10 combined from stock movements and invoices
     const [stockMovements, recentSales, recentPurchases] = await Promise.all([
       db.stockMovement.findMany({
+        where: { companyId },
         take: 10,
         orderBy: { date: 'desc' },
         include: {
@@ -46,6 +54,7 @@ export async function GET() {
         },
       }),
       db.salesInvoice.findMany({
+        where: { companyId },
         take: 10,
         orderBy: { date: 'desc' },
         include: {
@@ -53,6 +62,7 @@ export async function GET() {
         },
       }),
       db.purchaseInvoice.findMany({
+        where: { companyId },
         take: 10,
         orderBy: { date: 'desc' },
         include: {

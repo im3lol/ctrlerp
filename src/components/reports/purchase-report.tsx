@@ -11,6 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { useAppStore } from '@/lib/store'
 import { Printer, ShoppingCart, Loader2, Calendar, Truck, DollarSign, Percent } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -29,6 +30,7 @@ interface PurchaseData {
 }
 
 export default function PurchaseReport() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const today = new Date().toISOString().split('T')[0]
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
   const [fromDate, setFromDate] = useState(firstOfMonth)
@@ -40,7 +42,7 @@ export default function PurchaseReport() {
 
   const fetchSuppliers = useCallback(async () => {
     try {
-      const res = await fetch('/api/purchases/suppliers')
+      const res = await fetch(`/api/purchases/suppliers?companyId=${companyId}`)
       if (res.ok) setSuppliers(await res.json())
     } catch (err) { console.error(err) }
   }, [])
@@ -52,7 +54,7 @@ export default function PurchaseReport() {
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
       if (supplierId && supplierId !== 'all') params.set('supplierId', supplierId)
-      const res = await fetch(`/api/reports/purchase-report?${params}`)
+      const res = await fetch(`/api/reports/purchase-report?companyId=${companyId}&${params}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)

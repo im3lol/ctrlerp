@@ -6,11 +6,16 @@ import { generateDocNumber } from '@/lib/erp-utils'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const supplierId = searchParams.get('supplierId')
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (supplierId) {
       where.supplierId = supplierId
@@ -53,7 +58,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { supplierId, date, amount, paymentMethod, reference, notes, lines } = body
+    const { companyId, supplierId, date, amount, paymentMethod, reference, notes, lines } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     // Validate required fields
     if (!supplierId) {
@@ -71,12 +80,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate supplier exists
+    // Validate supplier exists and belongs to company
     const supplier = await db.supplier.findUnique({ where: { id: supplierId } })
     if (!supplier) {
       return NextResponse.json(
         { error: 'المورد غير موجود' },
         { status: 404 }
+      )
+    }
+    if (supplier.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Supplier does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -94,7 +109,7 @@ export async function POST(request: NextRequest) {
     const prefix = `PP-${year}`
 
     const lastPayment = await db.paymentVoucher.findFirst({
-      where: { number: { startsWith: prefix } },
+      where: { companyId, number: { startsWith: prefix } },
       orderBy: { number: 'desc' },
       select: { number: true },
     })
@@ -112,6 +127,7 @@ export async function POST(request: NextRequest) {
       // Create payment voucher with lines
       const payment = await tx.paymentVoucher.create({
         data: {
+          companyId,
           number,
           supplierId,
           date: paymentDate,
@@ -172,17 +188,19 @@ export async function POST(request: NextRequest) {
         data: { balance: { decrement: paymentAmount } },
       })
 
-      // Create Journal Entry:
-      //   Debit: الموردين (2101) = amount
-      //   Credit: النقدية (1101) = amount
-      const supplierAccount = await tx.account.findUnique({ where: { code: '2101' } })
-      const cashAccount = await tx.account.findUnique({ where: { code: '1101' } })
+      // Create Journal Entry - look up accounts by companyId + code
+      const supplierAccount = await tx.account.findFirst({
+        where: { companyId, code: '2101' },
+      })
+      const cashAccount = await tx.account.findFirst({
+        where: { companyId, code: '1101' },
+      })
 
       if (supplierAccount && cashAccount) {
         const jeYear = paymentDate.getFullYear()
         const jePrefix = `JV-${jeYear}`
         const lastJE = await tx.journalEntry.findFirst({
-          where: { number: { startsWith: jePrefix } },
+          where: { companyId, number: { startsWith: jePrefix } },
           orderBy: { number: 'desc' },
           select: { number: true },
         })
@@ -194,6 +212,7 @@ export async function POST(request: NextRequest) {
 
         await tx.journalEntry.create({
           data: {
+            companyId,
             number: jeNumber,
             date: paymentDate,
             description: `سند صرف ${number} - ${supplier.nameAr}`,

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { useAppStore } from '@/lib/store'
 import { Printer, TrendingUp, TrendingDown, Loader2, Calendar } from 'lucide-react'
 
 interface AccountLine {
@@ -23,6 +24,7 @@ interface IncomeStatementData {
 }
 
 export default function IncomeStatementReport() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const today = new Date().toISOString().split('T')[0]
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
   const [fromDate, setFromDate] = useState(firstOfMonth)
@@ -36,7 +38,7 @@ export default function IncomeStatementReport() {
       const params = new URLSearchParams()
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
-      const res = await fetch(`/api/reports/income-statement?${params}`)
+      const res = await fetch(`/api/reports/income-statement?companyId=${companyId}&${params}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)

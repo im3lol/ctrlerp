@@ -6,12 +6,17 @@ import { generateDocNumber } from '@/lib/erp-utils'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const status = searchParams.get('status')
     const supplierId = searchParams.get('supplierId')
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (status) {
       where.status = status
@@ -57,6 +62,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
+      companyId,
       supplierId,
       warehouseId,
       date,
@@ -67,6 +73,10 @@ export async function POST(request: NextRequest) {
       notes,
       lines,
     } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     // Validate required fields
     if (!supplierId) {
@@ -90,7 +100,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate supplier exists
+    // Validate supplier exists and belongs to company
     const supplier = await db.supplier.findUnique({ where: { id: supplierId } })
     if (!supplier) {
       return NextResponse.json(
@@ -98,13 +108,25 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
+    if (supplier.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Supplier does not belong to this company' },
+        { status: 403 }
+      )
+    }
 
-    // Validate warehouse exists
+    // Validate warehouse exists and belongs to company
     const warehouse = await db.warehouse.findUnique({ where: { id: warehouseId } })
     if (!warehouse) {
       return NextResponse.json(
         { error: 'المخزن غير موجود' },
         { status: 404 }
+      )
+    }
+    if (warehouse.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Warehouse does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -145,7 +167,7 @@ export async function POST(request: NextRequest) {
     const prefix = `PI-${year}`
 
     const lastInvoice = await db.purchaseInvoice.findFirst({
-      where: { number: { startsWith: prefix } },
+      where: { companyId, number: { startsWith: prefix } },
       orderBy: { number: 'desc' },
       select: { number: true },
     })
@@ -161,6 +183,7 @@ export async function POST(request: NextRequest) {
     // Create invoice with lines
     const invoice = await db.purchaseInvoice.create({
       data: {
+        companyId,
         number,
         supplierId,
         warehouseId,

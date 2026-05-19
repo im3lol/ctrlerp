@@ -4,11 +4,16 @@ import { generateDocNumber } from '@/lib/erp-utils'
 
 // GET /api/sales/invoices/[id] - Get single invoice with full details
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     const invoice = await db.salesInvoice.findUnique({
       where: { id },
@@ -55,6 +60,14 @@ export async function GET(
       )
     }
 
+    // Verify the invoice belongs to the company
+    if (invoice.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Invoice does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
     return NextResponse.json(invoice)
   } catch (error) {
     console.error('Get sales invoice error:', error)
@@ -73,7 +86,11 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { action } = body
+    const { companyId, action } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     const invoice = await db.salesInvoice.findUnique({
       where: { id },
@@ -87,6 +104,14 @@ export async function PUT(
       return NextResponse.json(
         { error: 'فاتورة البيع غير موجودة' },
         { status: 404 }
+      )
+    }
+
+    // Verify the invoice belongs to the company
+    if (invoice.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Invoice does not belong to this company' },
+        { status: 403 }
       )
     }
 
@@ -228,7 +253,7 @@ export async function PUT(
       const movementPromises = stockMovements.map(async (sm, idx) => {
         const mvPrefix = `SM-${new Date().getFullYear()}`
         const lastMV = await db.stockMovement.findFirst({
-          where: { number: { startsWith: mvPrefix } },
+          where: { companyId, number: { startsWith: mvPrefix } },
           orderBy: { number: 'desc' },
           select: { number: true },
         })
@@ -242,6 +267,7 @@ export async function PUT(
 
         return db.stockMovement.create({
           data: {
+            companyId,
             number: generateDocNumber('SM', new Date().getFullYear(), mvSeq),
             type: 'OUT',
             itemId: sm.itemId,
@@ -294,10 +320,10 @@ export async function PUT(
         }
       }
 
-      // 5. Create Journal Entry
+      // 5. Create Journal Entry - look up accounts by companyId + code
       const jePrefix = `JV-${invoice.date.getFullYear()}`
       const lastJE = await db.journalEntry.findFirst({
-        where: { number: { startsWith: jePrefix } },
+        where: { companyId, number: { startsWith: jePrefix } },
         orderBy: { number: 'desc' },
         select: { number: true },
       })
@@ -307,10 +333,10 @@ export async function PUT(
         if (!isNaN(parsed)) jeSeq = parsed + 1
       }
 
-      // Find accounts by code
+      // Find accounts by code within the company
       const accountsNeeded = ['1103', '41', '2102', '51', '1104']
       const accounts = await db.account.findMany({
-        where: { code: { in: accountsNeeded } },
+        where: { companyId, code: { in: accountsNeeded } },
       })
 
       const getAccount = (code: string) => accounts.find((a) => a.code === code)
@@ -380,6 +406,7 @@ export async function PUT(
       if (journalLines.length >= 2) {
         await db.journalEntry.create({
           data: {
+            companyId,
             number: generateDocNumber('JV', invoice.date.getFullYear(), jeSeq),
             date: invoice.date,
             description: `فاتورة بيع ${invoice.number} - ${invoice.customer.nameAr}`,
@@ -455,7 +482,7 @@ export async function PUT(
         for (const sm of stockMovements) {
           const mvPrefix = `SM-${new Date().getFullYear()}`
           const lastMV = await db.stockMovement.findFirst({
-            where: { number: { startsWith: mvPrefix } },
+            where: { companyId, number: { startsWith: mvPrefix } },
             orderBy: { number: 'desc' },
             select: { number: true },
           })
@@ -467,6 +494,7 @@ export async function PUT(
 
           await db.stockMovement.create({
             data: {
+              companyId,
               number: generateDocNumber('SM', new Date().getFullYear(), mvSeq),
               type: 'IN',
               itemId: sm.itemId,
@@ -514,8 +542,7 @@ export async function PUT(
             })
           }
 
-          // Restore FIFO layers - add back to the original layers
-          // We'll add new FIFO layers to restore stock
+          // Restore FIFO layers
           await db.fifoLayer.create({
             data: {
               itemId: sm.itemId,
@@ -541,7 +568,7 @@ export async function PUT(
         if (originalJE) {
           const jePrefix = `JV-${new Date().getFullYear()}`
           const lastJE = await db.journalEntry.findFirst({
-            where: { number: { startsWith: jePrefix } },
+            where: { companyId, number: { startsWith: jePrefix } },
             orderBy: { number: 'desc' },
             select: { number: true },
           })
@@ -553,6 +580,7 @@ export async function PUT(
 
           await db.journalEntry.create({
             data: {
+              companyId,
               number: generateDocNumber('JV', new Date().getFullYear(), jeSeq),
               date: new Date(),
               description: `إلغاء فاتورة بيع ${invoice.number}`,
@@ -645,6 +673,12 @@ export async function PUT(
           return NextResponse.json(
             { error: 'العميل غير موجود' },
             { status: 404 }
+          )
+        }
+        if (customer.companyId !== companyId) {
+          return NextResponse.json(
+            { error: 'Customer does not belong to this company' },
+            { status: 403 }
           )
         }
       }

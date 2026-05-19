@@ -66,6 +66,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useAppStore } from '@/lib/store'
 import { getStatusColor, getStatusLabel, formatCurrency, formatDate } from '@/lib/erp-utils'
 import { cn } from '@/lib/utils'
 
@@ -122,6 +123,7 @@ interface EntryLineFormData {
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function JournalEntriesList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [accounts, setAccounts] = useState<AccountOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -163,7 +165,7 @@ export default function JournalEntriesList() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/accounting/accounts')
+      const res = await fetch(`/api/accounting/accounts?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setAccounts(data.filter((a: AccountOption) => a.isLeaf))
@@ -180,7 +182,7 @@ export default function JournalEntriesList() {
       if (fromDate) params.set('fromDate', fromDate)
       if (toDate) params.set('toDate', toDate)
 
-      const res = await fetch(`/api/accounting/journal-entries?${params.toString()}`)
+      const res = await fetch(`/api/accounting/journal-entries?companyId=${companyId}&${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
         setEntries(data)
@@ -303,16 +305,16 @@ export default function JournalEntriesList() {
 
       let res: Response
       if (editingId) {
-        res = await fetch(`/api/accounting/journal-entries/${editingId}`, {
+        res = await fetch(`/api/accounting/journal-entries/${editingId}?companyId=${companyId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'update', ...payload }),
+          body: JSON.stringify({ action: 'update', ...payload, companyId }),
         })
       } else {
-        res = await fetch('/api/accounting/journal-entries', {
+        res = await fetch(`/api/accounting/journal-entries?companyId=${companyId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, companyId }),
         })
       }
 
@@ -335,10 +337,10 @@ export default function JournalEntriesList() {
   const handlePost = async () => {
     if (!postTargetId) return
     try {
-      const res = await fetch(`/api/accounting/journal-entries/${postTargetId}`, {
+      const res = await fetch(`/api/accounting/journal-entries/${postTargetId}?companyId=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'post' }),
+        body: JSON.stringify({ action: 'post', companyId }),
       })
       if (res.ok) {
         toast.success('تم ترحيل القيد بنجاح')
@@ -359,10 +361,10 @@ export default function JournalEntriesList() {
   const handleReverse = async () => {
     if (!reverseTargetId) return
     try {
-      const res = await fetch(`/api/accounting/journal-entries/${reverseTargetId}`, {
+      const res = await fetch(`/api/accounting/journal-entries/${reverseTargetId}?companyId=${companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reverse' }),
+        body: JSON.stringify({ action: 'reverse', companyId }),
       })
       if (res.ok) {
         toast.success('تم عكس القيد بنجاح')
@@ -384,7 +386,7 @@ export default function JournalEntriesList() {
     setDetailLoading(true)
     setDetailOpen(true)
     try {
-      const res = await fetch(`/api/accounting/journal-entries/${entryId}`)
+      const res = await fetch(`/api/accounting/journal-entries/${entryId}?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setDetailEntry(data)

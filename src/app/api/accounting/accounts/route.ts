@@ -1,10 +1,17 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/accounting/accounts - List all accounts (include parent info)
-export async function GET() {
+// GET /api/accounting/accounts - List all accounts for a company
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const accounts = await db.account.findMany({
+      where: { companyId },
       orderBy: { code: 'asc' },
       include: {
         parent: {
@@ -32,7 +39,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, nameAr, nameEn, type, parentId, isLeaf, isActive } = body
+    const { companyId, code, nameAr, nameEn, type, parentId, isLeaf, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!code || !nameAr || !type) {
       return NextResponse.json(
@@ -50,22 +61,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if account code already exists
-    const existing = await db.account.findUnique({ where: { code } })
+    // Check if account code already exists within the company
+    const existing = await db.account.findUnique({
+      where: { companyId_code: { companyId, code } },
+    })
     if (existing) {
       return NextResponse.json(
-        { error: `Account with code "${code}" already exists` },
+        { error: `Account with code "${code}" already exists in this company` },
         { status: 409 }
       )
     }
 
-    // If parentId is provided, verify it exists
+    // If parentId is provided, verify it exists and belongs to the same company
     if (parentId) {
       const parent = await db.account.findUnique({ where: { id: parentId } })
       if (!parent) {
         return NextResponse.json(
           { error: 'Parent account not found' },
           { status: 404 }
+        )
+      }
+      if (parent.companyId !== companyId) {
+        return NextResponse.json(
+          { error: 'Parent account does not belong to this company' },
+          { status: 403 }
         )
       }
       // If parent was a leaf, update it to non-leaf
@@ -79,6 +98,7 @@ export async function POST(request: NextRequest) {
 
     const account = await db.account.create({
       data: {
+        companyId,
         code,
         nameAr,
         nameEn: nameEn ?? null,
@@ -113,7 +133,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, code, nameAr, nameEn, type, parentId, isLeaf, isActive } = body
+    const { companyId, id, code, nameAr, nameEn, type, parentId, isLeaf, isActive } = body
+
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -130,6 +154,14 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Verify the account belongs to the company
+    if (existing.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Account does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
     // Validate account type if provided
     if (type) {
       const validTypes = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE']
@@ -141,12 +173,14 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // If code is being changed, check for duplicates
+    // If code is being changed, check for duplicates within company
     if (code && code !== existing.code) {
-      const duplicate = await db.account.findUnique({ where: { code } })
+      const duplicate = await db.account.findUnique({
+        where: { companyId_code: { companyId, code } },
+      })
       if (duplicate) {
         return NextResponse.json(
-          { error: `Account with code "${code}" already exists` },
+          { error: `Account with code "${code}" already exists in this company` },
           { status: 409 }
         )
       }
@@ -160,6 +194,12 @@ export async function PUT(request: NextRequest) {
           return NextResponse.json(
             { error: 'Parent account not found' },
             { status: 404 }
+          )
+        }
+        if (parent.companyId !== companyId) {
+          return NextResponse.json(
+            { error: 'Parent account does not belong to this company' },
+            { status: 403 }
           )
         }
         // Prevent circular reference (account can't be its own parent)

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { useAppStore } from '@/lib/store'
 import { Printer, Building2, Loader2 } from 'lucide-react'
 
 interface SupplierAgingLine {
@@ -51,13 +52,14 @@ function getAgingBg(amount: number, threshold: 'current' | '30' | '60' | '90+'):
 }
 
 export default function SupplierAgingReport() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [data, setData] = useState<SupplierAgingData | null>(null)
   const [loading, setLoading] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/reports/supplier-aging')
+      const res = await fetch(`/api/reports/supplier-aging?companyId=${companyId}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)

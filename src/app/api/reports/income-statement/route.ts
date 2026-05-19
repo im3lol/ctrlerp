@@ -5,11 +5,16 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 })
+    }
+
     const fromDate = searchParams.get('fromDate')
     const toDate = searchParams.get('toDate') || new Date().toISOString().split('T')[0]
 
     const accounts = await db.account.findMany({
-      where: { type: { in: ['REVENUE', 'EXPENSE'] } },
+      where: { companyId, type: { in: ['REVENUE', 'EXPENSE'] } },
       orderBy: { code: 'asc' },
     })
 
@@ -19,6 +24,7 @@ export async function GET(request: NextRequest) {
     const entryLines = await db.journalEntryLine.findMany({
       where: {
         journalEntry: {
+          companyId,
           status: 'POSTED',
           date: dateFilter,
         },

@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useAppStore } from '@/lib/store'
 
 interface Currency {
   id: string
@@ -69,6 +70,7 @@ const initialFormData: CurrencyFormData = {
 }
 
 export default function CurrenciesList() {
+  const companyId = useAppStore(state => state.currentCompanyId)
   const [currencies, setCurrencies] = useState<Currency[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -79,12 +81,13 @@ export default function CurrenciesList() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    if (!companyId) return
     fetchCurrencies()
-  }, [])
+  }, [companyId])
 
   const fetchCurrencies = async () => {
     try {
-      const res = await fetch('/api/settings/currencies')
+      const res = await fetch(`/api/settings/currencies?companyId=${companyId}`)
       if (res.ok) {
         const data = await res.json()
         setCurrencies(data)
@@ -137,7 +140,7 @@ export default function CurrenciesList() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, companyId }),
       })
 
       if (res.ok) {
@@ -158,9 +161,7 @@ export default function CurrenciesList() {
   const handleDelete = async () => {
     if (!deletingId) return
     try {
-      const res = await fetch(`/api/settings/currencies/${deletingId}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/settings/currencies/${deletingId}?companyId=${companyId}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success('تم حذف العملة بنجاح')
         fetchCurrencies()
