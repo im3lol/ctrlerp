@@ -161,15 +161,22 @@ const navigation: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    id: 'settings',
-    label: 'الإعدادات',
-    icon: Settings,
+    id: 'accounting',
+    label: 'الحسابات',
+    icon: Calculator,
     children: [
-      { id: 'company', label: 'بيانات الشركة', icon: Building2 },
-      { id: 'currencies', label: 'العملات', icon: DollarSign },
-      { id: 'uom', label: 'وحدات القياس', icon: Ruler },
-      { id: 'users', label: 'المستخدمين', icon: UserCog },
+      { id: 'journal-entries', label: 'القيود اليومية', icon: BookOpen },
       { id: 'chart-of-accounts', label: 'شجرة الحسابات', icon: GitBranch },
+    ],
+  },
+  {
+    id: 'purchases',
+    label: 'المشتريات',
+    icon: Truck,
+    children: [
+      { id: 'suppliers', label: 'الموردين', icon: Building2 },
+      { id: 'purchase-invoices', label: 'فواتير الشراء', icon: FileText },
+      { id: 'payment-vouchers', label: 'سندات الصرف', icon: CreditCard },
     ],
   },
   {
@@ -186,15 +193,6 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    id: 'accounting',
-    label: 'الحسابات',
-    icon: Calculator,
-    children: [
-      { id: 'journal-entries', label: 'القيود اليومية', icon: BookOpen },
-      { id: 'chart-of-accounts', label: 'شجرة الحسابات', icon: GitBranch },
-    ],
-  },
-  {
     id: 'sales',
     label: 'المبيعات',
     icon: ShoppingCart,
@@ -202,16 +200,6 @@ const navigation: NavItem[] = [
       { id: 'customers', label: 'العملاء', icon: Users },
       { id: 'sales-invoices', label: 'فواتير البيع', icon: FileText },
       { id: 'receipt-vouchers', label: 'سندات القبض', icon: Receipt },
-    ],
-  },
-  {
-    id: 'purchases',
-    label: 'المشتريات',
-    icon: Truck,
-    children: [
-      { id: 'suppliers', label: 'الموردين', icon: Building2 },
-      { id: 'purchase-invoices', label: 'فواتير الشراء', icon: FileText },
-      { id: 'payment-vouchers', label: 'سندات الصرف', icon: CreditCard },
     ],
   },
   {
@@ -235,6 +223,18 @@ const navigation: NavItem[] = [
       { id: 'purchase-report', label: 'تقرير المشتريات', icon: ShoppingCart },
       { id: 'customer-aging', label: 'أرصدة العملاء', icon: Users },
       { id: 'supplier-aging', label: 'أرصدة الموردين', icon: Building2 },
+    ],
+  },
+  {
+    id: 'settings',
+    label: 'الإعدادات',
+    icon: Settings,
+    children: [
+      { id: 'company', label: 'بيانات الشركة', icon: Building2 },
+      { id: 'currencies', label: 'العملات', icon: DollarSign },
+      { id: 'uom', label: 'وحدات القياس', icon: Ruler },
+      { id: 'users', label: 'المستخدمين', icon: UserCog },
+      { id: 'chart-of-accounts', label: 'شجرة الحسابات', icon: GitBranch },
     ],
   },
 ]
