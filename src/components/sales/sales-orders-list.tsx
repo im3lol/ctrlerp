@@ -163,11 +163,6 @@ export default function SalesOrdersList() {
   const [detailOrder, setDetailOrder] = useState<SalesOrder | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
 
-  useEffect(() => {
-    fetchOrders()
-    fetchCustomers()
-  }, [])
-
   const fetchOrders = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -189,9 +184,22 @@ export default function SalesOrdersList() {
     }
   }, [statusFilter, customerFilter, fromDate, toDate, itemFilter])
 
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/sales/customers?companyId=${companyId}&activeOnly=true`)
+      if (res.ok) {
+        const data = await res.json()
+        setCustomers(data)
+      }
+    } catch {
+      // silently fail - customers are for filter only
+    }
+  }, [companyId])
+
   useEffect(() => {
     fetchOrders()
-  }, [fetchOrders])
+    fetchCustomers()
+  }, [fetchOrders, fetchCustomers])
 
 
 
