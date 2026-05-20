@@ -1,16 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import {
-  Save, Send, ArrowRight, Loader2, Truck, Plus, XCircle,
-  ScanLine, Search, FileText,
+  Save, Send, Loader2, Truck, Plus, XCircle,
+  ScanLine, Search, FileText, Package, ClipboardList,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -20,7 +18,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAppStore } from '@/lib/store'
-import { formatDate } from '@/lib/erp-utils'
+import DocumentPageHeader, { getDocumentStatusBadge } from '@/components/shared/document-page-header'
+import { DocumentSection, LinkedDocumentBadge } from '@/components/shared/document-section'
+import WorkflowStepper, { getSalesWorkflow } from '@/components/shared/workflow-stepper'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -122,21 +122,6 @@ const emptyLine: LineInput = {
   notes: '',
 }
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'DRAFT':
-      return <Badge className="bg-slate-100 text-slate-600">مسودة</Badge>
-    case 'CONFIRMED':
-      return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">مؤكد</Badge>
-    case 'CANCELLED':
-      return <Badge className="bg-red-50 text-red-700 border-red-200">ملغى</Badge>
-    default:
-      return <Badge>{status}</Badge>
-  }
-}
-
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 function buildWarehouseDisplayName(wh: Warehouse): string {
@@ -177,6 +162,10 @@ export default function DeliveryNoteFormPage() {
   const [currentStatus, setCurrentStatus] = useState<string>('DRAFT')
   const [noteNumber, setNoteNumber] = useState<string>('')
   const [noteId, setNoteId] = useState<string>('')
+
+  // Linked document numbers for workflow stepper & badges
+  const [noteSalesOrderNumber, setNoteSalesOrderNumber] = useState<string>('')
+  const [noteSalesInvoiceNumber, setNoteSalesInvoiceNumber] = useState<string>('')
 
   // Barcode & search
   const [barcodeInput, setBarcodeInput] = useState('')
@@ -237,6 +226,9 @@ export default function DeliveryNoteFormPage() {
           quantity: String(l.quantity),
           notes: l.notes || '',
         })))
+        // Store linked document numbers
+        setNoteSalesOrderNumber(note.salesOrder?.number || '')
+        setNoteSalesInvoiceNumber(note.salesInvoice?.number || '')
       }
     } catch {
       toast.error('فشل في تحميل بيانات إذن الصرف')
@@ -290,14 +282,17 @@ export default function DeliveryNoteFormPage() {
   const handleSalesInvoiceChange = async (invoiceId: string) => {
     if (!invoiceId || invoiceId === '__none__') {
       setNoteSalesInvoiceId('')
+      setNoteSalesInvoiceNumber('')
       setNoteCustomerId('')
       setNoteSalesOrderId('')
+      setNoteSalesOrderNumber('')
       setNoteLines([{ ...emptyLine }])
       return
     }
 
     setNoteSalesInvoiceId(invoiceId)
     setNoteSalesOrderId('')
+    setNoteSalesOrderNumber('')
     setOrderLoading(true)
 
     try {
@@ -305,6 +300,7 @@ export default function DeliveryNoteFormPage() {
       if (res.ok) {
         const invoice: SalesInvoice = await res.json()
         setNoteCustomerId(invoice.customerId)
+        setNoteSalesInvoiceNumber(invoice.number)
         if (invoice.lines && invoice.lines.length > 0) {
           setNoteLines(invoice.lines.map(l => ({
             itemId: l.itemId,
@@ -327,14 +323,17 @@ export default function DeliveryNoteFormPage() {
   const handleSalesOrderChange = async (orderId: string) => {
     if (!orderId || orderId === '__none__') {
       setNoteSalesOrderId('')
+      setNoteSalesOrderNumber('')
       setNoteCustomerId('')
       setNoteSalesInvoiceId('')
+      setNoteSalesInvoiceNumber('')
       setNoteLines([{ ...emptyLine }])
       return
     }
 
     setNoteSalesOrderId(orderId)
     setNoteSalesInvoiceId('')
+    setNoteSalesInvoiceNumber('')
     setOrderLoading(true)
 
     try {
@@ -342,6 +341,7 @@ export default function DeliveryNoteFormPage() {
       if (res.ok) {
         const order: SalesOrder = await res.json()
         setNoteCustomerId(order.customerId)
+        setNoteSalesOrderNumber(order.number)
         if (order.lines && order.lines.length > 0) {
           const orderLines = order.lines
             .filter(l => (l.quantity - (l.deliveredQty || 0)) > 0)
@@ -590,6 +590,27 @@ export default function DeliveryNoteFormPage() {
   const isEditable = currentStatus === 'DRAFT' || currentStatus === 'NEW'
   const linesLocked = !!(noteSalesInvoiceId || noteSalesOrderId)
 
+  // ── Workflow stepper ──
+
+  const workflowSteps = getSalesWorkflow('DN', {
+    soNumber: noteSalesOrderNumber || undefined,
+    dnNumber: noteNumber || undefined,
+    siNumber: noteSalesInvoiceNumber || undefined,
+  })
+  // Override step statuses based on actual document state
+  // أمر البيع: completed if linked, upcoming otherwise (DN is the current doc, SO is before it)
+  if (workflowSteps[0]) {
+    workflowSteps[0].status = noteSalesOrderId ? 'completed' : 'upcoming'
+  }
+  // إذن الصرف: always current (this IS the delivery note)
+  if (workflowSteps[1]) {
+    workflowSteps[1].status = currentStatus === 'CONFIRMED' ? 'completed' : 'current'
+  }
+  // فاتورة البيع: completed if linked, upcoming otherwise
+  if (workflowSteps[2]) {
+    workflowSteps[2].status = noteSalesInvoiceId ? 'completed' : 'upcoming'
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -599,213 +620,214 @@ export default function DeliveryNoteFormPage() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={handleGoBack} className="hover:bg-slate-100">
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Truck className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-900">
-                  {noteId ? `إذن صرف ${noteNumber}` : 'إذن صرف جديد'}
-                </h2>
-                {currentStatus !== 'NEW' && getStatusBadge(currentStatus)}
-              </div>
-              <p className="text-xs text-slate-400">
-                {noteId ? 'تعديل أو تأكيد إذن الصرف' : 'إنشاء إذن صرف جديد من المخزن'}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleGoBack}>
-            إلغاء
-          </Button>
-          {isEditable && (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleSaveDraft}
-                disabled={submitting || orderLoading}
-                className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                مسودة
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting || orderLoading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                مؤكد
-              </Button>
-            </>
-          )}
-          {currentStatus === 'CONFIRMED' && (
-            <Button
-              onClick={handleCreateSalesInvoice}
-              className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              <FileText className="h-4 w-4" />
-              إنشاء فاتورة بيع
-            </Button>
-          )}
-        </div>
+    <div className="space-y-5">
+      {/* ── Page Header ── */}
+      <DocumentPageHeader
+        icon={Truck}
+        iconBg="bg-amber-50"
+        iconColor="text-amber-600"
+        newTitle="إذن صرف جديد"
+        editTitlePrefix="إذن صرف"
+        documentNumber={noteNumber || undefined}
+        status={currentStatus}
+        subtitle={noteId ? 'تعديل أو تأكيد إذن الصرف' : 'إنشاء إذن صرف جديد من المخزن'}
+        onGoBack={handleGoBack}
+        shortcutActions={
+          currentStatus === 'CONFIRMED'
+            ? [
+                {
+                  label: 'إنشاء فاتورة بيع',
+                  icon: FileText,
+                  onClick: handleCreateSalesInvoice,
+                  className: 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600',
+                },
+              ]
+            : undefined
+        }
+        primaryActions={
+          isEditable
+            ? [
+                {
+                  label: 'حفظ كمسودة',
+                  icon: Save,
+                  onClick: handleSaveDraft,
+                  disabled: submitting || orderLoading,
+                  loading: submitting,
+                },
+                {
+                  label: 'تأكيد',
+                  icon: Send,
+                  onClick: handleSubmit,
+                  disabled: submitting || orderLoading,
+                  loading: submitting,
+                },
+              ]
+            : undefined
+        }
+      />
+
+      {/* ── Workflow Stepper ── */}
+      <div className="bg-white border rounded-xl px-5 py-3 shadow-sm">
+        <WorkflowStepper steps={workflowSteps} />
       </div>
 
-      {/* Note Header */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">بيانات إذن الصرف</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>المخزن <span className="text-red-500">*</span></Label>
-              <Select
-                value={noteWarehouseId}
-                onValueChange={setNoteWarehouseId}
-                disabled={!isEditable}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر المخزن" />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouses.map((wh) => (
-                    <SelectItem key={wh.id} value={wh.id}>
-                      {buildWarehouseDisplayName(wh)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* ── Linked Documents ── */}
+      {(noteSalesOrderId || noteSalesInvoiceId) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {noteSalesOrderId && noteSalesOrderNumber && (
+            <LinkedDocumentBadge
+              label="أمر البيع"
+              value={noteSalesOrderNumber}
+            />
+          )}
+          {noteSalesInvoiceId && noteSalesInvoiceNumber && (
+            <LinkedDocumentBadge
+              label="فاتورة البيع"
+              value={noteSalesInvoiceNumber}
+            />
+          )}
+        </div>
+      )}
 
-            <div className="space-y-2">
-              <Label>فاتورة البيع (اختياري)</Label>
-              <Select
-                value={noteSalesInvoiceId || '__none__'}
-                onValueChange={handleSalesInvoiceChange}
-                disabled={!isEditable || orderLoading || !!noteSalesOrderId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر فاتورة البيع" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">بدون فاتورة</SelectItem>
-                  {salesInvoices
-                    .filter(inv => inv.status === 'CONFIRMED')
-                    .map(inv => (
-                      <SelectItem key={inv.id} value={inv.id}>
-                        {inv.number} - {inv.customer?.nameAr || '—'}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>أمر البيع (اختياري)</Label>
-              <Select
-                value={noteSalesOrderId || '__none__'}
-                onValueChange={handleSalesOrderChange}
-                disabled={!isEditable || orderLoading || !!noteSalesInvoiceId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر أمر البيع" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">بدون أمر بيع</SelectItem>
-                  {salesOrders
-                    .filter(ord => ord.status === 'CONFIRMED')
-                    .map(ord => (
-                      <SelectItem key={ord.id} value={ord.id}>
-                        {ord.number} - {ord.customer?.nameAr || '—'}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>العميل</Label>
-              <Select
-                value={noteCustomerId}
-                onValueChange={setNoteCustomerId}
-                disabled={!isEditable || !!noteSalesInvoiceId || !!noteSalesOrderId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر العميل" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map(cust => (
-                    <SelectItem key={cust.id} value={cust.id}>
-                      {cust.nameAr} ({cust.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {(noteSalesInvoiceId || noteSalesOrderId) && (
-                <p className="text-xs text-slate-400">يتم تعبئته تلقائياً من المستند المحدد</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>التاريخ</Label>
-              <Input
-                type="date"
-                value={noteDate}
-                onChange={(e) => setNoteDate(e.target.value)}
-                disabled={!isEditable}
-                dir="ltr"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>ملاحظات</Label>
-              <Input
-                value={noteNotes}
-                onChange={(e) => setNoteNotes(e.target.value)}
-                placeholder="ملاحظات اختيارية..."
-                disabled={!isEditable}
-              />
-            </div>
+      {/* ── Note Info Section ── */}
+      <DocumentSection
+        title="بيانات إذن الصرف"
+        icon={Truck}
+        iconColor="text-amber-600"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>المخزن <span className="text-red-500">*</span></Label>
+            <Select
+              value={noteWarehouseId}
+              onValueChange={setNoteWarehouseId}
+              disabled={!isEditable}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر المخزن" />
+              </SelectTrigger>
+              <SelectContent>
+                {warehouses.map((wh) => (
+                  <SelectItem key={wh.id} value={wh.id}>
+                    {buildWarehouseDisplayName(wh)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Lines */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">بنود إذن الصرف</CardTitle>
-            {isEditable && !linesLocked && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addLine}
-                className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-              >
-                <Plus className="h-3 w-3" />
-                إضافة سطر
-              </Button>
+          <div className="space-y-2">
+            <Label>فاتورة البيع (اختياري)</Label>
+            <Select
+              value={noteSalesInvoiceId || '__none__'}
+              onValueChange={handleSalesInvoiceChange}
+              disabled={!isEditable || orderLoading || !!noteSalesOrderId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر فاتورة البيع" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">بدون فاتورة</SelectItem>
+                {salesInvoices
+                  .filter(inv => inv.status === 'CONFIRMED')
+                  .map(inv => (
+                    <SelectItem key={inv.id} value={inv.id}>
+                      {inv.number} - {inv.customer?.nameAr || '—'}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>أمر البيع (اختياري)</Label>
+            <Select
+              value={noteSalesOrderId || '__none__'}
+              onValueChange={handleSalesOrderChange}
+              disabled={!isEditable || orderLoading || !!noteSalesInvoiceId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر أمر البيع" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">بدون أمر بيع</SelectItem>
+                {salesOrders
+                  .filter(ord => ord.status === 'CONFIRMED')
+                  .map(ord => (
+                    <SelectItem key={ord.id} value={ord.id}>
+                      {ord.number} - {ord.customer?.nameAr || '—'}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>العميل</Label>
+            <Select
+              value={noteCustomerId}
+              onValueChange={setNoteCustomerId}
+              disabled={!isEditable || !!noteSalesInvoiceId || !!noteSalesOrderId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر العميل" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map(cust => (
+                  <SelectItem key={cust.id} value={cust.id}>
+                    {cust.nameAr} ({cust.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(noteSalesInvoiceId || noteSalesOrderId) && (
+              <p className="text-xs text-slate-400">يتم تعبئته تلقائياً من المستند المحدد</p>
             )}
           </div>
-        </CardHeader>
-        <CardContent>
+
+          <div className="space-y-2">
+            <Label>التاريخ</Label>
+            <Input
+              type="date"
+              value={noteDate}
+              onChange={(e) => setNoteDate(e.target.value)}
+              disabled={!isEditable}
+              dir="ltr"
+            />
+          </div>
+        </div>
+      </DocumentSection>
+
+      {/* ── Lines Section ── */}
+      <DocumentSection
+        title="بنود إذن الصرف"
+        icon={Package}
+        iconColor="text-amber-600"
+        action={
+          isEditable && !linesLocked ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addLine}
+              className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              إضافة سطر
+            </Button>
+          ) : undefined
+        }
+        noPadding
+      >
+        <div className="space-y-0">
           {linesLocked && (
-            <p className="text-xs text-slate-400 mb-3">الأصناف معبأة تلقائياً من المستند المحدد</p>
+            <div className="px-5 pt-4 pb-2">
+              <p className="text-xs text-slate-400">الأصناف معبأة تلقائياً من المستند المحدد</p>
+            </div>
           )}
 
-          {/* Barcode & Search */}
+          {/* Barcode & Search Area */}
           {isEditable && !linesLocked && (
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-col sm:flex-row gap-2 px-5 pt-4 pb-3 bg-slate-50/60 border-b">
               <div className="flex-1 relative">
                 <ScanLine className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -813,17 +835,17 @@ export default function DeliveryNoteFormPage() {
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyDown={handleBarcodeScan}
-                  className="pr-10 h-9"
+                  className="pr-10 h-9 bg-white"
                   dir="ltr"
                 />
               </div>
               <div className="flex-1 relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="بحث بالاسم..."
+                  placeholder="بحث بالاسم أو الكود..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 h-9"
+                  className="pr-10 h-9 bg-white"
                 />
                 {searchQuery && filteredItems.length > 0 && (
                   <div className="absolute top-full right-0 left-0 bg-white border rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto mt-1">
@@ -834,9 +856,10 @@ export default function DeliveryNoteFormPage() {
                           handleAddItemById(item.id)
                           setSearchQuery('')
                         }}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-emerald-50 border-b last:border-0"
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-emerald-50 border-b last:border-0 transition-colors"
                       >
-                        {item.nameAr || item.nameEn || item.code} ({item.code})
+                        <span className="font-medium">{item.nameAr || item.nameEn || item.code}</span>
+                        <span className="text-slate-400 mr-2 font-mono text-xs">({item.code})</span>
                       </button>
                     ))}
                   </div>
@@ -845,88 +868,100 @@ export default function DeliveryNoteFormPage() {
             </div>
           )}
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-12 gap-2 px-1">
-              <div className="col-span-4 text-xs font-semibold text-slate-500">الصنف</div>
-              <div className="col-span-2 text-xs font-semibold text-slate-500">الكمية</div>
-              <div className="col-span-5 text-xs font-semibold text-slate-500">ملاحظات</div>
-              <div className="col-span-1"></div>
-            </div>
-
-            {noteLines.map((line, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-4">
-                  <Select
-                    value={line.itemId}
-                    onValueChange={(val) => updateLine(idx, 'itemId', val)}
-                    disabled={!isEditable || linesLocked}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="اختر الصنف" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items.map((it) => (
-                        <SelectItem key={it.id} value={it.id}>
-                          {it.nameAr || it.nameEn || it.code} ({it.code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={line.quantity}
-                    onChange={(e) => updateLine(idx, 'quantity', e.target.value)}
-                    className="h-9 text-sm"
-                    dir="ltr"
-                    disabled={!isEditable || linesLocked}
-                  />
-                </div>
-                <div className="col-span-5">
-                  <Input
-                    value={line.notes}
-                    onChange={(e) => updateLine(idx, 'notes', e.target.value)}
-                    placeholder="ملاحظات..."
-                    className="h-9 text-sm"
-                    disabled={!isEditable || linesLocked}
-                  />
-                </div>
-                <div className="col-span-1 flex items-center justify-center">
-                  {isEditable && !linesLocked && noteLines.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLine(idx)}
-                      className="h-7 w-7 text-red-400 hover:text-red-600"
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+          {/* Header row */}
+          <div className="grid grid-cols-12 gap-2 px-5 py-2.5 bg-slate-50 border-b">
+            <div className="col-span-4 text-xs font-semibold text-slate-500">الصنف</div>
+            <div className="col-span-2 text-xs font-semibold text-slate-500">الكمية</div>
+            <div className="col-span-5 text-xs font-semibold text-slate-500">ملاحظات</div>
+            <div className="col-span-1"></div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Notes */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">ملاحظات إضافية</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={noteNotes}
-            onChange={(e) => setNoteNotes(e.target.value)}
-            placeholder="ملاحظات إضافية..."
-            rows={3}
-            disabled={!isEditable}
-          />
-        </CardContent>
-      </Card>
+          {/* Line items with alternating row backgrounds */}
+          {noteLines.map((line, idx) => (
+            <div
+              key={idx}
+              className={`grid grid-cols-12 gap-2 items-center px-5 py-2.5 border-b last:border-b-0 ${
+                idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'
+              }`}
+            >
+              <div className="col-span-4">
+                <Select
+                  value={line.itemId}
+                  onValueChange={(val) => updateLine(idx, 'itemId', val)}
+                  disabled={!isEditable || linesLocked}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="اختر الصنف" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {items.map((it) => (
+                      <SelectItem key={it.id} value={it.id}>
+                        {it.nameAr || it.nameEn || it.code} ({it.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={line.quantity}
+                  onChange={(e) => updateLine(idx, 'quantity', e.target.value)}
+                  className="h-9 text-sm"
+                  dir="ltr"
+                  disabled={!isEditable || linesLocked}
+                />
+              </div>
+              <div className="col-span-5">
+                <Input
+                  value={line.notes}
+                  onChange={(e) => updateLine(idx, 'notes', e.target.value)}
+                  placeholder="ملاحظات..."
+                  className="h-9 text-sm"
+                  disabled={!isEditable || linesLocked}
+                />
+              </div>
+              <div className="col-span-1 flex items-center justify-center">
+                {isEditable && !linesLocked && noteLines.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLine(idx)}
+                    className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Empty state */}
+          {noteLines.length === 0 && (
+            <div className="px-5 py-8 text-center text-sm text-slate-400">
+              لم يتم إضافة بنود بعد
+            </div>
+          )}
+        </div>
+      </DocumentSection>
+
+      {/* ── Notes Section ── */}
+      <DocumentSection
+        title="ملاحظات إضافية"
+        icon={FileText}
+        iconColor="text-amber-600"
+      >
+        <Textarea
+          value={noteNotes}
+          onChange={(e) => setNoteNotes(e.target.value)}
+          placeholder="ملاحظات إضافية..."
+          rows={4}
+          disabled={!isEditable}
+          className="resize-none"
+        />
+      </DocumentSection>
     </div>
   )
 }

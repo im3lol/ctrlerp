@@ -3,14 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Save, Send, ArrowRight, Loader2, FileText, Plus, XCircle,
-  ScanLine, Search, PackageCheck,
+  Save, Send, Loader2, FileText, Plus, XCircle,
+  ScanLine, Search, PackageCheck, Receipt, Package, Calculator,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -22,6 +20,9 @@ import {
 } from '@/components/ui/select'
 import { useAppStore } from '@/lib/store'
 import { formatCurrency } from '@/lib/erp-utils'
+import DocumentPageHeader, { getDocumentStatusBadge } from '@/components/shared/document-page-header'
+import { DocumentSection, LinkedDocumentBadge } from '@/components/shared/document-section'
+import WorkflowStepper, { getPurchaseWorkflow } from '@/components/shared/workflow-stepper'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,25 +95,6 @@ const emptyLine: InvoiceLine = {
   totalAmount: 0,
 }
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'DRAFT':
-      return <Badge className="bg-slate-100 text-slate-600">مسودة</Badge>
-    case 'CONFIRMED':
-      return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">مؤكدة</Badge>
-    case 'PARTIAL_PAID':
-      return <Badge className="bg-orange-50 text-orange-700 border-orange-200">مدفوعة جزئياً</Badge>
-    case 'PAID':
-      return <Badge className="bg-teal-50 text-teal-700 border-teal-200">مدفوعة</Badge>
-    case 'CANCELLED':
-      return <Badge className="bg-red-50 text-red-700 border-red-200">ملغية</Badge>
-    default:
-      return <Badge>{status}</Badge>
-  }
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PurchaseInvoiceFormPage() {
@@ -145,6 +127,10 @@ export default function PurchaseInvoiceFormPage() {
   const [selectedReceiptId, setSelectedReceiptId] = useState('')
   const [loadingReceipts, setLoadingReceipts] = useState(false)
 
+  // Linked document tracking for workflow stepper & badges
+  const [linkedPurchaseReceiptNumber, setLinkedPurchaseReceiptNumber] = useState<string>('')
+  const [linkedPurchaseOrderNumber, setLinkedPurchaseOrderNumber] = useState<string>('')
+
   // Check localStorage for pre-fill from purchase receipt
   useEffect(() => {
     try {
@@ -155,6 +141,8 @@ export default function PurchaseInvoiceFormPage() {
         if (data.supplierId) setInvoiceSupplierId(data.supplierId)
         if (data.warehouseId) setInvoiceWarehouseId(data.warehouseId)
         if (data.notes) setInvoiceNotes(data.notes)
+        if (data.purchaseReceiptNumber) setLinkedPurchaseReceiptNumber(data.purchaseReceiptNumber)
+        if (data.purchaseOrderNumber) setLinkedPurchaseOrderNumber(data.purchaseOrderNumber)
         if (data.lines && data.lines.length > 0) {
           const prefillLines: InvoiceLine[] = data.lines.map((l: { itemId: string; quantity: number }) => ({
             itemId: l.itemId,
@@ -538,6 +526,9 @@ export default function PurchaseInvoiceFormPage() {
         // Auto-fill supplier and warehouse from receipt
         if (receipt.supplierId) setInvoiceSupplierId(receipt.supplierId)
         if (receipt.warehouseId) setInvoiceWarehouseId(receipt.warehouseId)
+        // Track linked document numbers for workflow stepper
+        if (receipt.number) setLinkedPurchaseReceiptNumber(receipt.number)
+        if (receipt.purchaseOrderNumber) setLinkedPurchaseOrderNumber(receipt.purchaseOrderNumber)
         // Populate lines from receipt items
         if (receipt.lines && receipt.lines.length > 0) {
           const receiptLines: InvoiceLine[] = receipt.lines.map((l: { itemId: string; quantity: number }) => {
@@ -563,157 +554,179 @@ export default function PurchaseInvoiceFormPage() {
   const totals = calcInvoiceTotals()
   const isEditable = currentStatus === 'DRAFT' || currentStatus === 'NEW'
 
+  // Determine workflow step statuses
+  const piStepStatus = currentStatus === 'CONFIRMED' || currentStatus === 'PARTIAL_PAID' || currentStatus === 'PAID' || currentStatus === 'CLOSED'
+    ? 'completed'
+    : 'current'
+  const workflowSteps = getPurchaseWorkflow('PI', {
+    poNumber: linkedPurchaseOrderNumber || undefined,
+    prNumber: linkedPurchaseReceiptNumber || undefined,
+    piNumber: invoiceNumber || undefined,
+  })
+  // Override the PI step status based on actual invoice status
+  if (workflowSteps[2]) {
+    workflowSteps[2].status = piStepStatus
+  }
+  // If PO/PR are linked but not already set to completed by the workflow function, mark them as completed
+  if (workflowSteps[0] && linkedPurchaseOrderNumber && workflowSteps[0].status === 'upcoming') {
+    workflowSteps[0].status = 'completed'
+  }
+  if (workflowSteps[1] && linkedPurchaseReceiptNumber && workflowSteps[1].status === 'upcoming') {
+    workflowSteps[1].status = 'completed'
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={handleGoBack} className="hover:bg-slate-100">
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <FileText className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-900">
-                  {invoiceId ? `فاتورة شراء ${invoiceNumber}` : 'فاتورة شراء جديدة'}
-                </h2>
-                {currentStatus !== 'NEW' && getStatusBadge(currentStatus)}
-              </div>
-              <p className="text-xs text-slate-400">
-                {invoiceId ? 'تعديل أو تأكيد فاتورة الشراء' : 'إنشاء فاتورة شراء جديدة من المورد'}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleGoBack}>
-            إلغاء
-          </Button>
-          {isEditable && (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleSaveDraft}
-                disabled={submitting}
-                className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                حفظ كمسودة
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                تأكيد
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+    <div className="space-y-5">
+      {/* ── Page Header ── */}
+      <DocumentPageHeader
+        icon={Receipt}
+        iconBg="bg-orange-50"
+        iconColor="text-orange-600"
+        newTitle="فاتورة شراء جديدة"
+        editTitlePrefix="فاتورة شراء"
+        documentNumber={invoiceNumber || undefined}
+        status={currentStatus}
+        subtitle={invoiceId ? 'تعديل أو تأكيد فاتورة الشراء' : 'إنشاء فاتورة شراء جديدة من المورد'}
+        onGoBack={handleGoBack}
+        primaryActions={
+          isEditable
+            ? [
+                {
+                  label: 'حفظ كمسودة',
+                  icon: Save,
+                  onClick: handleSaveDraft,
+                  disabled: submitting,
+                  loading: submitting,
+                  className: 'border-orange-200 text-orange-700 hover:bg-orange-50',
+                },
+                {
+                  label: 'تأكيد',
+                  icon: Send,
+                  onClick: handleSubmit,
+                  disabled: submitting,
+                  loading: submitting,
+                  className: 'bg-orange-600 hover:bg-orange-700 text-white',
+                },
+              ]
+            : undefined
+        }
+      />
 
-      {/* Invoice Header */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">بيانات الفاتورة</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>المورد <span className="text-red-500">*</span></Label>
-              <Select
-                value={invoiceSupplierId}
-                onValueChange={setInvoiceSupplierId}
-                disabled={!isEditable}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر المورد" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.nameAr} ({s.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>المخزن <span className="text-red-500">*</span></Label>
-              <Select
-                value={invoiceWarehouseId}
-                onValueChange={setInvoiceWarehouseId}
-                disabled={!isEditable}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر المخزن" />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouses.map((w) => (
-                    <SelectItem key={w.id} value={w.id}>
-                      {w.nameAr} ({w.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>التاريخ</Label>
-              <Input
-                type="date"
-                value={invoiceDate}
-                onChange={(e) => setInvoiceDate(e.target.value)}
-                disabled={!isEditable}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>تاريخ الاستحقاق</Label>
-              <Input
-                type="date"
-                value={invoiceDueDate}
-                onChange={(e) => setInvoiceDueDate(e.target.value)}
-                disabled={!isEditable}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lines */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">بنود الفاتورة</CardTitle>
-            {isEditable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addLine}
-                className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-              >
-                <Plus className="h-3 w-3" />
-                إضافة سطر
-              </Button>
+      {/* ── Workflow Stepper ── */}
+      <div className="bg-white border rounded-xl px-5 py-3 shadow-sm">
+        <WorkflowStepper steps={workflowSteps} />
+        {/* Linked document badges */}
+        {(linkedPurchaseReceiptNumber || linkedPurchaseOrderNumber) && (
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t">
+            {linkedPurchaseOrderNumber && (
+              <LinkedDocumentBadge label="أمر الشراء" value={linkedPurchaseOrderNumber} />
+            )}
+            {linkedPurchaseReceiptNumber && (
+              <LinkedDocumentBadge label="إذن الاستلام" value={linkedPurchaseReceiptNumber} />
             )}
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {/* Barcode & Search */}
-            {isEditable && (
-              <div className="flex gap-2 mb-3">
+        )}
+      </div>
+
+      {/* ── Invoice Info Section ── */}
+      <DocumentSection
+        title="بيانات الفاتورة"
+        icon={Receipt}
+        iconColor="text-orange-600"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <Label>المورد <span className="text-red-500">*</span></Label>
+            <Select
+              value={invoiceSupplierId}
+              onValueChange={setInvoiceSupplierId}
+              disabled={!isEditable}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر المورد" />
+              </SelectTrigger>
+              <SelectContent>
+                {suppliers.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nameAr} ({s.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>المخزن <span className="text-red-500">*</span></Label>
+            <Select
+              value={invoiceWarehouseId}
+              onValueChange={setInvoiceWarehouseId}
+              disabled={!isEditable}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر المخزن" />
+              </SelectTrigger>
+              <SelectContent>
+                {warehouses.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.nameAr} ({w.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>التاريخ</Label>
+            <Input
+              type="date"
+              value={invoiceDate}
+              onChange={(e) => setInvoiceDate(e.target.value)}
+              disabled={!isEditable}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>تاريخ الاستحقاق</Label>
+            <Input
+              type="date"
+              value={invoiceDueDate}
+              onChange={(e) => setInvoiceDueDate(e.target.value)}
+              disabled={!isEditable}
+            />
+          </div>
+        </div>
+      </DocumentSection>
+
+      {/* ── Lines Section ── */}
+      <DocumentSection
+        title="بنود الفاتورة"
+        icon={Package}
+        iconColor="text-orange-600"
+        action={
+          isEditable ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addLine}
+              className="gap-1.5 text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              إضافة سطر
+            </Button>
+          ) : undefined
+        }
+        noPadding
+      >
+        <div className="space-y-0">
+          {/* Barcode & Search Area */}
+          {isEditable && (
+            <div className="px-5 pt-4 pb-3 bg-slate-50/60 border-b">
+              <div className="flex flex-col sm:flex-row gap-2 mb-3">
                 <div className="flex-1 relative">
                   <ScanLine className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
@@ -721,17 +734,17 @@ export default function PurchaseInvoiceFormPage() {
                     value={barcodeInput}
                     onChange={(e) => setBarcodeInput(e.target.value)}
                     onKeyDown={handleBarcodeScan}
-                    className="pr-10 h-9"
+                    className="pr-10 h-9 bg-white"
                     dir="ltr"
                   />
                 </div>
                 <div className="flex-1 relative">
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
-                    placeholder="بحث بالاسم..."
+                    placeholder="بحث بالاسم أو الكود..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pr-10 h-9"
+                    className="pr-10 h-9 bg-white"
                   />
                   {searchQuery && filteredItems.length > 0 && (
                     <div className="absolute top-full right-0 left-0 bg-white border rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto mt-1">
@@ -739,27 +752,26 @@ export default function PurchaseInvoiceFormPage() {
                         <button
                           key={item.id}
                           onClick={() => handleAddItemById(item.id)}
-                          className="w-full text-right px-3 py-2 text-sm hover:bg-emerald-50 border-b last:border-0"
+                          className="w-full text-right px-3 py-2 text-sm hover:bg-orange-50 border-b last:border-0 transition-colors"
                         >
-                          {item.nameAr || item.nameEn || item.code} ({item.code})
+                          <span className="font-medium">{item.nameAr || item.nameEn || item.code}</span>
+                          <span className="text-slate-400 mr-2 font-mono text-xs">({item.code})</span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
               </div>
-            )}
 
-            {/* Purchase Receipt Linking */}
-            {isEditable && (
-              <div className="flex items-center gap-2 mb-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+              {/* Purchase Receipt Linking */}
+              <div className="flex items-center gap-2 p-3 bg-amber-50/80 rounded-lg border border-amber-100">
                 <PackageCheck className="h-4 w-4 text-amber-600 shrink-0" />
                 <span className="text-sm font-medium text-amber-800 shrink-0">استدعاء أذون استلام</span>
                 <Select
                   value={selectedReceiptId}
                   onValueChange={handleSelectPurchaseReceipt}
                 >
-                  <SelectTrigger className="h-9 flex-1">
+                  <SelectTrigger className="h-9 flex-1 bg-white">
                     <SelectValue placeholder={purchaseReceipts.length === 0 ? 'اضغط لتحميل أذون الاستلام' : 'اختر إذن استلام'} />
                   </SelectTrigger>
                   <SelectContent>
@@ -781,176 +793,195 @@ export default function PurchaseInvoiceFormPage() {
                   تحميل
                 </Button>
               </div>
-            )}
-
-            {/* Header row */}
-            <div className="grid grid-cols-12 gap-2 px-1">
-              <div className="col-span-3 text-xs font-semibold text-slate-500">الصنف</div>
-              <div className="col-span-2 text-xs font-semibold text-slate-500">الكمية</div>
-              <div className="col-span-2 text-xs font-semibold text-slate-500">سعر الوحدة</div>
-              <div className="col-span-1 text-xs font-semibold text-slate-500">الخصم</div>
-              <div className="col-span-1 text-xs font-semibold text-slate-500">الضريبة</div>
-              <div className="col-span-2 text-xs font-semibold text-slate-500">الإجمالي</div>
-              <div className="col-span-1"></div>
             </div>
+          )}
 
-            {invoiceLines.map((line, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-3">
-                  <Select
-                    value={line.itemId}
-                    onValueChange={(val) => updateLine(idx, 'itemId', val)}
-                    disabled={!isEditable}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="اختر الصنف" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items.map((it) => (
-                        <SelectItem key={it.id} value={it.id}>
-                          {it.nameAr} ({it.code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={line.quantity}
-                    onChange={(e) => updateLine(idx, 'quantity', e.target.value)}
-                    className="h-9 text-sm"
-                    dir="ltr"
-                    disabled={!isEditable}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={line.unitPrice}
-                    onChange={(e) => updateLine(idx, 'unitPrice', e.target.value)}
-                    className="h-9 text-sm"
-                    dir="ltr"
-                    disabled={!isEditable}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={line.discountAmount}
-                    onChange={(e) => updateLine(idx, 'discountAmount', e.target.value)}
-                    className="h-9 text-sm"
-                    dir="ltr"
-                    disabled={!isEditable}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={line.taxAmount}
-                    onChange={(e) => updateLine(idx, 'taxAmount', e.target.value)}
-                    className="h-9 text-sm"
-                    dir="ltr"
-                    disabled={!isEditable}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <span className="text-sm font-mono font-medium" dir="ltr">
-                    {formatCurrency(calcLineTotal(line))}
-                  </span>
-                </div>
-                <div className="col-span-1 flex items-center justify-center">
-                  {isEditable && invoiceLines.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLine(idx)}
-                      className="h-7 w-7 text-red-400 hover:text-red-600"
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+          {/* Header row */}
+          <div className="grid grid-cols-12 gap-2 px-5 py-2.5 bg-slate-50 border-b">
+            <div className="col-span-3 text-xs font-semibold text-slate-500">الصنف</div>
+            <div className="col-span-2 text-xs font-semibold text-slate-500">الكمية</div>
+            <div className="col-span-2 text-xs font-semibold text-slate-500">سعر الوحدة</div>
+            <div className="col-span-1 text-xs font-semibold text-slate-500">الخصم</div>
+            <div className="col-span-1 text-xs font-semibold text-slate-500">الضريبة</div>
+            <div className="col-span-2 text-xs font-semibold text-slate-500">الإجمالي</div>
+            <div className="col-span-1"></div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Totals & Notes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">ملاحظات</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={invoiceNotes}
-              onChange={(e) => setInvoiceNotes(e.target.value)}
-              placeholder="ملاحظات إضافية..."
-              rows={4}
-              disabled={!isEditable}
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">ملخص الحساب</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">المجموع الفرعي</span>
-                <span className="font-mono" dir="ltr">{formatCurrency(totals.subtotal)}</span>
+          {/* Line items with alternating row backgrounds */}
+          {invoiceLines.map((line, idx) => (
+            <div
+              key={idx}
+              className={`grid grid-cols-12 gap-2 items-center px-5 py-2.5 border-b last:border-b-0 ${
+                idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/70'
+              }`}
+            >
+              <div className="col-span-3">
+                <Select
+                  value={line.itemId}
+                  onValueChange={(val) => updateLine(idx, 'itemId', val)}
+                  disabled={!isEditable}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="اختر الصنف" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {items.map((it) => (
+                      <SelectItem key={it.id} value={it.id}>
+                        {it.nameAr} ({it.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="text-slate-500">خصم الفاتورة</span>
+              <div className="col-span-2">
                 <Input
                   type="number"
                   min="0"
-                  step="0.01"
-                  value={invoiceDiscountAmount}
-                  onChange={(e) => setInvoiceDiscountAmount(e.target.value)}
-                  className="h-8 w-28 text-sm text-left"
+                  step="1"
+                  value={line.quantity}
+                  onChange={(e) => updateLine(idx, 'quantity', e.target.value)}
+                  className="h-9 text-sm"
                   dir="ltr"
                   disabled={!isEditable}
                 />
               </div>
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="text-slate-500">نسبة الضريبة %</span>
+              <div className="col-span-2">
                 <Input
                   type="number"
                   min="0"
-                  max="100"
                   step="0.01"
-                  value={invoiceTaxPercent}
-                  onChange={(e) => setInvoiceTaxPercent(e.target.value)}
-                  className="h-8 w-28 text-sm text-left"
+                  value={line.unitPrice}
+                  onChange={(e) => updateLine(idx, 'unitPrice', e.target.value)}
+                  className="h-9 text-sm"
                   dir="ltr"
                   disabled={!isEditable}
                 />
               </div>
-              <Separator />
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">الضريبة</span>
-                <span className="font-mono" dir="ltr">{formatCurrency(totals.totalTax)}</span>
+              <div className="col-span-1">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.discountAmount}
+                  onChange={(e) => updateLine(idx, 'discountAmount', e.target.value)}
+                  className="h-9 text-sm"
+                  dir="ltr"
+                  disabled={!isEditable}
+                />
               </div>
-              <div className="flex justify-between text-base font-bold">
-                <span>الإجمالي</span>
-                <span className="font-mono text-emerald-700" dir="ltr">{formatCurrency(totals.total)}</span>
+              <div className="col-span-1">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.taxAmount}
+                  onChange={(e) => updateLine(idx, 'taxAmount', e.target.value)}
+                  className="h-9 text-sm"
+                  dir="ltr"
+                  disabled={!isEditable}
+                />
+              </div>
+              <div className="col-span-2">
+                <span className="text-sm font-mono font-semibold text-slate-700" dir="ltr">
+                  {formatCurrency(calcLineTotal(line))}
+                </span>
+              </div>
+              <div className="col-span-1 flex items-center justify-center">
+                {isEditable && invoiceLines.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLine(idx)}
+                    className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+
+          {/* Empty state */}
+          {invoiceLines.length === 0 && (
+            <div className="px-5 py-8 text-center text-sm text-slate-400">
+              لم يتم إضافة بنود بعد
+            </div>
+          )}
+        </div>
+      </DocumentSection>
+
+      {/* ── Totals & Notes ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <DocumentSection
+          title="ملاحظات"
+          icon={FileText}
+          iconColor="text-orange-600"
+        >
+          <Textarea
+            value={invoiceNotes}
+            onChange={(e) => setInvoiceNotes(e.target.value)}
+            placeholder="ملاحظات إضافية..."
+            rows={4}
+            disabled={!isEditable}
+            className="resize-none"
+          />
+        </DocumentSection>
+
+        <DocumentSection
+          title="ملخص الحساب"
+          icon={Calculator}
+          iconColor="text-orange-600"
+        >
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">المجموع الفرعي</span>
+              <span className="font-mono font-medium" dir="ltr">{formatCurrency(totals.subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-slate-500">خصم الفاتورة</span>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={invoiceDiscountAmount}
+                onChange={(e) => setInvoiceDiscountAmount(e.target.value)}
+                className="h-8 w-28 text-sm text-left"
+                dir="ltr"
+                disabled={!isEditable}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-slate-500">نسبة الضريبة %</span>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={invoiceTaxPercent}
+                onChange={(e) => setInvoiceTaxPercent(e.target.value)}
+                className="h-8 w-28 text-sm text-left"
+                dir="ltr"
+                disabled={!isEditable}
+              />
+            </div>
+            <Separator />
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">إجمالي الخصم</span>
+              <span className="font-mono text-red-600" dir="ltr">-{formatCurrency(totals.totalDiscount)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">إجمالي الضريبة</span>
+              <span className="font-mono" dir="ltr">{formatCurrency(totals.totalTax)}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-base font-bold text-slate-900">الإجمالي</span>
+              <span className="text-2xl font-bold font-mono text-orange-700" dir="ltr">
+                {formatCurrency(totals.total)}
+              </span>
+            </div>
+          </div>
+        </DocumentSection>
       </div>
     </div>
   )

@@ -3,14 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Save, Send, ArrowRight, Loader2, ClipboardCheck, Plus, XCircle,
-  ScanLine, Search,
+  Save, Send, Loader2, ClipboardCheck, Plus, XCircle,
+  ScanLine, Search, Package, FileText,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -20,7 +18,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAppStore } from '@/lib/store'
-import { formatDate } from '@/lib/erp-utils'
+import DocumentPageHeader, { getDocumentStatusBadge } from '@/components/shared/document-page-header'
+import { DocumentSection } from '@/components/shared/document-section'
+import WorkflowStepper from '@/components/shared/workflow-stepper'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,23 +78,6 @@ const emptyLine: LineInput = {
   itemId: '',
   quantity: '1',
   notes: '',
-}
-
-// ─── Status helpers ───────────────────────────────────────────────────────────
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'DRAFT':
-      return <Badge className="bg-slate-100 text-slate-600">مسودة</Badge>
-    case 'IN_PROGRESS':
-      return <Badge className="bg-amber-50 text-amber-700 border-amber-200">قيد التحضير</Badge>
-    case 'COMPLETED':
-      return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">مكتمل</Badge>
-    case 'CANCELLED':
-      return <Badge className="bg-red-50 text-red-700 border-red-200">ملغى</Badge>
-    default:
-      return <Badge>{status}</Badge>
-  }
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -462,161 +445,170 @@ export default function PickListFormPage() {
   const isEditable = currentStatus === 'DRAFT' || currentStatus === 'NEW'
   const isInProgress = currentStatus === 'IN_PROGRESS'
 
+  // ── Workflow stepper ──
+
+  const workflowSteps = (() => {
+    const steps = [
+      { label: 'قائمة التحضير', status: 'upcoming' as const },
+      { label: 'تحضير', status: 'upcoming' as const },
+      { label: 'اكتمال', status: 'upcoming' as const },
+    ]
+    switch (currentStatus) {
+      case 'DRAFT':
+      case 'NEW':
+        steps[0].status = 'current'
+        break
+      case 'IN_PROGRESS':
+        steps[0].status = 'completed'
+        steps[1].status = 'current'
+        break
+      case 'COMPLETED':
+        steps[0].status = 'completed'
+        steps[1].status = 'completed'
+        steps[2].status = 'completed'
+        break
+      case 'CANCELLED':
+        steps[0].status = 'current'
+        break
+      default:
+        steps[0].status = 'current'
+    }
+    return steps
+  })()
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={handleGoBack} className="hover:bg-slate-100">
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
-              <ClipboardCheck className="h-5 w-5 text-teal-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-900">
-                  {listId ? `قائمة تحضير ${listNumber}` : 'قائمة تحضير جديدة'}
-                </h2>
-                {currentStatus !== 'NEW' && getStatusBadge(currentStatus)}
-              </div>
-              <p className="text-xs text-slate-400">
-                {listId ? 'تعديل أو بدء تحضير القائمة' : 'إنشاء قائمة تحضير جديدة للمخزن'}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleGoBack}>
-            إلغاء
-          </Button>
-          {isEditable && (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleSaveDraft}
-                disabled={submitting}
-                className="gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                مسودة
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="bg-teal-600 hover:bg-teal-700 text-white gap-2"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                مؤكد
-              </Button>
-            </>
-          )}
-          {isInProgress && (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleUpdatePickedLines}
-                disabled={submitting}
-                className="gap-2 text-teal-600 border-teal-200 hover:bg-teal-50"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                حفظ بيانات التحضير
-              </Button>
-              <Button
-                onClick={handleCompletePicking}
-                disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-              >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
-                إكمال التحضير
-              </Button>
-            </>
-          )}
-        </div>
+    <div className="space-y-5">
+      {/* ── Page Header ── */}
+      <DocumentPageHeader
+        icon={ClipboardCheck}
+        iconBg="bg-teal-50"
+        iconColor="text-teal-600"
+        newTitle="قائمة تحضير جديدة"
+        editTitlePrefix="قائمة تحضير"
+        documentNumber={listNumber || undefined}
+        status={currentStatus}
+        subtitle={listId ? 'تعديل أو بدء تحضير القائمة' : 'إنشاء قائمة تحضير جديدة للمخزن'}
+        onGoBack={handleGoBack}
+        primaryActions={
+          isEditable
+            ? [
+                {
+                  label: 'حفظ كمسودة',
+                  icon: Save,
+                  onClick: handleSaveDraft,
+                  disabled: submitting,
+                  loading: submitting,
+                  className: 'border-teal-200 text-teal-700 hover:bg-teal-50',
+                },
+                {
+                  label: 'تأكيد',
+                  icon: Send,
+                  onClick: handleSubmit,
+                  disabled: submitting,
+                  loading: submitting,
+                  className: 'bg-teal-600 hover:bg-teal-700 text-white',
+                },
+              ]
+            : isInProgress
+            ? [
+                {
+                  label: 'حفظ بيانات التحضير',
+                  icon: Save,
+                  onClick: handleUpdatePickedLines,
+                  disabled: submitting,
+                  loading: submitting,
+                  className: 'border-teal-200 text-teal-700 hover:bg-teal-50',
+                },
+                {
+                  label: 'إكمال التحضير',
+                  icon: ClipboardCheck,
+                  onClick: handleCompletePicking,
+                  disabled: submitting,
+                  loading: submitting,
+                  className: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+                },
+              ]
+            : undefined
+        }
+      />
+
+      {/* ── Workflow Stepper ── */}
+      <div className="bg-white border rounded-xl px-5 py-3 shadow-sm">
+        <WorkflowStepper steps={workflowSteps} />
       </div>
 
-      {/* Pick List Header */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">بيانات قائمة التحضير</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>المخزن <span className="text-red-500">*</span></Label>
-              <Select
-                value={listWarehouseId}
-                onValueChange={setListWarehouseId}
-                disabled={!isEditable}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر المخزن" />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouses.map((wh) => (
-                    <SelectItem key={wh.id} value={wh.id}>
-                      {buildWarehouseDisplayName(wh)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>التاريخ</Label>
-              <Input
-                type="date"
-                value={listDate}
-                onChange={(e) => setListDate(e.target.value)}
-                disabled={!isEditable}
-                dir="ltr"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>ملاحظات</Label>
-              <Input
-                value={listNotes}
-                onChange={(e) => setListNotes(e.target.value)}
-                placeholder="ملاحظات اختيارية..."
-                disabled={!isEditable}
-              />
-            </div>
+      {/* ── Pick List Info Section ── */}
+      <DocumentSection
+        title="بيانات قائمة التحضير"
+        icon={ClipboardCheck}
+        iconColor="text-teal-600"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>المخزن <span className="text-red-500">*</span></Label>
+            <Select
+              value={listWarehouseId}
+              onValueChange={setListWarehouseId}
+              disabled={!isEditable}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر المخزن" />
+              </SelectTrigger>
+              <SelectContent>
+                {warehouses.map((wh) => (
+                  <SelectItem key={wh.id} value={wh.id}>
+                    {buildWarehouseDisplayName(wh)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Lines */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">بنود قائمة التحضير</CardTitle>
-            {isEditable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addLine}
-                className="gap-1 text-teal-600 border-teal-200 hover:bg-teal-50"
-              >
-                <Plus className="h-3 w-3" />
-                إضافة سطر
-              </Button>
-            )}
+          <div className="space-y-2">
+            <Label>التاريخ</Label>
+            <Input
+              type="date"
+              value={listDate}
+              onChange={(e) => setListDate(e.target.value)}
+              disabled={!isEditable}
+              dir="ltr"
+            />
           </div>
-        </CardHeader>
-        <CardContent>
-          {/* Barcode & Search */}
+        </div>
+      </DocumentSection>
+
+      {/* ── Lines Section ── */}
+      <DocumentSection
+        title="بنود قائمة التحضير"
+        icon={Package}
+        iconColor="text-teal-600"
+        action={
+          isEditable ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addLine}
+              className="gap-1.5 text-teal-600 border-teal-200 hover:bg-teal-50"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              إضافة سطر
+            </Button>
+          ) : undefined
+        }
+        noPadding
+      >
+        <div className="space-y-0">
+          {/* Barcode & Search Area */}
           {isEditable && (
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-col sm:flex-row gap-2 px-5 pt-4 pb-3 bg-slate-50/60 border-b">
               <div className="flex-1 relative">
                 <ScanLine className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -624,17 +616,17 @@ export default function PickListFormPage() {
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   onKeyDown={handleBarcodeScan}
-                  className="pr-10 h-9"
+                  className="pr-10 h-9 bg-white"
                   dir="ltr"
                 />
               </div>
               <div className="flex-1 relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="بحث بالاسم..."
+                  placeholder="بحث بالاسم أو الكود..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 h-9"
+                  className="pr-10 h-9 bg-white"
                 />
                 {searchQuery && filteredItems.length > 0 && (
                   <div className="absolute top-full right-0 left-0 bg-white border rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto mt-1">
@@ -645,9 +637,10 @@ export default function PickListFormPage() {
                           handleAddItemById(item.id)
                           setSearchQuery('')
                         }}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-emerald-50 border-b last:border-0"
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-teal-50 border-b last:border-0 transition-colors"
                       >
-                        {item.nameAr || item.nameEn || item.code} ({item.code})
+                        <span className="font-medium">{item.nameAr || item.nameEn || item.code}</span>
+                        <span className="text-slate-400 mr-2 font-mono text-xs">({item.code})</span>
                       </button>
                     ))}
                   </div>
@@ -658,8 +651,9 @@ export default function PickListFormPage() {
 
           {isInProgress && pickedLines.length > 0 ? (
             // IN_PROGRESS mode: show editable pickedQty
-            <div className="space-y-3">
-              <div className="grid grid-cols-12 gap-2 px-1">
+            <>
+              {/* Header row */}
+              <div className="grid grid-cols-12 gap-2 px-5 py-2.5 bg-slate-50 border-b">
                 <div className="col-span-3 text-xs font-semibold text-slate-500">الصنف</div>
                 <div className="col-span-2 text-xs font-semibold text-slate-500">الكمية المطلوبة</div>
                 <div className="col-span-2 text-xs font-semibold text-slate-500">الكمية المحضرة</div>
@@ -667,11 +661,17 @@ export default function PickListFormPage() {
                 <div className="col-span-1"></div>
               </div>
 
+              {/* Picked line items with alternating row backgrounds */}
               {listLines.map((line, idx) => {
                 const item = items.find(i => i.id === line.itemId)
                 const pickedLine = pickedLines[idx]
                 return (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                  <div
+                    key={idx}
+                    className={`grid grid-cols-12 gap-2 items-center px-5 py-2.5 border-b last:border-b-0 ${
+                      idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                    }`}
+                  >
                     <div className="col-span-3">
                       <span className="text-sm">
                         {item ? `${item.nameAr || item.nameEn || item.code} (${item.code})` : line.itemId}
@@ -714,19 +714,26 @@ export default function PickListFormPage() {
                   </div>
                 )
               })}
-            </div>
+            </>
           ) : (
             // DRAFT or read-only mode
-            <div className="space-y-3">
-              <div className="grid grid-cols-12 gap-2 px-1">
+            <>
+              {/* Header row */}
+              <div className="grid grid-cols-12 gap-2 px-5 py-2.5 bg-slate-50 border-b">
                 <div className="col-span-4 text-xs font-semibold text-slate-500">الصنف</div>
                 <div className="col-span-2 text-xs font-semibold text-slate-500">الكمية</div>
                 <div className="col-span-5 text-xs font-semibold text-slate-500">ملاحظات</div>
                 <div className="col-span-1"></div>
               </div>
 
+              {/* Line items with alternating row backgrounds */}
               {listLines.map((line, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                <div
+                  key={idx}
+                  className={`grid grid-cols-12 gap-2 items-center px-5 py-2.5 border-b last:border-b-0 ${
+                    idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                  }`}
+                >
                   <div className="col-span-4">
                     <Select
                       value={line.itemId}
@@ -772,7 +779,7 @@ export default function PickListFormPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => removeLine(idx)}
-                        className="h-7 w-7 text-red-400 hover:text-red-600"
+                        className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
                       >
                         <XCircle className="h-4 w-4" />
                       </Button>
@@ -780,26 +787,33 @@ export default function PickListFormPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Notes */}
-      <Card className="border shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">ملاحظات إضافية</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={listNotes}
-            onChange={(e) => setListNotes(e.target.value)}
-            placeholder="ملاحظات إضافية..."
-            rows={3}
-            disabled={!isEditable}
-          />
-        </CardContent>
-      </Card>
+              {/* Empty state */}
+              {listLines.length === 0 && (
+                <div className="px-5 py-8 text-center text-sm text-slate-400">
+                  لم يتم إضافة بنود بعد
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </DocumentSection>
+
+      {/* ── Notes Section ── */}
+      <DocumentSection
+        title="ملاحظات إضافية"
+        icon={FileText}
+        iconColor="text-teal-600"
+      >
+        <Textarea
+          value={listNotes}
+          onChange={(e) => setListNotes(e.target.value)}
+          placeholder="ملاحظات إضافية..."
+          rows={4}
+          disabled={!isEditable}
+          className="resize-none"
+        />
+      </DocumentSection>
     </div>
   )
 }
