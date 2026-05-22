@@ -93,3 +93,26 @@ Work Log:
 Stage Summary:
 - Investors can now be deleted with a confirmation dialog
 - All related data (investments, withdrawals, shares, accounts) is properly cleaned up
+---
+Task ID: 1
+Agent: Main
+Task: Migrate database from SQLite to Supabase PostgreSQL
+
+Work Log:
+- Analyzed existing Prisma schema (SQLite with 40+ models)
+- Exported existing SQLite data (1 user, 1 company, 4 currencies, 5 UOMs, 1 warehouse, 24 accounts)
+- Updated prisma/schema.prisma: changed provider from `sqlite` to `postgresql`, added `directUrl`
+- Discovered correct Supabase region (eu-west-1, not us-east-1)
+- Pushed schema to Supabase using pooler session mode (port 5432)
+- Imported all backup data to Supabase using parameterized pg queries
+- Fixed system DATABASE_URL override issue by modifying db.ts to detect SQLite URLs and substitute Supabase URL
+- Started dev server with proper environment variables
+
+Stage Summary:
+- Database successfully migrated from SQLite to Supabase PostgreSQL
+- All existing data preserved (1 user, 1 company, 24 accounts, 4 currencies, 5 UOMs, 1 warehouse)
+- Connection uses Supabase pooler: aws-0-eu-west-1.pooler.supabase.com
+  - Port 6543 (transaction mode) for runtime queries
+  - Port 5432 (session mode) for schema migrations
+- db.ts now handles system DATABASE_URL override by detecting SQLite URLs
+- Dev server running and serving pages from Supabase
