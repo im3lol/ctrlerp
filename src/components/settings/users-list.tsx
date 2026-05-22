@@ -53,6 +53,27 @@ import { useAppStore } from '@/lib/store'
 import { getRoleLabel } from '@/lib/erp-utils'
 import { rolePermissions, roleLabels, type Permission, hasPermission, canCreateUsers } from '@/lib/permissions'
 
+// Arabic labels for permission actions
+const permissionLabels: Record<string, string> = {
+  view: 'عرض',
+  create: 'إنشاء',
+  edit: 'تعديل',
+  delete: 'حذف',
+  confirm: 'تأكيد',
+  post: 'ترحيل',
+  reverse: 'عكس',
+  manage: 'إدارة',
+  collect: 'تحصيل',
+  pay: 'دفع',
+  approve: 'اعتماد',
+  fulfill: 'تلبية',
+  pick: 'تحضير',
+  ship: 'شحن',
+  receive: 'استلام',
+  import: 'استيراد',
+  export: 'تصدير',
+}
+
 interface User {
   id: string
   username: string
@@ -442,7 +463,7 @@ export default function UsersList() {
                                 : 'bg-slate-50 text-slate-400 border-slate-200 line-through'
                             }`}
                           >
-                            {perm.split('.').pop()}
+                            {permissionLabels[perm.split('.').pop() || ''] || perm.split('.').pop()}
                           </Badge>
                         )
                       })}
@@ -801,7 +822,7 @@ export default function UsersList() {
                               : 'bg-slate-50 text-slate-400 border-slate-200 line-through'
                           }`}
                         >
-                          {perm.split('.').pop()}
+                          {permissionLabels[perm.split('.').pop() || ''] || perm.split('.').pop()}
                         </Badge>
                       )
                     })}

@@ -520,11 +520,11 @@ export default function ItemDetailPage() {
               </Badge>
               {item.costMethod === 'FIFO' ? (
                 <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                  FIFO
+                  الوارد أولاً
                 </Badge>
               ) : (
                 <Badge className="bg-teal-50 text-teal-700 border-teal-200">
-                  WAC
+                  متوسط التكلفة
                 </Badge>
               )}
               {isLowStock && totalQuantity > 0 && (

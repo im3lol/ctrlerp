@@ -281,7 +281,7 @@ export default function CompaniesList() {
   // ── Switch to company ──
   const handleSwitchToCompany = (id: string) => {
     setCurrentCompany(id)
-    toast.success('تم切换 إلى الشركة')
+    toast.success('تم التبديل إلى الشركة')
   }
 
   if (loading) {

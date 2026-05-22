@@ -138,3 +138,24 @@ Stage Summary:
 - All API routes serve data from Supabase
 - Frontend renders and connects to Supabase backend
 - Data migration from SQLite was successful with no data loss
+
+---
+Task ID: 3
+Agent: Main
+Task: Restart server after sandbox inactive and fix i18n issues
+
+Work Log:
+- Updated .env with correct Supabase PostgreSQL URLs (was still pointing to SQLite)
+- Generated Prisma client for PostgreSQL
+- Installed PM2 for persistent process management
+- Started dev server with PM2 (survives bash session termination)
+- Verified all API routes working: login, dashboard, companies, accounts, currencies
+- Fixed Chinese text in companies-list.tsx: 'تم切换 إلى الشركة' → 'تم التبديل إلى الشركة'
+- Fixed English permission badges in users-list.tsx: Added permissionLabels map (view→عرض, create→إنشاء, etc.)
+- Fixed FIFO/WAC English badges in items-list.tsx and item-detail-page.tsx: FIFO→الوارد أولاً, WAC→متوسط التكلفة
+
+Stage Summary:
+- Server running with PM2 on port 3000, persistent across bash sessions
+- All API routes verified and working with Supabase PostgreSQL
+- Fixed 3 i18n issues: Chinese text, English permission labels, English cost method labels
+- Database connection stable with Supabase pooler
