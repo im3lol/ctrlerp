@@ -13,6 +13,8 @@ import {
   X,
   Star,
   Barcode,
+  FileSpreadsheet,
+  Download,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -196,10 +198,13 @@ export default function ItemsList() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState(0)
   const [importResult, setImportResult] = useState<{
-    successCount: number;
+    createdCount: number;
+    updatedCount: number;
     errorCount: number;
-    errors: string[];
+    totalRows: number;
+    results: Array<{ row: number; code: string; status: 'created' | 'updated' | 'error'; message: string }>;
   } | null>(null)
 
   // Navigation to detail page
@@ -567,6 +572,13 @@ export default function ItemsList() {
 
     setImporting(true)
     setImportResult(null)
+    setImportProgress(0)
+    
+    // Simulate progress while importing
+    const progressInterval = setInterval(() => {
+      setImportProgress(prev => Math.min(prev + 5, 90))
+    }, 200)
+
     try {
       const form = new FormData()
       form.append('file', importFile)
@@ -579,9 +591,10 @@ export default function ItemsList() {
 
       const data = await res.json()
       if (res.ok) {
+        setImportProgress(100)
         setImportResult(data)
-        if (data.successCount > 0) {
-          toast.success(`تم استيراد ${data.successCount} صنف بنجاح`)
+        if (data.createdCount > 0 || data.updatedCount > 0) {
+          toast.success(`تم ${data.createdCount > 0 ? 'إنشاء ' + data.createdCount : ''} ${data.createdCount > 0 && data.updatedCount > 0 ? 'و' : ''} ${data.updatedCount > 0 ? 'تحديث ' + data.updatedCount : ''} صنف بنجاح`)
           fetchItems()
         }
         if (data.errorCount > 0) {
@@ -593,6 +606,7 @@ export default function ItemsList() {
     } catch {
       toast.error('حدث خطأ أثناء الاستيراد')
     } finally {
+      clearInterval(progressInterval)
       setImporting(false)
     }
   }
@@ -1141,96 +1155,172 @@ export default function ItemsList() {
           if (!open) {
             setImportFile(null)
             setImportResult(null)
+            setImportProgress(0)
           }
         }}
       >
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>استيراد أصناف</DialogTitle>
+            <DialogTitle>استيراد وتحديث الأصناف</DialogTitle>
             <DialogDescription>
-              قم بتحميل ملف Excel يحتوي على الأصناف التي ترغب في استيرادها.
+              قم بتحميل ملف Excel لاستيراد أصناف جديدة أو تحديث الأصناف الموجودة باستخدام الكود كمفتاح.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {!importResult ? (
               <>
-                <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center">
-                  {importFile ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <Package className="h-8 w-8 text-emerald-600" />
+                {/* Template Download */}
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <FileSpreadsheet className="h-8 w-8 text-emerald-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-emerald-800">تحميل قالب Excel</p>
+                    <p className="text-xs text-emerald-600">حمّل القالب واملأ البيانات ثم ارفعه</p>
+                  </div>
+                  <a href="/api/inventory/items/template" download>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                      <Download className="h-3.5 w-3.5" />
+                      تحميل
+                    </Button>
+                  </a>
+                </div>
+
+                {/* File Upload */}
+                <div className="space-y-2">
+                  <Label>ملف Excel</Label>
+                  <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
+                    {importFile ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <FileSpreadsheet className="h-8 w-8 text-emerald-500" />
                         <div className="text-right">
-                          <p className="font-medium">{importFile.name}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-sm font-medium">{importFile.name}</p>
+                          <p className="text-xs text-slate-400">
                             {(importFile.size / 1024).toFixed(1)} KB
                           </p>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8"
+                          onClick={() => setImportFile(null)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8"
-                        onClick={() => setImportFile(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer">
-                      <Upload className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-sm text-slate-500">اضغط لاختيار ملف Excel</p>
-                      <p className="text-xs text-slate-400 mt-1">.xlsx, .xls</p>
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) setImportFile(file)
-                        }}
-                      />
-                    </label>
-                  )}
+                    ) : (
+                      <label className="cursor-pointer">
+                        <Upload className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-sm text-slate-500">اضغط لاختيار ملف Excel</p>
+                        <p className="text-xs text-slate-400 mt-1">.xlsx, .xls</p>
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) setImportFile(file)
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                  <p className="font-medium mb-1">تنسيق الملف:</p>
-                  <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li><strong>code</strong>: كود الصنف (مطلوب)</li>
-                    <li><strong>nameAr</strong>: الاسم بالعربية</li>
-                    <li><strong>nameEn</strong>: الاسم بالإنجليزية</li>
-                    <li><strong>categoryCode</strong>: كود الفئة (اختياري)</li>
-                    <li><strong>uomCode</strong>: كود الوحدة (اختياري)</li>
-                    <li><strong>costMethod</strong>: طريقة التكلفة (FIFO أو WAC)</li>
-                    <li><strong>sellPrice</strong>: سعر البيع</li>
-                    <li><strong>minStock</strong>: الحد الأدنى</li>
-                    <li><strong>maxStock</strong>: الحد الأقصى</li>
-                    <li><strong>description</strong>: الوصف</li>
-                    <li><strong>isActive</strong>: نشط (true/false)</li>
-                  </ul>
+                {/* Progress Bar */}
+                {importing && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>جاري المعالجة...</span>
+                      <span>{importProgress}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-emerald-500 transition-all duration-200"
+                        style={{ width: `${importProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Template columns info */}
+                <div className="text-xs text-slate-400 border-t pt-3">
+                  <p className="font-medium text-slate-500 mb-1">أعمدة القالب:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="font-mono">code, nameAr, nameEn</p>
+                      <p className="font-mono">categoryCode, uomCode</p>
+                      <p className="font-mono">costMethod, sellPrice</p>
+                    </div>
+                    <div>
+                      <p className="font-mono">minStock, maxStock</p>
+                      <p className="font-mono">description, isActive</p>
+                      <p className="font-mono">imageUrl, barcodes</p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-emerald-600 font-medium">
+                    ✅ إذا كان الكود موجود، سيتم التحديث. وإلا سيتم الإنشاء.
+                  </p>
                 </div>
               </>
             ) : (
-              <div className={cn(
-                'p-4 rounded-lg border text-sm',
-                importResult.errorCount === 0
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                  : 'bg-amber-50 border-amber-200 text-amber-800'
-              )}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">نتائج الاستيراد:</span>
-                  <span>
-                    {importResult.successCount} ناجح، {importResult.errorCount} فشل
-                  </span>
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-emerald-600">{importResult.createdCount}</p>
+                    <p className="text-xs text-emerald-700">تم الإنشاء</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-blue-600">{importResult.updatedCount}</p>
+                    <p className="text-xs text-blue-700">تم التحديث</p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-amber-600">{importResult.errorCount}</p>
+                    <p className="text-xs text-amber-700">أخطاء</p>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-slate-600">{importResult.totalRows}</p>
+                    <p className="text-xs text-slate-700">إجمالي</p>
+                  </div>
                 </div>
-                {importResult.errors.length > 0 && (
-                  <div className="mt-2 border-t border-amber-300 pt-2 max-h-40 overflow-y-auto">
-                    <ul className="list-disc list-inside space-y-1 text-xs">
-                      {importResult.errors.map((err, idx) => (
-                        <li key={idx}>{err}</li>
-                      ))}
-                    </ul>
+
+                {/* Detailed Results */}
+                {importResult.results.length > 0 && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-2 border-b">
+                      <p className="font-medium text-sm text-slate-700">تفاصيل النتائج</p>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-slate-50">
+                          <TableRow>
+                            <TableHead className="text-right">صف</TableHead>
+                            <TableHead className="text-right">كود</TableHead>
+                            <TableHead className="text-right">الحالة</TableHead>
+                            <TableHead className="text-right">الرسالة</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {importResult.results.map((result, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-mono text-xs">{result.row}</TableCell>
+                              <TableCell className="font-mono">{result.code}</TableCell>
+                              <TableCell>
+                                <Badge className={cn(
+                                  result.status === 'created' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                  result.status === 'updated' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                  'bg-red-100 text-red-700 border-red-200'
+                                )}>
+                                  {result.status === 'created' ? 'إنشاء' : 
+                                   result.status === 'updated' ? 'تحديث' : 'خطأ'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{result.message}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1244,6 +1334,7 @@ export default function ItemsList() {
                 setImportDialogOpen(false)
                 setImportFile(null)
                 setImportResult(null)
+                setImportProgress(0)
               }}
             >
               {importResult ? 'إغلاق' : 'إلغاء'}
