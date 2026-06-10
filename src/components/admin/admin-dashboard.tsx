@@ -306,20 +306,38 @@ export default function AdminDashboard() {
   const router = useRouter()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState<string>('')
 
   const fetchData = useCallback(async () => {
+    setLoading(true)
+    setErrorMsg('')
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const res = await fetch('/api/admin/dashboard', {
         headers: { 'Authorization': `Bearer ${token}` },
       })
       if (res.ok) {
         setData(await res.json())
       } else if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem('ctrl_admin_user')
         router.replace('/admin/login')
+        return
+      } else {
+        let errorText = 'فشل تحميل البيانات'
+        try {
+          const errData = await res.json()
+          errorText = errData.error || errorText
+        } catch {}
+        setErrorMsg(errorText)
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setLoading(false)
     }
@@ -339,8 +357,16 @@ export default function AdminDashboard() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-400">
         <AlertTriangle className="h-12 w-12 mb-3 text-slate-600" />
-        <p className="text-sm">فشل تحميل البيانات</p>
-        <Button variant="outline" size="sm" onClick={fetchData} className="mt-3">إعادة المحاولة</Button>
+        <p className="text-sm">{errorMsg || 'فشل تحميل البيانات'}</p>
+        <div className="flex gap-2 mt-3">
+          <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
+            <RefreshCw className="h-3.5 w-3.5" />
+            إعادة المحاولة
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.replace('/admin/login')} className="gap-2">
+            إعادة تسجيل الدخول
+          </Button>
+        </div>
       </div>
     )
   }

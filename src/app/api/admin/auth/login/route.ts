@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // Create token
     const token = crypto.randomUUID()
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
     await db.platformAdminToken.create({
       data: {

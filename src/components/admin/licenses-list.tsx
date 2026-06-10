@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Key,
   Plus,
@@ -13,6 +14,8 @@ import {
   Infinity,
   DollarSign,
   TrendingUp,
+  AlertTriangle,
+  LogIn,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,6 +40,7 @@ import { Label } from '@/components/ui/label'
 import CreateLicenseDialog from './create-license-dialog'
 
 const ADMIN_TOKEN_KEY = 'ctrl_admin_token'
+const ADMIN_USER_KEY = 'ctrl_admin_user'
 
 const statusLabels: Record<string, string> = {
   active: 'نشط',
@@ -115,6 +119,7 @@ function formatPrice(price: number, currency: string) {
 }
 
 export default function LicensesList() {
+  const router = useRouter()
   const [licenses, setLicenses] = useState<LicenseRow[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -138,11 +143,17 @@ export default function LicensesList() {
   const [actionMonthlyPrice, setActionMonthlyPrice] = useState('')
   const [actionCurrency, setActionCurrency] = useState('EGP')
   const [actionLoading, setActionLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string>('')
 
   const fetchLicenses = useCallback(async () => {
     setLoading(true)
+    setErrorMsg('')
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const params = new URLSearchParams({
         page: String(page),
         limit: '20',
@@ -153,19 +164,33 @@ export default function LicensesList() {
       const res = await fetch(`/api/admin/licenses?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         const data = await res.json()
         setLicenses(data.licenses)
         setTotal(data.total)
         setTotalPages(data.totalPages)
         if (data.revenue) setRevenue(data.revenue)
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تحميل البيانات')
+        } catch {
+          setErrorMsg('فشل تحميل البيانات')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setLoading(false)
     }
-  }, [page, typeFilter, statusFilter])
+  }, [page, typeFilter, statusFilter, router])
 
   useEffect(() => {
     fetchLicenses()
@@ -180,6 +205,10 @@ export default function LicensesList() {
   const handleStatusChange = async (licenseId: string, status: string) => {
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const res = await fetch(`/api/admin/licenses/${licenseId}`, {
         method: 'PATCH',
         headers: {
@@ -188,11 +217,25 @@ export default function LicensesList() {
         },
         body: JSON.stringify({ status }),
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         fetchLicenses()
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تحديث الحالة')
+        } catch {
+          setErrorMsg('فشل تحديث الحالة')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     }
   }
 
@@ -201,6 +244,10 @@ export default function LicensesList() {
     setActionLoading(true)
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       let body: any = {}
 
       switch (actionDialog.type) {
@@ -237,12 +284,26 @@ export default function LicensesList() {
         },
         body: JSON.stringify(body),
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         fetchLicenses()
         setActionDialog({ type: 'extendTrial', license: null })
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تنفيذ الإجراء')
+        } catch {
+          setErrorMsg('فشل تنفيذ الإجراء')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setActionLoading(false)
     }
@@ -385,7 +446,21 @@ export default function LicensesList() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
+                {errorMsg ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12">
+                      <AlertTriangle className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-400">{errorMsg}</p>
+                      <div className="flex items-center justify-center gap-2 mt-3">
+                        <Button variant="outline" size="sm" onClick={fetchLicenses} className="border-slate-600 text-slate-300 hover:bg-slate-700">إعادة المحاولة</Button>
+                        <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(ADMIN_TOKEN_KEY); localStorage.removeItem(ADMIN_USER_KEY); router.replace('/admin/login') }} className="border-slate-600 text-slate-300 hover:bg-slate-700 gap-1">
+                          <LogIn className="h-3.5 w-3.5" />
+                          إعادة تسجيل الدخول
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading ? (
                   <tr>
                     <td colSpan={7} className="text-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-violet-400 mx-auto" />

@@ -25,6 +25,7 @@ import {
   Package,
   CreditCard,
   TrendingDown,
+  LogIn,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,6 +34,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 
 const ADMIN_TOKEN_KEY = 'ctrl_admin_token'
+const ADMIN_USER_KEY = 'ctrl_admin_user'
 
 interface SystemHealthData {
   database: {
@@ -200,22 +202,40 @@ export default function SystemHealth() {
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string>('')
 
   const fetchData = useCallback(async () => {
     setRefreshing(true)
+    setErrorMsg('')
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const res = await fetch('/api/admin/system-health', {
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         setData(await res.json())
         setLastRefresh(new Date())
-      } else if (res.status === 401) {
-        router.replace('/admin/login')
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تحميل بيانات صحة النظام')
+        } catch {
+          setErrorMsg('فشل تحميل بيانات صحة النظام')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -236,8 +256,14 @@ export default function SystemHealth() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-400">
         <AlertTriangle className="h-12 w-12 mb-3 text-slate-600" />
-        <p className="text-sm">فشل تحميل بيانات صحة النظام</p>
-        <Button variant="outline" size="sm" onClick={fetchData} className="mt-3 border-slate-600 text-slate-300 hover:bg-slate-700">إعادة المحاولة</Button>
+        <p className="text-sm">{errorMsg || 'فشل تحميل بيانات صحة النظام'}</p>
+        <div className="flex items-center gap-2 mt-3">
+          <Button variant="outline" size="sm" onClick={fetchData} className="border-slate-600 text-slate-300 hover:bg-slate-700">إعادة المحاولة</Button>
+          <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(ADMIN_TOKEN_KEY); localStorage.removeItem(ADMIN_USER_KEY); router.replace('/admin/login') }} className="border-slate-600 text-slate-300 hover:bg-slate-700 gap-1">
+            <LogIn className="h-3.5 w-3.5" />
+            إعادة تسجيل الدخول
+          </Button>
+        </div>
       </div>
     )
   }

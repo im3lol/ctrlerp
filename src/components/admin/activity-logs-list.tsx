@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Activity,
   Filter,
@@ -11,6 +12,8 @@ import {
   Settings,
   User,
   Clock,
+  AlertTriangle,
+  LogIn,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,6 +28,7 @@ import {
 } from '@/components/ui/select'
 
 const ADMIN_TOKEN_KEY = 'ctrl_admin_token'
+const ADMIN_USER_KEY = 'ctrl_admin_user'
 
 const categoryLabels: Record<string, string> = {
   tenant: 'المستأجرون',
@@ -122,6 +126,7 @@ function formatFullDate(dateStr: string) {
 }
 
 export default function ActivityLogsList() {
+  const router = useRouter()
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -129,30 +134,50 @@ export default function ActivityLogsList() {
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [categoryCounts, setCategoryCounts] = useState<{ category: string; count: number }[]>([])
+  const [errorMsg, setErrorMsg] = useState<string>('')
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
+    setErrorMsg('')
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const params = new URLSearchParams({ page: String(page), limit: '30' })
       if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter)
 
       const res = await fetch(`/api/admin/activity-logs?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         const data = await res.json()
         setLogs(data.logs)
         setTotal(data.total)
         setTotalPages(data.totalPages)
         if (data.categoryCounts) setCategoryCounts(data.categoryCounts)
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تحميل البيانات')
+        } catch {
+          setErrorMsg('فشل تحميل البيانات')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setLoading(false)
     }
-  }, [page, categoryFilter])
+  }, [page, categoryFilter, router])
 
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
@@ -214,7 +239,19 @@ export default function ActivityLogsList() {
       {/* Logs List */}
       <Card className="bg-slate-800/50 border-slate-700/50">
         <CardContent className="p-0">
-          {loading ? (
+          {errorMsg ? (
+            <div className="text-center py-12">
+              <AlertTriangle className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-400">{errorMsg}</p>
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <Button variant="outline" size="sm" onClick={fetchLogs} className="border-slate-600 text-slate-300 hover:bg-slate-700">إعادة المحاولة</Button>
+                <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(ADMIN_TOKEN_KEY); localStorage.removeItem(ADMIN_USER_KEY); router.replace('/admin/login') }} className="border-slate-600 text-slate-300 hover:bg-slate-700 gap-1">
+                  <LogIn className="h-3.5 w-3.5" />
+                  إعادة تسجيل الدخول
+                </Button>
+              </div>
+            </div>
+          ) : loading ? (
             <div className="text-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-violet-400 mx-auto" />
               <p className="text-sm text-slate-500 mt-2">جاري التحميل...</p>

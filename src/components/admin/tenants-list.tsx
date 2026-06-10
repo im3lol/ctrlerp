@@ -15,6 +15,8 @@ import {
   Filter,
   X,
   Infinity,
+  AlertTriangle,
+  LogIn,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +40,7 @@ import CreateTenantDialog from './create-tenant-dialog'
 import TenantDetailDialog from './tenant-detail-dialog'
 
 const ADMIN_TOKEN_KEY = 'ctrl_admin_token'
+const ADMIN_USER_KEY = 'ctrl_admin_user'
 
 const statusLabels: Record<string, string> = {
   active: 'نشط',
@@ -120,11 +123,17 @@ export default function TenantsList() {
   const [createOpen, setCreateOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string>('')
 
   const fetchTenants = useCallback(async () => {
     setLoading(true)
+    setErrorMsg('')
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const params = new URLSearchParams({
         page: String(page),
         limit: '20',
@@ -135,18 +144,32 @@ export default function TenantsList() {
       const res = await fetch(`/api/admin/tenants?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         const data = await res.json()
         setTenants(data.tenants)
         setTotal(data.total)
         setTotalPages(data.totalPages)
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تحميل البيانات')
+        } catch {
+          setErrorMsg('فشل تحميل البيانات')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setLoading(false)
     }
-  }, [page, search, statusFilter])
+  }, [page, search, statusFilter, router])
 
   useEffect(() => {
     fetchTenants()
@@ -163,6 +186,10 @@ export default function TenantsList() {
     setActionLoading(tenantId)
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const res = await fetch(`/api/admin/tenants/${tenantId}`, {
         method: 'PATCH',
         headers: {
@@ -171,11 +198,25 @@ export default function TenantsList() {
         },
         body: JSON.stringify({ status: newStatus }),
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         fetchTenants()
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تحديث الحالة')
+        } catch {
+          setErrorMsg('فشل تحديث الحالة')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setActionLoading(null)
     }
@@ -186,15 +227,33 @@ export default function TenantsList() {
     setActionLoading(tenantId)
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const res = await fetch(`/api/admin/tenants/${tenantId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         fetchTenants()
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل حذف المستأجر')
+        } catch {
+          setErrorMsg('فشل حذف المستأجر')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setActionLoading(null)
     }
@@ -270,7 +329,21 @@ export default function TenantsList() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
+                {errorMsg ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-12">
+                      <AlertTriangle className="h-12 w-12 text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-400">{errorMsg}</p>
+                      <div className="flex items-center justify-center gap-2 mt-3">
+                        <Button variant="outline" size="sm" onClick={fetchTenants} className="border-slate-600 text-slate-300 hover:bg-slate-700">إعادة المحاولة</Button>
+                        <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(ADMIN_TOKEN_KEY); localStorage.removeItem(ADMIN_USER_KEY); router.replace('/admin/login') }} className="border-slate-600 text-slate-300 hover:bg-slate-700 gap-1">
+                          <LogIn className="h-3.5 w-3.5" />
+                          إعادة تسجيل الدخول
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-violet-400 mx-auto" />

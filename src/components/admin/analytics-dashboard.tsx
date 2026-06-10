@@ -21,6 +21,8 @@ import {
   RefreshCw,
   Target,
   PieChart,
+  AlertTriangle,
+  LogIn,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +30,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 const ADMIN_TOKEN_KEY = 'ctrl_admin_token'
+const ADMIN_USER_KEY = 'ctrl_admin_user'
 
 const typeLabels: Record<string, string> = {
   trial: 'تجريبي',
@@ -227,23 +230,43 @@ export default function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('6m')
+  const [errorMsg, setErrorMsg] = useState<string>('')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setErrorMsg('')
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
       const res = await fetch(`/api/admin/analytics?period=${period}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (res.status === 401) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY)
+        localStorage.removeItem(ADMIN_USER_KEY)
+        router.replace('/admin/login')
+        return
+      }
       if (res.ok) {
         setData(await res.json())
+      } else {
+        try {
+          const errData = await res.json()
+          setErrorMsg(errData.error || errData.message || 'فشل تحميل البيانات')
+        } catch {
+          setErrorMsg('فشل تحميل البيانات')
+        }
       }
     } catch (err) {
       console.error(err)
+      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setLoading(false)
     }
-  }, [period])
+  }, [period, router])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -258,8 +281,15 @@ export default function AnalyticsDashboard() {
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-        <p className="text-sm">فشل تحميل البيانات</p>
-        <Button variant="outline" size="sm" onClick={fetchData} className="mt-3">إعادة المحاولة</Button>
+        <AlertTriangle className="h-12 w-12 mb-3 text-slate-600" />
+        <p className="text-sm">{errorMsg || 'فشل تحميل البيانات'}</p>
+        <div className="flex items-center gap-2 mt-3">
+          <Button variant="outline" size="sm" onClick={fetchData} className="border-slate-600 text-slate-300 hover:bg-slate-700">إعادة المحاولة</Button>
+          <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem(ADMIN_TOKEN_KEY); localStorage.removeItem(ADMIN_USER_KEY); router.replace('/admin/login') }} className="border-slate-600 text-slate-300 hover:bg-slate-700 gap-1">
+            <LogIn className="h-3.5 w-3.5" />
+            إعادة تسجيل الدخول
+          </Button>
+        </div>
       </div>
     )
   }
