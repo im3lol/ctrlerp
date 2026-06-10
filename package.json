@@ -3,8 +3,9 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "build:standalone": "next build && cp -r .next/static .next/standalone/control-erp/.next/ && cp -r public .next/standalone/control-erp/ && cp -r prisma .next/standalone/control-erp/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "start:standalone": "HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/control-erp/server.js",
