@@ -179,35 +179,37 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <section id="features" className="py-20 sm:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section header */}
-          <div className="text-center mb-16" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 border border-violet-100 mb-4">
+          <div className="text-center mb-20" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 border border-violet-100 mb-6">
               <Sparkles className="h-3.5 w-3.5 text-violet-600" />
               <span className="text-xs text-violet-700 font-medium">المميزات</span>
             </div>
             <h2
-              className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-6 leading-relaxed"
               style={{ fontFamily: "var(--font-thmanyah-serif)" }}
             >
-              كل ما تحتاجه لإدارة أعمالك
+              نظامك المتكامل لإدارة
+              <br />
+              أعمالك من أول الطلب للتسليم النهائي
             </h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
               نظام شامل يغطي جميع جوانب عملك من المحاسبة إلى إدارة المخازن والمبيعات
             </p>
           </div>
 
           {/* Features grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {features.map((feature, index) => (
               <div
                 key={feature.title}
-                className="group relative bg-white rounded-2xl border border-slate-100 p-6 hover:border-violet-200 hover:shadow-xl hover:shadow-violet-50 transition-all duration-300"
+                className="group relative bg-white rounded-2xl border border-slate-100 p-5 sm:p-6 hover:border-violet-200 hover:shadow-xl hover:shadow-violet-50 transition-all duration-300 overflow-hidden"
                 style={{ animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both` }}
               >
-                <div className={`h-14 w-14 rounded-xl ${feature.bgColor} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
-                  <feature.icon className={`h-7 w-7 ${feature.iconColor}`} />
+                <div className={`h-12 w-12 rounded-xl ${feature.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 leading-snug">{feature.title}</h3>
-                <p className="text-sm sm:text-base text-slate-500 leading-relaxed">{feature.description}</p>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 mb-2 leading-snug">{feature.title}</h3>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -437,6 +439,13 @@ const features = [
     icon: TrendingUp,
     bgColor: 'bg-teal-50',
     iconColor: 'text-teal-600',
+  },
+  {
+    title: 'صلاحيات مرنة',
+    description: 'تحكم كامل في صلاحيات المستخدمين مع أدوار متعددة وصلاحيات قابلة للتخصيص',
+    icon: Shield,
+    bgColor: 'bg-indigo-50',
+    iconColor: 'text-indigo-600',
   },
 ]
 
