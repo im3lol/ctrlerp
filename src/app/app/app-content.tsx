@@ -76,6 +76,7 @@ import CompaniesList from '@/components/settings/companies-list'
 import CurrenciesList from '@/components/settings/currencies-list'
 import UOMList from '@/components/settings/uom-list'
 import UsersList from '@/components/settings/users-list'
+import SettingsLanding from '@/components/settings/settings-landing'
 import ChartOfAccounts from '@/components/accounting/chart-of-accounts'
 import JournalEntriesList from '@/components/accounting/journal-entries-list'
 import AccountingDashboard from '@/components/accounting/accounting-dashboard'
@@ -122,6 +123,7 @@ import SalesReport from '@/components/reports/sales-report'
 import PurchaseReport from '@/components/reports/purchase-report'
 import CustomerAgingReport from '@/components/reports/customer-aging'
 import SupplierAgingReport from '@/components/reports/supplier-aging'
+import ReportsLanding from '@/components/reports/reports-landing'
 import InvestorsList from '@/components/investors/investors-list'
 
 // ─── Navigation Permission Checks ──────────────────────────────────────────
@@ -847,6 +849,7 @@ function AppContent() {
       return <DashboardContent />
     }
     if (currentModule === 'settings') {
+      if (!currentView) return <SettingsLanding onNavigate={(view) => setView(view)} />
       switch (currentView) {
         case 'companies':
           return <CompaniesList />
@@ -861,7 +864,7 @@ function AppContent() {
         case 'chart-of-accounts':
           return <ChartOfAccounts />
         default:
-          return <ModulePlaceholder title={currentTitle} />
+          return <SettingsLanding onNavigate={(view) => setView(view)} />
       }
     }
     if (currentModule === 'inventory') {
@@ -969,6 +972,7 @@ function AppContent() {
       }
     }
     if (currentModule === 'reports') {
+      if (!currentView) return <ReportsLanding onNavigate={(view) => setView(view)} />
       switch (currentView) {
         case 'trial-balance':
           return <TrialBalanceReport />
@@ -987,7 +991,7 @@ function AppContent() {
         case 'supplier-aging':
           return <SupplierAgingReport />
         default:
-          return <ModulePlaceholder title={currentTitle} />
+          return <ReportsLanding onNavigate={(view) => setView(view)} />
       }
     }
     return <ModulePlaceholder title={currentTitle} />
