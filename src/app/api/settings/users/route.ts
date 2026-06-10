@@ -4,9 +4,7 @@ import { requirePermission, requireAdmin, canAssignRole, getAssignableRoles } fr
 import type { Permission } from '@/lib/permissions'
 import { roleLabels } from '@/lib/permissions'
 
-function hashPassword(password: string): string {
-  return Buffer.from(password).toString('base64')
-}
+import { hashPassword, verifyPassword, isLegacyPassword } from '@/lib/password'
 
 // GET /api/settings/users - List users in a company via CompanyUser
 export async function GET(request: NextRequest) {
@@ -103,7 +101,7 @@ export async function POST(request: NextRequest) {
           username,
           name,
           email: email ?? null,
-          password: hashPassword(password),
+          password: await hashPassword(password),
           role: role ?? 'viewer',
           isActive: isActive ?? true,
         },
@@ -212,7 +210,7 @@ export async function PUT(request: NextRequest) {
           ...(username !== undefined && { username }),
           ...(name !== undefined && { name }),
           ...(email !== undefined && { email }),
-          ...(password !== undefined && { password: hashPassword(password) }),
+          ...(password !== undefined && { password: await hashPassword(password) }),
           ...(role !== undefined && { role }),
           ...(isActive !== undefined && { isActive }),
         },

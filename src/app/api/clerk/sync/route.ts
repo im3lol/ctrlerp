@@ -34,14 +34,15 @@ export async function POST(request: NextRequest) {
     if (!user) {
       // Create new user from Clerk data
       const displayName = fullName || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0]
-      const base64Password = Buffer.from(`clerk_${clerkId}_${Date.now()}`).toString('base64')
+      const { hashPassword } = await import('@/lib/password')
+      const randomPassword = await hashPassword(`clerk_${clerkId}_${Date.now()}_${Math.random()}`)
 
       user = await db.user.create({
         data: {
           username: `clerk_${clerkId}`,
           name: displayName,
           email,
-          password: base64Password, // Random password since auth is via Clerk
+          password: randomPassword, // Hashed random password since auth is via Clerk
           role: 'admin', // Default role for new Clerk users - they are company owners
           isActive: true,
         }

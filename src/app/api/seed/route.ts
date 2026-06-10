@@ -76,7 +76,7 @@ export async function POST() {
         username: 'admin',
         name: 'مدير النظام',
         email: 'admin@erp.com',
-        password: Buffer.from('admin123').toString('base64'),
+        password: await (await import('@/lib/password')).hashPassword('admin123'),
         role: 'super_admin',
         isActive: true,
       },

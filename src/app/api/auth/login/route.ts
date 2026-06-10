@@ -158,13 +158,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify password (base64 encoded)
-    const encodedPassword = Buffer.from(password).toString('base64')
-    if (user.password !== encodedPassword) {
+    // Verify password (bcrypt with legacy base64 support)
+    const { verifyPassword, isLegacyPassword, hashPassword } = await import('@/lib/password')
+    const isValid = await verifyPassword(password, user.password)
+    if (!isValid) {
       return NextResponse.json(
         { error: 'اسم المستخدم أو كلمة المرور غير صحيحة' },
         { status: 401 }
       )
+    }
+
+    // Auto-migrate legacy base64 passwords to bcrypt on successful login
+    if (isLegacyPassword(user.password)) {
+      try {
+        const bcryptHash = await hashPassword(password)
+        await tenantDb.user.update({
+          where: { id: user.id },
+          data: { password: bcryptHash },
+        })
+      } catch (migrateError) {
+        console.error('[Auth] Failed to migrate password for user:', user.id, migrateError)
+        // Don't block login if migration fails
+      }
     }
 
     // Parallel: Get user's companies + clean up expired tokens

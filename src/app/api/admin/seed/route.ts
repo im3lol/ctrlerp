@@ -15,8 +15,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create default platform admin
-    // Password: Admin@2026 → base64 encoded
-    const password = Buffer.from('Admin@2026').toString('base64')
+    // Password: Admin@2026 → bcrypt hashed
+    const { hashPassword } = await import('@/lib/password')
+    const password = await hashPassword('Admin@2026')
 
     const admin = await db.platformAdmin.create({
       data: {

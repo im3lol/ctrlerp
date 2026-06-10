@@ -33,10 +33,18 @@ export const authOptions: NextAuthOptions = {
           throw new Error('هذا الحساب معطل. تواصل مع المسؤول')
         }
 
-        // Verify password (base64 encoded)
-        const encodedPassword = Buffer.from(credentials.password).toString('base64')
-        if (user.password !== encodedPassword) {
+        // Verify password (bcrypt with legacy support)
+        const { verifyPassword, isLegacyPassword, hashPassword } = await import('@/lib/password')
+        const isValid = await verifyPassword(credentials.password, user.password)
+        if (!isValid) {
           throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة')
+        }
+
+        // Auto-migrate legacy passwords to bcrypt
+        if (isLegacyPassword(user.password)) {
+          hashPassword(credentials.password).then(bcryptHash => {
+            db.user.update({ where: { id: user.id }, data: { password: bcryptHash } }).catch(() => {})
+          }).catch(() => {})
         }
 
         // Get the user's first company for the token

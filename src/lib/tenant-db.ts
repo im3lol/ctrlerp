@@ -294,11 +294,12 @@ export async function seedTenantDatabase(
     const tenantDb = await getTenantDb(tenantId)
 
     // Create admin user
+    const { hashPassword } = await import('@/lib/password')
     const admin = await tenantDb.user.create({
       data: {
         username: adminUsername,
         name: adminName,
-        password: Buffer.from(adminPassword).toString('base64'),
+        password: await hashPassword(adminPassword),
         role: 'super_admin',
         isActive: true,
       },

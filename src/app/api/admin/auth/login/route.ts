@@ -20,14 +20,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'بيانات الدخول غير صحيحة' }, { status: 401 })
     }
 
-    // Simple base64 password check (same as existing)
-    const encodedPassword = Buffer.from(password).toString('base64')
-    if (admin.password !== encodedPassword) {
+    // Verify password (bcrypt with legacy base64 support)
+    const { verifyPassword, isLegacyPassword, hashPassword } = await import('@/lib/password')
+    const isValid = await verifyPassword(password, admin.password)
+    if (!isValid) {
       return NextResponse.json({ error: 'بيانات الدخول غير صحيحة' }, { status: 401 })
     }
 
     if (!admin.isActive) {
       return NextResponse.json({ error: 'الحساب معطل' }, { status: 403 })
+    }
+
+    // Auto-migrate legacy base64 passwords to bcrypt on successful login
+    if (isLegacyPassword(admin.password)) {
+      try {
+        const bcryptHash = await hashPassword(password)
+        await db.platformAdmin.update({
+          where: { id: admin.id },
+          data: { password: bcryptHash },
+        })
+      } catch (migrateError) {
+        console.error('[Admin Auth] Failed to migrate password for admin:', admin.id, migrateError)
+      }
     }
 
     // Parallel: Create token + clean up expired tokens
