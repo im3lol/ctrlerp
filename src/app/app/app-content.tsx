@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, type ElementType } from 'react'
 import { useRouter } from 'next/navigation'
 // Clerk removed - using simple email/password auth
-import { useAppStore } from '@/lib/store'
+import { useAppStore, type LicenseInfo } from '@/lib/store'
 import type { Module } from '@/lib/store'
 import { formatCurrency, formatDate } from '@/lib/erp-utils'
 import { roleLabels, canManageCompany, hasPermission } from '@/lib/permissions'
@@ -49,6 +49,9 @@ import {
   ChevronsUpDown,
   Undo2,
   Sparkles,
+  Lock,
+  AlertTriangle,
+  Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -704,6 +707,8 @@ function AppContent() {
     setCompanies,
     setAccessToken,
     logout,
+    licenseInfo,
+    setLicenseInfo,
   } = useAppStore()
 
   const [expandedItems, setExpandedItems] = useState<string[]>([])
@@ -746,6 +751,26 @@ function AppContent() {
   }, [])
 
   // autoLogin removed - login is handled at /login route
+
+  // ── Check license on mount ──
+  useEffect(() => {
+    if (!isAuthenticated || !currentCompanyId) return
+    const checkLicense = async () => {
+      try {
+        const res = await fetch(`/api/license/check?companyId=${currentCompanyId}`)
+        if (res.ok) {
+          const data = await res.json()
+          setLicenseInfo(data as LicenseInfo)
+        }
+      } catch (err) {
+        console.error('License check error:', err)
+      }
+    }
+    checkLicense()
+    // Re-check every 5 minutes
+    const interval = setInterval(checkLicense, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated, currentCompanyId, setLicenseInfo])
 
   // Auto-select company: if authenticated but no company selected, auto-select first or open setup wizard
   useEffect(() => {
@@ -791,6 +816,36 @@ function AppContent() {
         onClose={() => setSetupWizardOpen(false)}
         required={true}
       />
+    )
+  }
+
+  // ── License expired → Show blocked screen ──
+  if (licenseInfo && !licenseInfo.active) {
+    return (
+      <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center max-w-md p-6">
+          <div className="h-20 w-20 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Lock className="h-10 w-10 text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">انتهت صلاحية الترخيص</h2>
+          <p className="text-slate-500 mb-6">
+            انتهت صلاحية ترخيصك الحالي ولا يمكنك الوصول إلى النظام.
+            يرجى التواصل مع إدارة المنصة لتجديد الترخيص.
+          </p>
+          {licenseInfo.tenantStatus === 'suspended' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+              <p className="text-amber-800 text-sm font-medium">حسابك معلق</p>
+              <p className="text-amber-600 text-xs mt-1">يرجى التواصل مع إدارة المنصة</p>
+            </div>
+          )}
+          <Button
+            onClick={() => { logout(); router.push('/sign-in') }}
+            className="bg-violet-600 hover:bg-violet-700 text-white"
+          >
+            تسجيل الخروج
+          </Button>
+        </div>
+      </div>
     )
   }
 
@@ -999,6 +1054,26 @@ function AppContent() {
 
   return (
     <div dir="rtl" className="min-h-screen flex flex-col bg-slate-50">
+      {/* ── Trial Banner ── */}
+      {licenseInfo && licenseInfo.active && licenseInfo.isTrial && licenseInfo.daysLeft !== null && (
+        <div className={cn(
+          'h-9 flex items-center justify-center gap-2 text-xs font-medium px-4 shrink-0',
+          licenseInfo.daysLeft <= 3
+            ? 'bg-red-500 text-white'
+            : 'bg-amber-500 text-white'
+        )}>
+          <Clock className="h-3.5 w-3.5" />
+          <span>
+            {licenseInfo.daysLeft <= 0
+              ? 'انتهت الفترة التجريبية'
+              : `الفترة التجريبية: متبقي ${licenseInfo.daysLeft} يوم`}
+          </span>
+          <span className="mx-1 opacity-50">|</span>
+          <span className="underline cursor-pointer hover:opacity-80">
+            ترقية الآن
+          </span>
+        </div>
+      )}
       {/* ── Header ── */}
       <header className="h-14 border-b bg-white flex items-center px-4 gap-3 sticky top-0 z-40 shrink-0">
         {/* Mobile menu trigger */}

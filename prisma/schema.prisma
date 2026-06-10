@@ -12,6 +12,67 @@ datasource db {
 }
 
 // ============================================
+// PLATFORM ADMIN & LICENSING
+// ============================================
+
+model PlatformAdmin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  name      String
+  email     String?  @unique
+  password  String
+  role      String   @default("admin") // super_admin, admin
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accessTokens PlatformAdminToken[]
+}
+
+model PlatformAdminToken {
+  id        String   @id @default(cuid())
+  adminId   String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  status    String   @default("active") // active, suspended, cancelled
+  ownerId   String?  // The user who registered
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner     User?          @relation(fields: [ownerId], references: [id])
+  companies Company[]
+  licenses  License[]
+
+  @@unique([ownerId])
+}
+
+model License {
+  id           String   @id @default(cuid())
+  tenantId     String
+  key          String   @unique
+  type         String   // trial, basic, professional, enterprise
+  status       String   @default("active") // active, expired, suspended, cancelled
+  maxUsers     Int      @default(1)
+  maxCompanies Int      @default(1)
+  startedAt    DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
 // AUTH & MULTI-COMPANY
 // ============================================
 
@@ -29,6 +90,7 @@ model User {
 
   companyUsers CompanyUser[]
   accessTokens AccessToken[]
+  ownedTenant  Tenant?
 }
 
 model AccessToken {
@@ -56,9 +118,11 @@ model Company {
   fiscalYearStart String?
   vatRate         Float    @default(14.0)
   status          String   @default("active") // active, inactive
+  tenantId        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  tenant           Tenant?        @relation(fields: [tenantId], references: [id])
   companyUsers     CompanyUser[]
   currencies       Currency[]
   unitOfMeasures   UnitOfMeasure[]

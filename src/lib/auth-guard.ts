@@ -104,6 +104,46 @@ export async function requireAuth(request?: NextRequest): Promise<AuthUser> {
     }
     throw new Error('غير مصرح بالدخول')
   }
+
+  // ── License check ──
+  if (user.companyId) {
+    const company = await db.company.findUnique({
+      where: { id: user.companyId },
+      select: { tenantId: true },
+    })
+
+    if (company?.tenantId) {
+      const tenant = await db.tenant.findUnique({
+        where: { id: company.tenantId },
+        include: {
+          licenses: {
+            where: { status: 'active' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      })
+
+      if (tenant) {
+        if (tenant.status === 'suspended') {
+          throw new Error('حسابك معلق. يرجى التواصل مع إدارة المنصة')
+        }
+        if (tenant.status === 'cancelled') {
+          throw new Error('حسابك ملغي. يرجى التواصل مع إدارة المنصة')
+        }
+
+        const license = tenant.licenses[0]
+        if (!license) {
+          throw new Error('لا يوجد ترخيص نشط. يرجى التواصل مع إدارة المنصة')
+        }
+
+        if (license.expiresAt < new Date()) {
+          throw new Error('انتهت صلاحية الترخيص. يرجى التجديد للمتابعة')
+        }
+      }
+    }
+  }
+
   return user
 }
 

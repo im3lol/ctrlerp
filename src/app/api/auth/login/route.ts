@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         companyId: true,
         role: true,
         company: {
-          select: { id: true, nameAr: true, nameEn: true },
+          select: { id: true, nameAr: true, nameEn: true, tenantId: true },
         },
       },
     })
@@ -67,6 +67,74 @@ export async function POST(request: NextRequest) {
     }))
 
     const primaryCompany = companyUsers[0]
+
+    // ── License check ──
+    let licenseInfo: {
+      active: boolean
+      type: string | null
+      expiresAt: string | null
+      daysLeft: number | null
+      isTrial: boolean
+      tenantStatus: string | null
+    } | null = null
+
+    if (primaryCompany?.company?.tenantId) {
+      const tenant = await db.tenant.findUnique({
+        where: { id: primaryCompany.company.tenantId },
+        include: {
+          licenses: {
+            where: { status: 'active' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      })
+
+      if (tenant) {
+        if (tenant.status === 'suspended') {
+          return NextResponse.json(
+            { error: 'حسابك معلق. يرجى التواصل مع إدارة المنصة' },
+            { status: 403 }
+          )
+        }
+        if (tenant.status === 'cancelled') {
+          return NextResponse.json(
+            { error: 'حسابك ملغي. يرجى التواصل مع إدارة المنصة' },
+            { status: 403 }
+          )
+        }
+
+        const license = tenant.licenses[0]
+        if (license) {
+          const now = new Date()
+          const expiry = new Date(license.expiresAt)
+          const daysLeft = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+          const isExpired = expiry < now
+
+          if (isExpired) {
+            return NextResponse.json(
+              { error: 'انتهت صلاحية الترخيص. يرجى التجديد للمتابعة' },
+              { status: 403 }
+            )
+          }
+
+          licenseInfo = {
+            active: true,
+            type: license.type,
+            expiresAt: license.expiresAt.toISOString(),
+            daysLeft,
+            isTrial: license.type === 'trial',
+            tenantStatus: tenant.status,
+          }
+        } else {
+          // No active license
+          return NextResponse.json(
+            { error: 'لا يوجد ترخيص نشط. يرجى التواصل مع إدارة المنصة' },
+            { status: 403 }
+          )
+        }
+      }
+    }
 
     // Clean up expired tokens for this user
     await db.accessToken.deleteMany({
@@ -99,6 +167,7 @@ export async function POST(request: NextRequest) {
       },
       companies,
       token,
+      license: licenseInfo,
     })
   } catch (error) {
     console.error('Login error:', error)

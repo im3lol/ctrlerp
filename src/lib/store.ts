@@ -26,12 +26,24 @@ export interface CompanyInfo {
   role?: string
 }
 
+export interface LicenseInfo {
+  active: boolean
+  type: string | null
+  expiresAt: string | null
+  daysLeft: number | null
+  isTrial: boolean
+  tenantStatus: string | null
+  licenseKey?: string | null
+  maxUsers?: number | null
+  maxCompanies?: number | null
+}
+
 // ── localStorage helpers ──────────────────────────────────────────────────────
 const STORAGE_KEY = 'ctrl_erp_auth'
 
-function loadFromStorage(): { user: UserInfo | null; accessToken: string | null; companies: CompanyInfo[]; currentCompanyId: string | null } {
+function loadFromStorage(): { user: UserInfo | null; accessToken: string | null; companies: CompanyInfo[]; currentCompanyId: string | null; licenseInfo: LicenseInfo | null } {
   if (typeof window === 'undefined') {
-    return { user: null, accessToken: null, companies: [], currentCompanyId: null }
+    return { user: null, accessToken: null, companies: [], currentCompanyId: null, licenseInfo: null }
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -42,15 +54,16 @@ function loadFromStorage(): { user: UserInfo | null; accessToken: string | null;
         accessToken: data.accessToken || null,
         companies: data.companies || [],
         currentCompanyId: data.currentCompanyId || null,
+        licenseInfo: data.licenseInfo || null,
       }
     }
   } catch {
     // ignore parse errors
   }
-  return { user: null, accessToken: null, companies: [], currentCompanyId: null }
+  return { user: null, accessToken: null, companies: [], currentCompanyId: null, licenseInfo: null }
 }
 
-function saveToStorage(data: { user: UserInfo | null; accessToken: string | null; companies: CompanyInfo[]; currentCompanyId: string | null }) {
+function saveToStorage(data: { user: UserInfo | null; accessToken: string | null; companies: CompanyInfo[]; currentCompanyId: string | null; licenseInfo: LicenseInfo | null }) {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
@@ -87,6 +100,8 @@ interface AppState {
   selectedTransferId: string | null
   // Document ID for editing (used by form pages)
   editingDocId: string | null
+  // License info
+  licenseInfo: LicenseInfo | null
   // Navigation actions
   setModule: (module: Module) => void
   setView: (view: string) => void
@@ -106,6 +121,7 @@ interface AppState {
   setSelectedItemId: (id: string | null) => void
   setSelectedTransferId: (id: string | null) => void
   setEditingDocId: (id: string | null) => void
+  setLicenseInfo: (info: LicenseInfo | null) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -123,6 +139,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedItemId: null,
   selectedTransferId: null,
   editingDocId: null,
+  licenseInfo: null,
   // Navigation actions
   setModule: (module) => set({ currentModule: module, currentView: '' }),
   setView: (view) => set({ currentView: view }),
@@ -132,6 +149,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSelectedItemId: (id) => set({ selectedItemId: id }),
   setSelectedTransferId: (id) => set({ selectedTransferId: id }),
   setEditingDocId: (id) => set({ editingDocId: id }),
+  setLicenseInfo: (info) => {
+    set({ licenseInfo: info })
+    saveToStorage({
+      user: get().user,
+      accessToken: get().accessToken,
+      companies: get().companies,
+      currentCompanyId: get().currentCompanyId,
+      licenseInfo: info,
+    })
+  },
   // Auth & company actions
   setUser: (user) => {
     set({ user, isAuthenticated: true })
@@ -140,6 +167,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessToken: get().accessToken,
       companies: get().companies,
       currentCompanyId: get().currentCompanyId,
+      licenseInfo: get().licenseInfo,
     })
   },
   setCurrentCompany: (id) => {
@@ -149,6 +177,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessToken: get().accessToken,
       companies: get().companies,
       currentCompanyId: id,
+      licenseInfo: get().licenseInfo,
     })
   },
   setCompanies: (companies) => {
@@ -158,6 +187,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessToken: get().accessToken,
       companies,
       currentCompanyId: get().currentCompanyId,
+      licenseInfo: get().licenseInfo,
     })
   },
   addCompany: (company) => {
@@ -168,6 +198,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessToken: get().accessToken,
       companies: newCompanies,
       currentCompanyId: get().currentCompanyId,
+      licenseInfo: get().licenseInfo,
     })
   },
   updateCompany: (id, data) => {
@@ -180,6 +211,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessToken: get().accessToken,
       companies: newCompanies,
       currentCompanyId: get().currentCompanyId,
+      licenseInfo: get().licenseInfo,
     })
   },
   removeCompany: (id) => {
@@ -193,6 +225,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessToken: get().accessToken,
       companies: newCompanies,
       currentCompanyId: newCurrentId,
+      licenseInfo: get().licenseInfo,
     })
   },
   setAccessToken: (token) => {
@@ -202,6 +235,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       accessToken: token,
       companies: get().companies,
       currentCompanyId: get().currentCompanyId,
+      licenseInfo: get().licenseInfo,
     })
   },
   hydrate: () => {
@@ -212,6 +246,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         accessToken: stored.accessToken,
         companies: stored.companies,
         currentCompanyId: stored.currentCompanyId,
+        licenseInfo: stored.licenseInfo,
         isAuthenticated: true,
         hydrated: true,
       })
@@ -221,6 +256,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   logout: () => {
     clearStorage()
-    set({ user: null, currentCompanyId: null, companies: [], isAuthenticated: false, accessToken: null })
+    set({ user: null, currentCompanyId: null, companies: [], isAuthenticated: false, accessToken: null, licenseInfo: null })
   },
 }))

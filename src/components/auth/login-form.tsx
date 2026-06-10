@@ -14,7 +14,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { setUser, setCompanies, setCurrentCompany, setAccessToken } = useAppStore()
+  const { setUser, setCompanies, setCurrentCompany, setAccessToken, setLicenseInfo } = useAppStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,6 +61,11 @@ export default function LoginForm() {
           if (loginData.companies.length === 1) {
             setCurrentCompany(loginData.companies[0].id)
           }
+        }
+
+        // Set license info from login response
+        if (loginData.license) {
+          setLicenseInfo(loginData.license)
         }
         // Redirect to app after successful login
         setTimeout(() => {

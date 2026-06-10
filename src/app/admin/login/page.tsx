@@ -2,16 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAppStore, type LicenseInfo } from '@/lib/store'
-import { Sparkles, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Sparkles, Eye, EyeOff, Loader2, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export default function SignInPage() {
+const ADMIN_TOKEN_KEY = 'ctrl_admin_token'
+const ADMIN_USER_KEY = 'ctrl_admin_user'
+
+export default function AdminLoginPage() {
   const router = useRouter()
-  const { setUser, setCompanies, setCurrentCompany, setAccessToken, setLicenseInfo } = useAppStore()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -21,18 +22,18 @@ export default function SignInPage() {
     e.preventDefault()
     setError('')
 
-    if (!email || !password) {
-      setError('يرجى إدخال البريد الإلكتروني وكلمة المرور')
+    if (!username || !password) {
+      setError('يرجى إدخال اسم المستخدم وكلمة المرور')
       return
     }
 
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/admin/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: email, password }),
+        body: JSON.stringify({ username, password }),
       })
 
       const data = await res.json()
@@ -42,35 +43,17 @@ export default function SignInPage() {
         return
       }
 
-      // Store auth data
+      // Store admin token and user info
       if (data.token) {
-        setAccessToken(data.token)
+        localStorage.setItem(ADMIN_TOKEN_KEY, data.token)
+      }
+      if (data.admin) {
+        localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(data.admin))
       }
 
-      if (data.user) {
-        setUser({
-          id: data.user.id,
-          name: data.user.name,
-          username: data.user.username,
-          role: data.user.role,
-          email: data.user.email,
-        })
-      }
-
-      if (data.companies && data.companies.length > 0) {
-        setCompanies(data.companies)
-        setCurrentCompany(data.companies[0].id)
-      }
-
-      // Store license info if present
-      if (data.license) {
-        setLicenseInfo(data.license as LicenseInfo)
-      }
-
-      // Redirect to app
-      router.push('/app')
+      router.push('/admin')
     } catch (err) {
-      console.error('Login error:', err)
+      console.error('Admin login error:', err)
       setError('حدث خطأ في الاتصال بالخادم')
     } finally {
       setLoading(false)
@@ -112,7 +95,11 @@ export default function SignInPage() {
           >
             كنترول
           </h1>
-          <p className="text-slate-400 text-sm">تسجيل الدخول إلى حسابك</p>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Shield className="h-4 w-4 text-amber-400" />
+            <p className="text-amber-400 text-sm font-medium">لوحة تحكم المدير</p>
+          </div>
+          <p className="text-slate-400 text-xs">تسجيل دخول مدير النظام</p>
         </div>
 
         {/* Login Form */}
@@ -127,18 +114,18 @@ export default function SignInPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-slate-700">
-              البريد الإلكتروني أو اسم المستخدم
+            <Label htmlFor="username" className="text-sm font-medium text-slate-700">
+              اسم المستخدم
             </Label>
             <Input
-              id="email"
+              id="username"
               type="text"
-              placeholder="example@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="platformadmin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="h-11 rounded-xl border-slate-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20 bg-slate-50/50 hover:bg-white transition-colors"
               dir="ltr"
-              autoComplete="email"
+              autoComplete="username"
               disabled={loading}
             />
           </div>
@@ -186,7 +173,7 @@ export default function SignInPage() {
           </Button>
         </form>
 
-        {/* Back to landing */}
+        {/* Back to ERP */}
         <a
           href="/"
           className="text-slate-400 hover:text-white text-sm transition-colors mt-2"

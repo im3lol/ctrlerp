@@ -1,161 +1,38 @@
 ---
 Task ID: 1
-Agent: Main
-Task: Fix notifications system - Sonner Toaster not rendered in layout
+Agent: Main Agent
+Task: Build Admin Dashboard & Licensing System for Control ERP
 
 Work Log:
-- Found that layout.tsx imported Toaster from @/components/ui/toaster (Radix/shadcn)
-- But all business components use `import { toast } from 'sonner'` (Sonner library)
-- The Sonner Toaster was never mounted in the layout, so all toast calls disappeared
-- Replaced the import to use @/components/ui/sonner instead
-- Enhanced Sonner Toaster with position="top-center", dir="rtl", richColors, closeButton
+- Analyzed the entire ctrlerp project structure (Next.js 16, Prisma 6, shadcn/ui, RTL Arabic)
+- Designed licensing architecture: PlatformAdmin, Tenant, License models
+- Updated Prisma schema with 4 new models (PlatformAdmin, PlatformAdminToken, Tenant, License)
+- Added tenantId field to Company model with relation to Tenant
+- Pushed schema changes to Supabase PostgreSQL database
+- Created admin-guard.ts for platform admin authentication
+- Created 8 API routes for admin dashboard (auth, dashboard stats, tenants CRUD, licenses CRUD, seed, license check)
+- Created 5 admin pages (login, layout, dashboard, tenants, licenses)
+- Created 6 admin components (dashboard, tenants-list, tenant-detail, create-tenant, licenses-list, create-license)
+- Integrated license validation into login route (blocks expired/suspended tenants)
+- Integrated license check into auth-guard.ts requireAuth function
+- Updated Zustand store with LicenseInfo interface and setLicenseInfo action
+- Updated login form to save license info from login response
+- Added trial banner to app-content.tsx (amber for >3 days, red for <=3 days)
+- Added license expired blocked screen in app-content.tsx
+- Added periodic license check (every 5 minutes) in app-content.tsx
+- Updated company creation API to auto-create Tenant + 7-day trial License
+- Fixed User model phone field issue in admin API routes
+- Installed missing xlsx dependency
+- Successfully built project with `next build` - no errors
+- Seeded platform admin (username: platformadmin, password: Admin@2026)
+- Tested admin login API - working
+- Tested admin dashboard stats API - working (2 tenants, 2 trial licenses)
 
 Stage Summary:
-- Notifications now work correctly with Sonner toast system
-- All toast.success() / toast.error() calls throughout the app will now render
-
----
-Task ID: 2
-Agent: Main
-Task: Fix company deletion - force-delete route had wrong Prisma model names
-
-Work Log:
-- The force-delete route used old model names like pickListItem, purchaseReceiptItem, etc.
-- The actual schema uses PickListLine, PurchaseReceiptLine, etc.
-- Rewrote the entire force-delete route with correct model names matching the Prisma schema
-- Added missing models: SalesReturnLine, PurchaseReturnLine, ReceiptLine, PaymentLine, StockMovement, FifoLayer, ItemBalance, ItemCode
-
-Stage Summary:
-- Company force-delete now works correctly
-- All related data is deleted in the correct order respecting foreign key constraints
-
----
-Task ID: 3
-Agent: Main
-Task: Clear all existing data from the system
-
-Work Log:
-- Deleted the SQLite database file at db/custom.db
-- Ran `bun run db:push` to recreate the database with the current schema
-- Database is now empty and fresh
-
-Stage Summary:
-- All previous data has been cleared
-- Fresh database ready for new data entry
-
----
-Task ID: 4
-Agent: Main
-Task: Fix company name not updating in header
-
-Work Log:
-- Investigated the store update chain: company-form.tsx -> updateCompany() -> store -> header
-- The updateCompany() method in the store correctly updates the companies array
-- The header reads from companies.find((c) => c.id === currentCompanyId)?.nameAr
-- The main issue was that toasts weren't showing (Bug 1), so users thought it didn't save
-- Also fixed: company-form useEffect now has [companyId] dependency (was empty [])
-- Also fixed: setLoading(true) added when companyId changes so form shows loading state
-
-Stage Summary:
-- Company name now updates immediately in the header when saved
-- Toast notifications now confirm the save operation
-- Form properly refreshes when switching between companies
-
----
-Task ID: 5
-Agent: Main
-Task: Add PUT handler for investor edit in API route
-
-Work Log:
-- The investors-list.tsx was calling PUT /api/investors but no PUT handler existed
-- Added a PUT handler to /api/investors/route.ts
-- Handler updates investor fields: fullName, phone, email, nationalId, status
-- Also updates related capital and profit payable account names when fullName changes
-
-Stage Summary:
-- Investor edit now works via PUT /api/investors with { id, ...formData }
-
----
-Task ID: 6
-Agent: Main
-Task: Add DELETE handler for investor and delete button in UI
-
-Work Log:
-- Created /api/investors/[id]/route.ts with DELETE handler
-- DELETE handler removes: investorShares, withdrawals, investments, related accounts, then investor
-- Added Trash2 and AlertTriangle icons to investors-list imports
-- Added deleteOpen, deletingInvestor, deleting state variables
-- Added handleDeleteInvestor function
-- Added delete button (Trash2 icon) in the actions column for each investor
-- Added delete confirmation dialog with warning about data deletion
-- Dialog shows investor's financial summary (total investment, pending profit)
-
-Stage Summary:
-- Investors can now be deleted with a confirmation dialog
-- All related data (investments, withdrawals, shares, accounts) is properly cleaned up
----
-Task ID: 1
-Agent: Main
-Task: Migrate database from SQLite to Supabase PostgreSQL
-
-Work Log:
-- Analyzed existing Prisma schema (SQLite with 40+ models)
-- Exported existing SQLite data (1 user, 1 company, 4 currencies, 5 UOMs, 1 warehouse, 24 accounts)
-- Updated prisma/schema.prisma: changed provider from `sqlite` to `postgresql`, added `directUrl`
-- Discovered correct Supabase region (eu-west-1, not us-east-1)
-- Pushed schema to Supabase using pooler session mode (port 5432)
-- Imported all backup data to Supabase using parameterized pg queries
-- Fixed system DATABASE_URL override issue by modifying db.ts to detect SQLite URLs and substitute Supabase URL
-- Started dev server with proper environment variables
-
-Stage Summary:
-- Database successfully migrated from SQLite to Supabase PostgreSQL
-- All existing data preserved (1 user, 1 company, 24 accounts, 4 currencies, 5 UOMs, 1 warehouse)
-- Connection uses Supabase pooler: aws-0-eu-west-1.pooler.supabase.com
-  - Port 6543 (transaction mode) for runtime queries
-  - Port 5432 (session mode) for schema migrations
-- db.ts now handles system DATABASE_URL override by detecting SQLite URLs
-- Dev server running and serving pages from Supabase
-
----
-Task ID: 2
-Agent: Main
-Task: Verify Supabase database and project are working correctly
-
-Work Log:
-- Tested direct Supabase connection with Prisma - all queries working
-- Tested CRUD operations: CREATE, READ, UPDATE, DELETE all working
-- Verified data integrity: 1 user (admin/مدير النظام), 1 company (شركة الأمل), 24 accounts, 4 currencies, 5 UOMs, 1 warehouse
-- Tested API routes: /api/auth/login ✅, /api/companies ✅, /api/accounting/accounts ✅, /api/dashboard ✅, /api/inventory/items ✅
-- Verified account hierarchy (5 root accounts with children)
-- Created and deleted test customers and items successfully
-- Frontend loads correctly (30KB page, RTL enabled, Next.js working)
-- Dashboard API returns correct data
-
-Stage Summary:
-- Supabase PostgreSQL is fully operational
-- All CRUD operations work correctly
-- All API routes serve data from Supabase
-- Frontend renders and connects to Supabase backend
-- Data migration from SQLite was successful with no data loss
-
----
-Task ID: 3
-Agent: Main
-Task: Restart server after sandbox inactive and fix i18n issues
-
-Work Log:
-- Updated .env with correct Supabase PostgreSQL URLs (was still pointing to SQLite)
-- Generated Prisma client for PostgreSQL
-- Installed PM2 for persistent process management
-- Started dev server with PM2 (survives bash session termination)
-- Verified all API routes working: login, dashboard, companies, accounts, currencies
-- Fixed Chinese text in companies-list.tsx: 'تم切换 إلى الشركة' → 'تم التبديل إلى الشركة'
-- Fixed English permission badges in users-list.tsx: Added permissionLabels map (view→عرض, create→إنشاء, etc.)
-- Fixed FIFO/WAC English badges in items-list.tsx and item-detail-page.tsx: FIFO→الوارد أولاً, WAC→متوسط التكلفة
-
-Stage Summary:
-- Server running with PM2 on port 3000, persistent across bash sessions
-- All API routes verified and working with Supabase PostgreSQL
-- Fixed 3 i18n issues: Chinese text, English permission labels, English cost method labels
-- Database connection stable with Supabase pooler
+- Complete admin dashboard at /admin with dark-themed RTL Arabic UI
+- Licensing system: 7-day auto trial, paid licenses (basic/professional/enterprise)
+- License validation blocks expired/suspended users on login and API calls
+- Trial banner shows remaining days in ERP app header
+- Full CRUD for tenants and licenses from admin panel
+- Platform admin seeded with credentials: platformadmin / Admin@2026
+- All new API endpoints: /api/admin/auth/*, /api/admin/dashboard, /api/admin/tenants/*, /api/admin/licenses/*, /api/license/check

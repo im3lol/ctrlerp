@@ -1,5 +1,12 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
+
+function generateLicenseKey(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  const group = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  return `CTRL-${group()}-${group()}-${group()}`
+}
 
 // GET /api/companies - List all companies
 // Query params: userId (optional - filter by user access)
@@ -177,6 +184,37 @@ export async function POST(request: NextRequest) {
         userId,
         role: 'admin',
         isActive: true,
+      },
+    })
+
+    // 7. Create Tenant and 7-day trial License
+    const tenant = await db.tenant.create({
+      data: {
+        name: nameAr,
+        email: email || null,
+        phone: phone || null,
+        ownerId: userId,
+        status: 'active',
+      },
+    })
+
+    // Link company to tenant
+    await db.company.update({
+      where: { id: company.id },
+      data: { tenantId: tenant.id },
+    })
+
+    // Create 7-day trial license
+    await db.license.create({
+      data: {
+        tenantId: tenant.id,
+        key: generateLicenseKey(),
+        type: 'trial',
+        status: 'active',
+        maxUsers: 1,
+        maxCompanies: 1,
+        startedAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
     })
 
