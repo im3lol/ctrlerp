@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDocNumber } from '@/lib/erp-utils'
+import { getMappedAccounts, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 // GET /api/purchases/invoices/[id] - Get single invoice with full details
 export async function GET(
@@ -208,22 +209,22 @@ export async function PUT(
         }
         } // end if (!hasLinkedReceipts)
 
-        // 4. Create Journal Entry - look up accounts by companyId + code
-        const inventoryAccount = await tx.account.findFirst({
-          where: { companyId, code: '1104' },
-        })
-        const taxAccount = await tx.account.findFirst({
-          where: { companyId, code: '2102' },
-        })
-        const supplierAccount = await tx.account.findFirst({
-          where: { companyId, code: '2101' },
-        })
+        // 4. Create Journal Entry - look up accounts via mapping
+        const accountMap = await getMappedAccounts(companyId, [
+          ACCOUNT_ROLES.DEFAULT_INVENTORY,
+          ACCOUNT_ROLES.DEFAULT_TAX_PAYABLE,
+          ACCOUNT_ROLES.DEFAULT_SUPPLIER,
+        ])
+
+        const inventoryAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_INVENTORY) || null
+        const taxAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_TAX_PAYABLE) || null
+        const supplierAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_SUPPLIER) || null
 
         if (!inventoryAccount) {
-          throw new Error('حساب المخزون (1104) غير موجود في شجرة الحسابات')
+          throw new Error('حساب المخزون غير موجود في شجرة الحسابات. يرجى التأكد من إعدادات تعيين الحسابات')
         }
         if (!supplierAccount) {
-          throw new Error('حساب الموردين (2101) غير موجود في شجرة الحسابات')
+          throw new Error('حساب الموردين غير موجود في شجرة الحسابات. يرجى التأكد من إعدادات تعيين الحسابات')
         }
 
         // Generate journal entry number
@@ -406,18 +407,18 @@ export async function PUT(
             }
           }
 
-          // 2. Create reversal Journal Entry - look up accounts by companyId + code
-          const inventoryAccount = await tx.account.findFirst({
-            where: { companyId, code: '1104' },
-          })
-          const taxAccount = await tx.account.findFirst({
-            where: { companyId, code: '2102' },
-          })
-          const supplierAccount = await tx.account.findFirst({
-            where: { companyId, code: '2101' },
-          })
+          // 2. Create reversal Journal Entry - look up accounts via mapping
+          const cancelAccountMap = await getMappedAccounts(companyId, [
+            ACCOUNT_ROLES.DEFAULT_INVENTORY,
+            ACCOUNT_ROLES.DEFAULT_TAX_PAYABLE,
+            ACCOUNT_ROLES.DEFAULT_SUPPLIER,
+          ])
 
-          if (inventoryAccount && supplierAccount) {
+          const cancelInventoryAccount = cancelAccountMap.get(ACCOUNT_ROLES.DEFAULT_INVENTORY) || null
+          const cancelTaxAccount = cancelAccountMap.get(ACCOUNT_ROLES.DEFAULT_TAX_PAYABLE) || null
+          const cancelSupplierAccount = cancelAccountMap.get(ACCOUNT_ROLES.DEFAULT_SUPPLIER) || null
+
+          if (cancelInventoryAccount && cancelSupplierAccount) {
             const jeYear = new Date().getFullYear()
             const jePrefix = `JV-${jeYear}`
             const lastJE = await tx.journalEntry.findFirst({
@@ -433,22 +434,22 @@ export async function PUT(
 
             const reversalLines: { accountId: string; debit: number; credit: number; description: string }[] = [
               {
-                accountId: supplierAccount.id,
+                accountId: cancelSupplierAccount.id,
                 debit: invoice.totalAmount,
                 credit: 0,
                 description: `عكس موردون - إلغاء فاتورة شراء ${invoice.number}`,
               },
               {
-                accountId: inventoryAccount.id,
+                accountId: cancelInventoryAccount.id,
                 debit: 0,
                 credit: invoice.subtotal,
                 description: `عكس مخزون - إلغاء فاتورة شراء ${invoice.number}`,
               },
             ]
 
-            if (invoice.taxAmount > 0 && taxAccount) {
+            if (invoice.taxAmount > 0 && cancelTaxAccount) {
               reversalLines.push({
-                accountId: taxAccount.id,
+                accountId: cancelTaxAccount.id,
                 debit: 0,
                 credit: invoice.taxAmount,
                 description: `عكس ضريبة - إلغاء فاتورة شراء ${invoice.number}`,

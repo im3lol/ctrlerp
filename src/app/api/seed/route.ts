@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { initializeAccountMappings } from '@/lib/account-mapping'
 
 export async function POST() {
   try {
@@ -287,6 +288,9 @@ export async function POST() {
     })
 
     counts.accounts += 2
+
+    // Initialize account mappings for the seed company
+    await initializeAccountMappings(cId)
 
     return NextResponse.json({
       message: 'Seed data created successfully',

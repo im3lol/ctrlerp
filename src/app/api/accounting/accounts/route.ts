@@ -1,9 +1,13 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { requirePermission } from '@/lib/auth-guard'
+import { initializeAccountMappings } from '@/lib/account-mapping'
 
 // GET /api/accounting/accounts - List all accounts for a company
 export async function GET(request: NextRequest) {
   try {
+    await requirePermission('accounting.view', request)
+
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
     if (!companyId) {
@@ -27,6 +31,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(accounts)
   } catch (error) {
+    if (error instanceof Error && (error.message.includes('غير مصرح') || error.message.includes('صلاحية'))) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
     console.error('Get accounts error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch accounts' },
@@ -38,6 +45,8 @@ export async function GET(request: NextRequest) {
 // POST /api/accounting/accounts - Create new account
 export async function POST(request: NextRequest) {
   try {
+    await requirePermission('accounting.create', request)
+
     const body = await request.json()
     const { companyId, code, nameAr, nameEn, type, parentId, isLeaf, isActive } = body
 
@@ -87,6 +96,13 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         )
       }
+      // Validate that child account type matches parent type
+      if (parent.type !== type) {
+        return NextResponse.json(
+          { error: `Child account type (${type}) must match parent account type (${parent.type})` },
+          { status: 400 }
+        )
+      }
       // If parent was a leaf, update it to non-leaf
       if (parent.isLeaf) {
         await db.account.update({
@@ -121,6 +137,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(account, { status: 201 })
   } catch (error) {
+    if (error instanceof Error && (error.message.includes('غير مصرح') || error.message.includes('صلاحية'))) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
     console.error('Create account error:', error)
     return NextResponse.json(
       { error: 'Failed to create account' },
@@ -132,6 +151,8 @@ export async function POST(request: NextRequest) {
 // PUT /api/accounting/accounts - Update account
 export async function PUT(request: NextRequest) {
   try {
+    await requirePermission('accounting.edit', request)
+
     const body = await request.json()
     const { companyId, id, code, nameAr, nameEn, type, parentId, isLeaf, isActive } = body
 
@@ -173,6 +194,29 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // If type is being changed, validate it matches parent and children
+    const newType = type || existing.type
+    if (type && type !== existing.type) {
+      // Check parent type match
+      if (existing.parentId) {
+        const parent = await db.account.findUnique({ where: { id: existing.parentId } })
+        if (parent && parent.type !== type) {
+          return NextResponse.json(
+            { error: `Account type must match parent account type (${parent.type})` },
+            { status: 400 }
+          )
+        }
+      }
+      // Check children type match
+      const children = await db.account.findMany({ where: { parentId: id } })
+      if (children.length > 0 && children.some(c => c.type !== type)) {
+        return NextResponse.json(
+          { error: `Cannot change account type: child accounts exist with type "${children[0].type}". All children must match the new type.` },
+          { status: 400 }
+        )
+      }
+    }
+
     // If code is being changed, check for duplicates within company
     if (code && code !== existing.code) {
       const duplicate = await db.account.findUnique({
@@ -206,6 +250,31 @@ export async function PUT(request: NextRequest) {
         if (parentId === id) {
           return NextResponse.json(
             { error: 'Account cannot be its own parent' },
+            { status: 400 }
+          )
+        }
+        // Deep circular reference check: walk up the parent chain
+        let currentParentId: string | null = parentId
+        const visited = new Set<string>()
+        while (currentParentId) {
+          if (visited.has(currentParentId)) break // safety
+          visited.add(currentParentId)
+          if (currentParentId === id) {
+            return NextResponse.json(
+              { error: 'Circular reference detected: the selected parent would create a loop in the account hierarchy' },
+              { status: 400 }
+            )
+          }
+          const ancestor = await db.account.findUnique({
+            where: { id: currentParentId },
+            select: { parentId: true },
+          })
+          currentParentId = ancestor?.parentId || null
+        }
+        // Validate that child account type matches new parent type
+        if (parent.type !== newType) {
+          return NextResponse.json(
+            { error: `Account type (${newType}) must match parent account type (${parent.type})` },
             { status: 400 }
           )
         }
@@ -244,9 +313,99 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(account)
   } catch (error) {
+    if (error instanceof Error && (error.message.includes('غير مصرح') || error.message.includes('صلاحية'))) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
     console.error('Update account error:', error)
     return NextResponse.json(
       { error: 'Failed to update account' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/accounting/accounts - Delete an account (only if no journal entry lines reference it)
+export async function DELETE(request: NextRequest) {
+  try {
+    await requirePermission('accounting.delete', request)
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    const companyId = searchParams.get('companyId')
+
+    if (!id || !companyId) {
+      return NextResponse.json(
+        { error: 'id and companyId are required' },
+        { status: 400 }
+      )
+    }
+
+    const account = await db.account.findUnique({
+      where: { id },
+      include: {
+        children: true,
+        entryLines: { take: 1 },
+      },
+    })
+
+    if (!account) {
+      return NextResponse.json(
+        { error: 'Account not found' },
+        { status: 404 }
+      )
+    }
+
+    if (account.companyId !== companyId) {
+      return NextResponse.json(
+        { error: 'Account does not belong to this company' },
+        { status: 403 }
+      )
+    }
+
+    // Cannot delete if account has journal entry lines
+    if (account.entryLines.length > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete account: it has journal entry lines. Deactivate it instead.' },
+        { status: 400 }
+      )
+    }
+
+    // Cannot delete if account has children
+    if (account.children.length > 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete account: it has child accounts. Delete or move children first.' },
+        { status: 400 }
+      )
+    }
+
+    // Delete any account mapping that references this account
+    await db.companyAccountMapping.deleteMany({
+      where: { accountId: id },
+    })
+
+    // If this was the last child, mark parent as leaf
+    if (account.parentId) {
+      const siblings = await db.account.count({
+        where: { parentId: account.parentId, id: { not: id } },
+      })
+      if (siblings === 0) {
+        await db.account.update({
+          where: { id: account.parentId },
+          data: { isLeaf: true },
+        })
+      }
+    }
+
+    await db.account.delete({ where: { id } })
+
+    return NextResponse.json({ success: true, message: 'Account deleted successfully' })
+  } catch (error) {
+    if (error instanceof Error && (error.message.includes('غير مصرح') || error.message.includes('صلاحية'))) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+    console.error('Delete account error:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete account' },
       { status: 500 }
     )
   }

@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDocNumber } from '@/lib/erp-utils'
+import { getMappedAccounts, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 // GET /api/sales/receipts - List receipt vouchers with filters
 export async function GET(request: NextRequest) {
@@ -262,14 +263,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Create Journal Entry - look up accounts by companyId + code
-    const accountsNeeded = ['1101', '1103']
-    const accounts = await db.account.findMany({
-      where: { companyId, code: { in: accountsNeeded } },
-    })
+    // Create Journal Entry - look up accounts via mapping
+    const accountMap = await getMappedAccounts(companyId, [
+      ACCOUNT_ROLES.DEFAULT_CASH,
+      ACCOUNT_ROLES.DEFAULT_CUSTOMER,
+    ])
 
-    const cashAccount = accounts.find((a) => a.code === '1101') // النقدية
-    const customersAccount = accounts.find((a) => a.code === '1103') // العملاء
+    const cashAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_CASH) || null
+    const customersAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_CUSTOMER) || null
 
     if (cashAccount && customersAccount) {
       const jePrefix = `JV-${receiptDate.getFullYear()}`

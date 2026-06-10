@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDocNumber } from '@/lib/erp-utils'
+import { getMappedAccount, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 const DEFAULT_COMPANY_ID = 'company-default'
 
@@ -44,9 +45,7 @@ export async function PUT(
       }
 
       // Create journal entry: Debit الأرباح المحتجزة (3201), Credit أرباح مستحقة لكل مستثمر (2104-xx)
-      const retainedEarningsAccount = await db.account.findFirst({
-        where: { code: '32', companyId: DEFAULT_COMPANY_ID },
-      })
+      const retainedEarningsAccount = await getMappedAccount(DEFAULT_COMPANY_ID, ACCOUNT_ROLES.DEFAULT_RETAINED_EARNINGS)
 
       if (!retainedEarningsAccount) {
         return NextResponse.json(
@@ -149,9 +148,7 @@ export async function PUT(
         )
       }
 
-      const cashAccount = await db.account.findFirst({
-        where: { code: '1101', companyId: DEFAULT_COMPANY_ID },
-      })
+      const cashAccount = await getMappedAccount(DEFAULT_COMPANY_ID, ACCOUNT_ROLES.DEFAULT_CASH)
 
       if (!cashAccount) {
         return NextResponse.json(

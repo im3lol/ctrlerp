@@ -66,6 +66,7 @@ model Company {
   itemCategories   ItemCategory[]
   items            Item[]
   accounts         Account[]
+  accountMappings  CompanyAccountMapping[]
   journalEntries   JournalEntry[]
   customers        Customer[]
   salesInvoices    SalesInvoice[]
@@ -494,8 +495,25 @@ model Account {
   parent     Account?           @relation("AccountHierarchy", fields: [parentId], references: [id])
   children   Account[]          @relation("AccountHierarchy")
   entryLines JournalEntryLine[]
+  accountMappings CompanyAccountMapping[]
 
   @@unique([companyId, code])
+}
+
+// Maps logical account roles to actual account IDs per company
+// This decouples business logic from hardcoded account codes
+model CompanyAccountMapping {
+  id        String  @id @default(cuid())
+  companyId String
+  role      String  // Logical role: DEFAULT_CASH, DEFAULT_BANK, DEFAULT_CUSTOMER, etc.
+  accountId String  // FK to the actual account
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, role]) // One mapping per role per company
 }
 
 model JournalEntry {

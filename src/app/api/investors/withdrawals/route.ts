@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDocNumber } from '@/lib/erp-utils'
+import { getMappedAccount, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 const DEFAULT_COMPANY_ID = 'company-default'
 
@@ -84,9 +85,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Create Journal Entry
-    const cashAccount = await db.account.findFirst({
-      where: { code: '1101', companyId: DEFAULT_COMPANY_ID },
-    })
+    const cashAccount = await getMappedAccount(DEFAULT_COMPANY_ID, ACCOUNT_ROLES.DEFAULT_CASH)
 
     const investorSeq = investor.code.split('-').pop() || '001'
 

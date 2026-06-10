@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { initializeAccountMappings } from '@/lib/account-mapping'
 
 // POST /api/companies/setup - Full setup wizard endpoint
 export async function POST(request: NextRequest) {
@@ -188,6 +189,9 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Initialize account mappings for the new company
+    await initializeAccountMappings(company.id)
+
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     console.error('Setup company error:', error)
@@ -304,7 +308,8 @@ async function createChartOfAccountsFull(
       { companyId, code: '2101', nameAr: 'الموردين', nameEn: 'Suppliers', type: 'LIABILITY', parentId: account21.id, isLeaf: true },
       { companyId, code: '2102', nameAr: 'الضريبة المستحقة', nameEn: 'Tax Payable', type: 'LIABILITY', parentId: account21.id, isLeaf: true },
       { companyId, code: '2103', nameAr: 'أوراق الدفع', nameEn: 'Notes Payable', type: 'LIABILITY', parentId: account21.id, isLeaf: true },
-      { companyId, code: '2104', nameAr: 'إيرادات مقدمة', nameEn: 'Unearned Revenue', type: 'LIABILITY', parentId: account21.id, isLeaf: true },
+      { companyId, code: '2104', nameAr: 'أرباح مستحقة للمستثمرين', nameEn: 'Investor Profit Payable', type: 'LIABILITY', parentId: account21.id, isLeaf: false },
+      { companyId, code: '2105', nameAr: 'إيرادات مقدمة', nameEn: 'Unearned Revenue', type: 'LIABILITY', parentId: account21.id, isLeaf: true },
     ],
   })
 

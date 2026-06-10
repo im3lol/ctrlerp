@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePermission } from '@/lib/auth-guard'
+import { getMappedAccount, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 const DEFAULT_COMPANY_ID = 'company-default'
 
@@ -129,9 +130,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Create capital account under رأس المال (31): code 3101-{seq}
-    const capitalParent = await db.account.findFirst({
-      where: { code: '31', companyId: DEFAULT_COMPANY_ID },
-    })
+    const capitalParent = await getMappedAccount(DEFAULT_COMPANY_ID, ACCOUNT_ROLES.DEFAULT_CAPITAL)
 
     if (capitalParent) {
       // Make parent non-leaf if it's currently leaf
@@ -157,15 +156,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create profit payable account under 2104: code 2104-{seq}
-    let profitPayableParent = await db.account.findFirst({
-      where: { code: '2104', companyId: DEFAULT_COMPANY_ID },
-    })
+    let profitPayableParent = await getMappedAccount(DEFAULT_COMPANY_ID, ACCOUNT_ROLES.DEFAULT_INVESTOR_PROFIT_PAYABLE)
 
     if (!profitPayableParent) {
       // Create 2104 parent account under خصوم متداولة (21)
-      const liabilitiesParent = await db.account.findFirst({
-        where: { code: '21', companyId: DEFAULT_COMPANY_ID },
-      })
+      const liabilitiesParent = await getMappedAccount(DEFAULT_COMPANY_ID, ACCOUNT_ROLES.DEFAULT_CURRENT_LIABILITIES)
 
       if (liabilitiesParent) {
         profitPayableParent = await db.account.create({

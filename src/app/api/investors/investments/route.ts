@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDocNumber } from '@/lib/erp-utils'
+import { getMappedAccount, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 const DEFAULT_COMPANY_ID = 'company-default'
 
@@ -87,10 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Create Journal Entry: Debit النقدية/البنك (1101/1102), Credit investor's capital account (3101-xx)
     // Determine debit account: cash or bank
-    const debitAccountCode = type === 'bank' ? '1102' : '1101'
-    const debitAccount = await db.account.findFirst({
-      where: { code: debitAccountCode, companyId: DEFAULT_COMPANY_ID },
-    })
+    const debitAccount = await getMappedAccount(DEFAULT_COMPANY_ID, type === 'bank' ? ACCOUNT_ROLES.DEFAULT_BANK : ACCOUNT_ROLES.DEFAULT_CASH)
 
     // Find investor's capital account
     const investorSeq = investor.code.split('-').pop() || '001'

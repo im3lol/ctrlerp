@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDocNumber } from '@/lib/erp-utils'
+import { getMappedAccounts, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 // GET /api/purchases/payments - List payment vouchers with filters
 export async function GET(request: NextRequest) {
@@ -188,13 +189,13 @@ export async function POST(request: NextRequest) {
         data: { balance: { decrement: paymentAmount } },
       })
 
-      // Create Journal Entry - look up accounts by companyId + code
-      const supplierAccount = await tx.account.findFirst({
-        where: { companyId, code: '2101' },
-      })
-      const cashAccount = await tx.account.findFirst({
-        where: { companyId, code: '1101' },
-      })
+      // Create Journal Entry - look up accounts via mapping
+      const accountMap = await getMappedAccounts(companyId, [
+        ACCOUNT_ROLES.DEFAULT_SUPPLIER,
+        ACCOUNT_ROLES.DEFAULT_CASH,
+      ])
+      const supplierAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_SUPPLIER) || null
+      const cashAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_CASH) || null
 
       if (supplierAccount && cashAccount) {
         const jeYear = paymentDate.getFullYear()

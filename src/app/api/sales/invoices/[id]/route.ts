@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDocNumber } from '@/lib/erp-utils'
+import { getMappedAccounts, ACCOUNT_ROLES } from '@/lib/account-mapping'
 
 // GET /api/sales/invoices/[id] - Get single invoice with full details
 export async function GET(
@@ -343,18 +344,20 @@ export async function PUT(
         if (!isNaN(parsed)) jeSeq = parsed + 1
       }
 
-      // Find accounts by code within the company
-      const accountsNeeded = ['1103', '41', '2102', '51', '1104']
-      const accounts = await db.account.findMany({
-        where: { companyId, code: { in: accountsNeeded } },
-      })
+      // Find accounts via mapping table (with legacy code fallback)
+      const accountMap = await getMappedAccounts(companyId, [
+        ACCOUNT_ROLES.DEFAULT_CUSTOMER,
+        ACCOUNT_ROLES.DEFAULT_SALES,
+        ACCOUNT_ROLES.DEFAULT_TAX_PAYABLE,
+        ACCOUNT_ROLES.DEFAULT_COGS,
+        ACCOUNT_ROLES.DEFAULT_INVENTORY,
+      ])
 
-      const getAccount = (code: string) => accounts.find((a) => a.code === code)
-      const customersAccount = getAccount('1103') // العملاء
-      const salesAccount = getAccount('41') // المبيعات
-      const taxAccount = getAccount('2102') // الضريبة المستحقة
-      const cogsAccount = getAccount('51') // تكلفة البضاعة
-      const inventoryAccount = getAccount('1104') // المخزون
+      const customersAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_CUSTOMER) || null
+      const salesAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_SALES) || null
+      const taxAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_TAX_PAYABLE) || null
+      const cogsAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_COGS) || null
+      const inventoryAccount = accountMap.get(ACCOUNT_ROLES.DEFAULT_INVENTORY) || null
 
       const journalLines: Array<{
         accountId: string
