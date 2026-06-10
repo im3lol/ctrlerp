@@ -39,23 +39,42 @@ export async function GET(request: NextRequest) {
     }
 
     if (!resolvedTenantId) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         locked: true,
         active: false,
         reason: 'NO_TENANT',
       })
+      response.cookies.set('license_valid', 'false', {
+        path: '/',
+        httpOnly: false,
+        maxAge: 300, // 5 min
+        sameSite: 'lax',
+      })
+      return response
     }
 
     const tenantDb = await getTenantDb(resolvedTenantId)
     const status = await checkLicenseValid(tenantDb, resolvedTenantId)
 
-    return NextResponse.json(status)
+    const response = NextResponse.json(status)
+
+    // Set license cookie for middleware to check
+    response.cookies.set('license_valid', status.active && !status.locked ? 'true' : 'false', {
+      path: '/',
+      httpOnly: false,
+      maxAge: status.active ? 3600 : 300, // 1 hour if valid, 5 min if not
+      sameSite: 'lax',
+    })
+
+    return response
   } catch (error) {
     console.error('License status error:', error)
-    return NextResponse.json({
+    const response = NextResponse.json({
       locked: true,
       active: false,
       reason: 'VERIFICATION_ERROR',
     }, { status: 500 })
+    response.cookies.set('license_valid', 'false', { path: '/', httpOnly: false, maxAge: 300, sameSite: 'lax' })
+    return response
   }
 }

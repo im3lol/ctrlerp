@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // ─────────────────────────────────────────────────────────
-// Multi-tenant Middleware with License Enforcement
+// Multi-tenant Middleware with Strict License Enforcement
 // Routes requests to the correct tenant based on subdomain/domain
-// Enforces license checks for tenant-specific routes
+// Enforces license checks - system is LOCKED without valid license
 // ─────────────────────────────────────────────────────────
 
 // Platform routes that are NOT tenant-specific
@@ -15,7 +15,6 @@ const PLATFORM_ROUTES = new Set([
   '/sign-in',
   '/sign-up',
   '/login',
-  '/license-activate',
   '/register',
 ])
 
@@ -23,7 +22,12 @@ const PLATFORM_ROUTES = new Set([
 const LICENSE_FREE_ROUTES = new Set([
   '/license-activate',
   '/api/license',
+  '/login',
+  '/register',
 ])
+
+// Static/asset paths that should always pass through
+const STATIC_PATHS = ['/_next', '/fonts', '/uploads', '/favicon', '/robots', '/sitemap']
 
 function isPlatformPath(pathname: string): boolean {
   for (const route of PLATFORM_ROUTES) {
@@ -36,6 +40,15 @@ function isLicenseFreePath(pathname: string): boolean {
   for (const route of LICENSE_FREE_ROUTES) {
     if (pathname.startsWith(route)) return true
   }
+  return false
+}
+
+function isStaticPath(pathname: string): boolean {
+  for (const path of STATIC_PATHS) {
+    if (pathname.startsWith(path)) return true
+  }
+  // Files with extensions (images, CSS, JS, etc.)
+  if (pathname.includes('.') && !pathname.endsWith('/')) return true
   return false
 }
 
@@ -85,72 +98,124 @@ function extractSubdomain(hostname: string): string | null {
   return subdomain
 }
 
+/**
+ * Apply security headers to a response
+ */
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  // Prevent clickjacking - only allow framing from same origin
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+
+  // Prevent MIME type sniffing
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+
+  // Enable XSS protection in older browsers
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+
+  // Control referrer information
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+
+  // Permissions Policy - limit browser features
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+
+  // Strict Transport Security (only in production with HTTPS)
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  }
+
+  return response
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host')?.split(':')[0] || ''
 
   // ── Platform routes always pass through ──
   if (isPlatformPath(pathname)) {
-    return NextResponse.next()
+    const response = NextResponse.next()
+    return applySecurityHeaders(response)
   }
 
   // ── License-free routes always pass through ──
   if (isLicenseFreePath(pathname)) {
-    return NextResponse.next()
+    const response = NextResponse.next()
+    return applySecurityHeaders(response)
   }
 
   // ── Static files, _next, etc. pass through ──
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/fonts') ||
-    pathname.startsWith('/uploads') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next()
+  if (isStaticPath(pathname)) {
+    const response = NextResponse.next()
+    return applySecurityHeaders(response)
   }
 
   // ── Extract subdomain ──
   const subdomain = extractSubdomain(hostname)
 
-  if (!subdomain) {
-    // No subdomain = platform landing page or direct access
-    if (pathname.startsWith('/app')) {
-      return NextResponse.next()
+  // ── LICENSE ENFORCEMENT ──
+  // Check if the system has a valid license cookie
+  // This cookie is set by /api/license/status endpoint
+  const licenseCookie = request.cookies.get('license_valid')?.value
+
+  // For tenant-specific routes (has subdomain), enforce license
+  if (subdomain) {
+    // Check license status from cookie
+    if (licenseCookie !== 'true') {
+      // No valid license - redirect to activation page
+      // But allow the activation page and its API to work
+      if (!pathname.startsWith('/license-activate') && !pathname.startsWith('/api/license')) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/license-activate'
+        url.searchParams.set('redirect', pathname)
+        return NextResponse.redirect(url)
+      }
     }
-    return NextResponse.next()
+  }
+
+  // For /app routes without subdomain (self-hosted single-tenant)
+  if (pathname.startsWith('/app')) {
+    if (licenseCookie !== 'true') {
+      if (!pathname.startsWith('/license-activate') && !pathname.startsWith('/api/license')) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/license-activate'
+        url.searchParams.set('redirect', pathname)
+        return NextResponse.redirect(url)
+      }
+    }
   }
 
   // ── Tenant-specific request ──
   const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('X-Tenant-Subdomain', subdomain)
+  if (subdomain) {
+    requestHeaders.set('X-Tenant-Subdomain', subdomain)
+  }
 
-  // For tenant routes, check license via header
-  // The actual license check happens in API routes and auth-guard
-  // Middleware just passes through with tenant context headers
+  // For tenant routes, pass through with tenant context headers
   if (pathname.startsWith('/app') || pathname.startsWith('/api/')) {
-    return NextResponse.next({
+    const response = NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     })
+    return applySecurityHeaders(response)
   }
 
   // For root path on a tenant subdomain, redirect to /app
   if (pathname === '/' || pathname === '') {
     const url = request.nextUrl.clone()
     url.pathname = '/app'
-    return NextResponse.rewrite(url, {
+    const response = NextResponse.rewrite(url, {
       request: {
         headers: requestHeaders,
       },
     })
+    return applySecurityHeaders(response)
   }
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   })
+  return applySecurityHeaders(response)
 }
 
 export const config = {

@@ -5,6 +5,21 @@ import { randomUUID } from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const { checkRateLimit, RATE_LIMITS, getClientId, rateLimitHeaders } = await import('@/lib/rate-limit')
+    const clientId = getClientId(request, 'login')
+    const rateLimit = checkRateLimit(clientId, RATE_LIMITS.LOGIN)
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: `تم تجاوز عدد المحاولات المسموحة. يرجى المحاولة بعد ${Math.ceil((rateLimit.retryAfter || 60000) / 1000 / 60)} دقيقة` },
+        {
+          status: 429,
+          headers: rateLimitHeaders(rateLimit, RATE_LIMITS.LOGIN),
+        }
+      )
+    }
+
     const body = await request.json()
     const { username, password, tenantSubdomain, tenantId } = body
 

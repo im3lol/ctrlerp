@@ -6,6 +6,21 @@ import { getTenantDb } from '@/lib/tenant-db'
 // POST: Activate a license key
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const { checkRateLimit, RATE_LIMITS, getClientId, rateLimitHeaders } = await import('@/lib/rate-limit')
+    const clientId = getClientId(request, 'license-activate')
+    const rateLimit = checkRateLimit(clientId, RATE_LIMITS.LICENSE_ACTIVATE)
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: `تم تجاوز عدد المحاولات المسموحة. يرجى المحاولة بعد ${Math.ceil((rateLimit.retryAfter || 60000) / 1000 / 60)} دقيقة` },
+        {
+          status: 429,
+          headers: rateLimitHeaders(rateLimit, RATE_LIMITS.LICENSE_ACTIVATE),
+        }
+      )
+    }
+
     const body = await request.json()
     const { licenseKey, tenantId, subdomain } = body
 
@@ -51,10 +66,17 @@ export async function POST(request: NextRequest) {
     const result = await activateLicense(tenantDb, licenseKey)
 
     if (result.success) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         message: 'تم تفعيل الترخيص بنجاح',
         status: result.status,
       })
+      response.cookies.set('license_valid', 'true', {
+        path: '/',
+        httpOnly: false,
+        maxAge: 3600, // 1 hour
+        sameSite: 'lax',
+      })
+      return response
     } else {
       return NextResponse.json({ error: result.error }, { status: 400 })
     }
