@@ -43,6 +43,7 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
   const [durationMode, setDurationMode] = useState<'months' | 'lifetime'>('months')
   const [durationMonths, setDurationMonths] = useState('12')
   const [price, setPrice] = useState('')
+  const [monthlyPrice, setMonthlyPrice] = useState('')
   const [currency, setCurrency] = useState('EGP')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -88,24 +89,28 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
         setMaxCompanies('2')
         setDurationMonths('12')
         setPrice('')
+        setMonthlyPrice('')
         break
       case 'professional':
         setMaxUsers('20')
         setMaxCompanies('5')
         setDurationMonths('12')
         setPrice('')
+        setMonthlyPrice('')
         break
       case 'enterprise':
         setMaxUsers('100')
         setMaxCompanies('20')
         setDurationMonths('12')
         setPrice('')
+        setMonthlyPrice('')
         break
       case 'lifetime':
         setMaxUsers('999')
         setMaxCompanies('999')
         setDurationMode('lifetime')
         setPrice('')
+        setMonthlyPrice('')
         break
     }
   }
@@ -138,6 +143,7 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
           durationMonths: isLifetime ? undefined : (durationMonths ? parseInt(durationMonths) : undefined),
           isLifetime,
           price: price ? parseFloat(price) : 0,
+          monthlyPrice: monthlyPrice ? parseFloat(monthlyPrice) : 0,
           currency,
         }),
       })
@@ -157,6 +163,7 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
       setDurationMode('months')
       setDurationMonths('12')
       setPrice('')
+      setMonthlyPrice('')
       onSuccess()
     } catch (err) {
       console.error(err)
@@ -304,38 +311,57 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
             </div>
           </div>
 
-          {/* Price & Currency */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2 space-y-2">
-              <Label className="text-slate-300 text-sm flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5" />
-                سعر الاشتراك
-              </Label>
-              <Input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                min="0"
-                step="0.01"
-                placeholder="0"
-                className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
-                dir="ltr"
-              />
+          {/* Price & Monthly Price & Currency */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label className="text-slate-300 text-sm flex items-center gap-1">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  سعر الاشتراك
+                </Label>
+                <Input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300 text-sm flex items-center gap-1">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  الاشتراك الشهري (MRR)
+                </Label>
+                <Input
+                  type="number"
+                  value={monthlyPrice}
+                  onChange={(e) => setMonthlyPrice(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                  className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300 text-sm">العملة</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="EGP">EGP</SelectItem>
+                    <SelectItem value="SAR">SAR</SelectItem>
+                    <SelectItem value="AED">AED</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-slate-300 text-sm">العملة</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="EGP">EGP</SelectItem>
-                  <SelectItem value="SAR">SAR</SelectItem>
-                  <SelectItem value="AED">AED</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-[10px] text-slate-500">الاشتراك الشهري يُستخدم لحساب الإيرادات المتكررة (MRR/ARR)</p>
           </div>
 
           <DialogFooter className="gap-2">

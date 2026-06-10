@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
+import { logActivity, logLicenseHistory, logRevenue } from '@/lib/activity-logger'
 
 // GET: List all licenses with tenant info, filtering
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate revenue stats
     const allLicenses = await db.license.findMany({
-      select: { price: true, currency: true, type: true, status: true, isLifetime: true },
+      select: { price: true, monthlyPrice: true, currency: true, type: true, status: true, isLifetime: true },
     })
 
     const totalRevenue = allLicenses
@@ -48,8 +49,8 @@ export async function GET(request: NextRequest) {
       .reduce((sum, l) => sum + l.price, 0)
 
     const monthlyRecurring = allLicenses
-      .filter(l => l.status === 'active' && !l.isLifetime && l.type !== 'trial' && l.price > 0)
-      .reduce((sum, l) => sum + l.price, 0)
+      .filter(l => l.status === 'active' && !l.isLifetime && l.type !== 'trial' && l.monthlyPrice > 0)
+      .reduce((sum, l) => sum + l.monthlyPrice, 0)
 
     const lifetimeRevenue = allLicenses
       .filter(l => l.status === 'active' && l.isLifetime && l.price > 0)
@@ -78,10 +79,10 @@ export async function GET(request: NextRequest) {
 // POST: Create new license for a tenant
 export async function POST(request: NextRequest) {
   try {
-    await requireAdminAuth(request)
+    const admin = await requireAdminAuth(request)
 
     const body = await request.json()
-    const { tenantId, type, maxUsers, maxCompanies, durationMonths, isLifetime, price, currency } = body
+    const { tenantId, type, maxUsers, maxCompanies, durationMonths, isLifetime, price, currency, monthlyPrice } = body
 
     if (!tenantId) {
       return NextResponse.json({ error: 'معرف المستأجر مطلوب' }, { status: 400 })
@@ -116,17 +117,13 @@ export async function POST(request: NextRequest) {
     let expiresAt: Date
 
     if (lifetime) {
-      // Lifetime: set to far future date
       expiresAt = new Date('2099-12-31T23:59:59.999Z')
     } else if (durationMonths && durationMonths > 0) {
-      // Duration in months
       expiresAt = new Date()
       expiresAt.setMonth(expiresAt.getMonth() + durationMonths)
     } else if (type === 'trial') {
-      // Trial: 7 days
       expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     } else {
-      // Default: 12 months
       expiresAt = new Date()
       expiresAt.setMonth(expiresAt.getMonth() + 12)
     }
@@ -141,6 +138,10 @@ export async function POST(request: NextRequest) {
       data: { status: 'expired' },
     })
 
+    const licensePrice = price || 0
+    const licenseMonthlyPrice = monthlyPrice || 0
+    const licenseCurrency = currency || 'EGP'
+
     const license = await db.license.create({
       data: {
         tenantId,
@@ -150,8 +151,9 @@ export async function POST(request: NextRequest) {
         maxUsers: defaultMaxUsers,
         maxCompanies: defaultMaxCompanies,
         isLifetime: lifetime,
-        price: price || 0,
-        currency: currency || 'EGP',
+        price: licensePrice,
+        monthlyPrice: licenseMonthlyPrice,
+        currency: licenseCurrency,
         expiresAt,
       },
       include: {
@@ -160,6 +162,44 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    // Log license creation
+    await logLicenseHistory({
+      licenseId: license.id,
+      action: 'created',
+      newStatus: 'active',
+      newType: license.type,
+      newExpiresAt: license.expiresAt,
+      newPrice: licensePrice,
+      performedBy: admin.id,
+      details: { key: licenseKey, maxUsers: defaultMaxUsers, maxCompanies: defaultMaxCompanies },
+    })
+
+    await logActivity({
+      action: 'license_created',
+      category: 'license',
+      description: `إنشاء ترخيص ${type} للمستأجر ${tenant.name}`,
+      performedBy: admin.id,
+      performerName: admin.name,
+      targetType: 'license',
+      targetId: license.id,
+      targetName: tenant.name,
+      details: { type, key: licenseKey, price: licensePrice, currency: licenseCurrency },
+    })
+
+    // Log revenue if price > 0
+    if (licensePrice > 0) {
+      await logRevenue({
+        tenantId,
+        licenseId: license.id,
+        amount: licensePrice,
+        currency: licenseCurrency,
+        type: lifetime ? 'lifetime' : 'subscription',
+        periodStart: new Date(),
+        periodEnd: expiresAt,
+        description: `اشتراك ${type} - ${tenant.name}`,
+      })
+    }
 
     return NextResponse.json({ license }, { status: 201 })
   } catch (error) {

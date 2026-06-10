@@ -135,6 +135,7 @@ export default function LicensesList() {
   const [actionDays, setActionDays] = useState('7')
   const [actionMonths, setActionMonths] = useState('1')
   const [actionPrice, setActionPrice] = useState('')
+  const [actionMonthlyPrice, setActionMonthlyPrice] = useState('')
   const [actionCurrency, setActionCurrency] = useState('EGP')
   const [actionLoading, setActionLoading] = useState(false)
 
@@ -210,6 +211,7 @@ export default function LicensesList() {
           body = {
             activateMonths: parseInt(actionMonths),
             price: actionPrice ? parseFloat(actionPrice) : undefined,
+            monthlyPrice: actionMonthlyPrice ? parseFloat(actionMonthlyPrice) : undefined,
             currency: actionCurrency,
           }
           break
@@ -251,6 +253,7 @@ export default function LicensesList() {
     setActionDays('7')
     setActionMonths('1')
     setActionPrice(license.price > 0 ? String(license.price) : '')
+    setActionMonthlyPrice('')
     setActionCurrency(license.currency || 'EGP')
   }
 
@@ -694,37 +697,58 @@ export default function LicensesList() {
 
               {/* Price input for activation */}
               {(actionDialog.type === 'activateMonths' || actionDialog.type === 'activateLifetime') && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-2 space-y-2">
-                    <Label className="text-slate-300 text-sm flex items-center gap-1">
-                      <DollarSign className="h-3.5 w-3.5" />
-                      سعر الاشتراك
-                    </Label>
-                    <Input
-                      type="number"
-                      value={actionPrice}
-                      onChange={(e) => setActionPrice(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      placeholder="0"
-                      className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
-                      dir="ltr"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-slate-300 text-sm flex items-center gap-1">
+                        <DollarSign className="h-3.5 w-3.5" />
+                        سعر الاشتراك
+                      </Label>
+                      <Input
+                        type="number"
+                        value={actionPrice}
+                        onChange={(e) => setActionPrice(e.target.value)}
+                        min="0"
+                        step="0.01"
+                        placeholder="0"
+                        className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
+                        dir="ltr"
+                      />
+                    </div>
+                    {actionDialog.type === 'activateMonths' && (
+                      <div className="space-y-2">
+                        <Label className="text-slate-300 text-sm flex items-center gap-1">
+                          <DollarSign className="h-3.5 w-3.5" />
+                          الشهري (MRR)
+                        </Label>
+                        <Input
+                          type="number"
+                          value={actionMonthlyPrice}
+                          onChange={(e) => setActionMonthlyPrice(e.target.value)}
+                          min="0"
+                          step="0.01"
+                          placeholder="0"
+                          className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
+                          dir="ltr"
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label className="text-slate-300 text-sm">العملة</Label>
+                      <Select value={actionCurrency} onValueChange={setActionCurrency}>
+                        <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-700">
+                          <SelectItem value="EGP">EGP</SelectItem>
+                          <SelectItem value="SAR">SAR</SelectItem>
+                          <SelectItem value="AED">AED</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-slate-300 text-sm">العملة</Label>
-                    <Select value={actionCurrency} onValueChange={setActionCurrency}>
-                      <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
-                        <SelectItem value="EGP">EGP</SelectItem>
-                        <SelectItem value="SAR">SAR</SelectItem>
-                        <SelectItem value="AED">AED</SelectItem>
-                        <SelectItem value="USD">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <p className="text-[10px] text-slate-500">الاشتراك الشهري يُستخدم لحساب MRR/ARR</p>
                 </div>
               )}
 

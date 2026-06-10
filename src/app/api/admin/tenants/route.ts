@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
-import { randomUUID } from 'crypto'
+import { logActivity } from '@/lib/activity-logger'
 
-// GET: List all tenants with search/pagination
+// GET: List all tenants with filtering
 export async function GET(request: NextRequest) {
   try {
     await requireAdminAuth(request)
@@ -16,15 +16,13 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     const where: any = {}
+    if (status && status !== 'all') where.status = status
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search } },
+        { phone: { contains: search, mode: 'insensitive' } },
       ]
-    }
-    if (status) {
-      where.status = status
     }
 
     const [tenants, total] = await Promise.all([
@@ -34,10 +32,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          licenses: {
-            take: 1,
-            orderBy: { createdAt: 'desc' },
-          },
+          licenses: { take: 1, orderBy: { createdAt: 'desc' } },
           _count: {
             select: { companies: true },
           },
@@ -50,19 +45,7 @@ export async function GET(request: NextRequest) {
     ])
 
     return NextResponse.json({
-      tenants: tenants.map((t) => ({
-        id: t.id,
-        name: t.name,
-        email: t.email,
-        phone: t.phone,
-        status: t.status,
-        ownerId: t.ownerId,
-        owner: t.owner,
-        createdAt: t.createdAt,
-        updatedAt: t.updatedAt,
-        companyCount: t._count.companies,
-        license: t.licenses[0] || null,
-      })),
+      tenants,
       total,
       page,
       limit,
@@ -75,32 +58,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Create tenant + auto-create 7-day trial license
+// POST: Create new tenant with auto trial license
 export async function POST(request: NextRequest) {
   try {
-    await requireAdminAuth(request)
+    const admin = await requireAdminAuth(request)
 
     const body = await request.json()
-    const { name, email, phone, ownerId } = body
+    const { name, email, phone } = body
 
     if (!name) {
       return NextResponse.json({ error: 'اسم المستأجر مطلوب' }, { status: 400 })
     }
 
-    // Check if owner already has a tenant
-    if (ownerId) {
-      const existingTenant = await db.tenant.findUnique({
-        where: { ownerId },
-      })
-      if (existingTenant) {
-        return NextResponse.json(
-          { error: 'هذا المستخدم لديه مستأجر بالفعل' },
-          { status: 400 }
-        )
-      }
-    }
+    const tenant = await db.tenant.create({
+      data: { name, email, phone },
+    })
 
-    // Generate license key: CTRL-XXXX-XXXX-XXXX
+    // Generate license key
     const generateKey = () => {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
       const group = () =>
@@ -110,39 +84,38 @@ export async function POST(request: NextRequest) {
 
     const licenseKey = generateKey()
 
-    // Check key uniqueness
-    const existingKey = await db.license.findUnique({ where: { key: licenseKey } })
-    if (existingKey) {
-      // Extremely unlikely but regenerate
-      return NextResponse.json({ error: 'يرجى المحاولة مرة أخرى' }, { status: 500 })
-    }
+    // Create 7-day trial license
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
-    const tenant = await db.tenant.create({
+    const license = await db.license.create({
       data: {
-        name,
-        email: email || null,
-        phone: phone || null,
-        ownerId: ownerId || null,
-        licenses: {
-          create: {
-            key: licenseKey,
-            type: 'trial',
-            status: 'active',
-            maxUsers: 1,
-            maxCompanies: 1,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-          },
-        },
-      },
-      include: {
-        licenses: true,
-        owner: {
-          select: { id: true, name: true, username: true },
-        },
+        tenantId: tenant.id,
+        key: licenseKey,
+        type: 'trial',
+        status: 'active',
+        maxUsers: 1,
+        maxCompanies: 1,
+        isLifetime: false,
+        price: 0,
+        monthlyPrice: 0,
+        expiresAt,
       },
     })
 
-    return NextResponse.json({ tenant }, { status: 201 })
+    // Log activity
+    await logActivity({
+      action: 'tenant_created',
+      category: 'tenant',
+      description: `إنشاء مستأجر جديد: ${name} مع ترخيص تجريبي 7 أيام`,
+      performedBy: admin.id,
+      performerName: admin.name,
+      targetType: 'tenant',
+      targetId: tenant.id,
+      targetName: name,
+      details: { email, phone, licenseKey },
+    })
+
+    return NextResponse.json({ tenant, license }, { status: 201 })
   } catch (error) {
     console.error('Create tenant error:', error)
     const message = error instanceof Error ? error.message : 'حدث خطأ غير متوقع'

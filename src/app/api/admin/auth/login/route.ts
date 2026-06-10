@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { randomUUID } from 'crypto'
+import { logActivity } from '@/lib/activity-logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,42 +8,61 @@ export async function POST(request: NextRequest) {
     const { username, password } = body
 
     if (!username || !password) {
-      return NextResponse.json(
-        { error: 'يرجى إدخال اسم المستخدم وكلمة المرور' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'اسم المستخدم وكلمة المرور مطلوبان' }, { status: 400 })
     }
 
     const admin = await db.platformAdmin.findUnique({
       where: { username },
     })
 
-    if (!admin || !admin.isActive) {
-      return NextResponse.json(
-        { error: 'اسم المستخدم أو كلمة المرور غير صحيحة' },
-        { status: 401 }
-      )
+    if (!admin) {
+      return NextResponse.json({ error: 'بيانات الدخول غير صحيحة' }, { status: 401 })
     }
 
-    // Verify password (base64 encoded - same pattern as existing User model)
+    // Simple base64 password check (same as existing)
     const encodedPassword = Buffer.from(password).toString('base64')
     if (admin.password !== encodedPassword) {
-      return NextResponse.json(
-        { error: 'اسم المستخدم أو كلمة المرور غير صحيحة' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'بيانات الدخول غير صحيحة' }, { status: 401 })
     }
+
+    if (!admin.isActive) {
+      return NextResponse.json({ error: 'الحساب معطل' }, { status: 403 })
+    }
+
+    // Create token
+    const token = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+    await db.platformAdminToken.create({
+      data: {
+        adminId: admin.id,
+        token,
+        expiresAt,
+      },
+    })
 
     // Clean up expired tokens
     await db.platformAdminToken.deleteMany({
-      where: { adminId: admin.id, expiresAt: { lt: new Date() } },
+      where: {
+        adminId: admin.id,
+        expiresAt: { lt: new Date() },
+      },
     })
 
-    // Generate new token (valid for 24 hours)
-    const token = randomUUID()
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    await db.platformAdminToken.create({
-      data: { adminId: admin.id, token, expiresAt },
+    // Get client IP
+    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
+
+    // Log admin login
+    await logActivity({
+      action: 'admin_login',
+      category: 'auth',
+      description: `تسجيل دخول المدير: ${admin.name}`,
+      performedBy: admin.id,
+      performerName: admin.name,
+      targetType: 'admin',
+      targetId: admin.id,
+      targetName: admin.name,
+      ipAddress,
     })
 
     return NextResponse.json({
@@ -58,9 +77,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Admin login error:', error)
-    return NextResponse.json(
-      { error: 'حدث خطأ غير متوقع' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'حدث خطأ غير متوقع' }, { status: 500 })
   }
 }

@@ -10,6 +10,8 @@ import {
   LogOut,
   Menu,
   Shield,
+  Activity,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -36,8 +38,10 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, path: '/admin' },
+  { id: 'analytics', label: 'التحليلات', icon: BarChart3, path: '/admin/analytics' },
   { id: 'tenants', label: 'المستأجرون', icon: Building2, path: '/admin/tenants' },
   { id: 'licenses', label: 'التراخيص', icon: Key, path: '/admin/licenses' },
+  { id: 'activity', label: 'سجل الأنشطة', icon: Activity, path: '/admin/activity-logs' },
 ]
 
 // ── Sidebar Component (defined outside render to avoid lint error) ──

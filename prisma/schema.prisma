@@ -52,6 +52,7 @@ model Tenant {
   owner     User?          @relation(fields: [ownerId], references: [id])
   companies Company[]
   licenses  License[]
+  revenueRecords RevenueRecord[]
 
   @@unique([ownerId])
 }
@@ -66,13 +67,66 @@ model License {
   maxCompanies Int      @default(1)
   isLifetime   Boolean  @default(false)
   price        Float    @default(0) // subscription price paid
+  monthlyPrice Float    @default(0) // monthly recurring price for MRR calculation
   currency     String   @default("EGP") // currency of the price
   startedAt    DateTime @default(now())
   expiresAt    DateTime // far future date for lifetime licenses (2099-12-31)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  history   LicenseHistory[]
+  revenueRecords RevenueRecord[]
+}
+
+model LicenseHistory {
+  id          String   @id @default(cuid())
+  licenseId   String
+  action      String   // created, activated, extended, suspended, reactivated, upgraded, cancelled, lifetime_activated, trial_extended, months_extended
+  oldStatus   String?
+  newStatus   String?
+  oldType     String?
+  newType     String?
+  oldExpiresAt DateTime?
+  newExpiresAt DateTime?
+  oldPrice    Float?
+  newPrice    Float?
+  details     String?  // JSON string with extra details
+  performedBy String?  // Admin who performed the action
+  createdAt   DateTime @default(now())
+
+  license License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String   // tenant_created, tenant_suspended, tenant_activated, license_created, license_activated, license_extended, license_suspended, admin_login, admin_action, user_registered, etc.
+  category    String   // tenant, license, auth, system, user
+  description String
+  performedBy String?  // Admin ID or system
+  performerName String? // Admin name
+  targetType  String?  // tenant, license, user, etc.
+  targetId    String?  // ID of the affected entity
+  targetName  String?  // Name of the affected entity
+  details     String?  // JSON string with extra info
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+}
+
+model RevenueRecord {
+  id          String   @id @default(cuid())
+  tenantId    String
+  licenseId   String
+  amount      Float
+  currency    String   @default("EGP")
+  type        String   // subscription, renewal, upgrade, lifetime, trial_extension
+  periodStart DateTime?
+  periodEnd   DateTime?
+  description String?
+  createdAt   DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  license License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
 }
 
 // ============================================
