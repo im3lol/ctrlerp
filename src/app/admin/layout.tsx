@@ -12,6 +12,8 @@ import {
   Shield,
   Activity,
   BarChart3,
+  Heart,
+  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -39,6 +41,8 @@ interface NavItem {
 const navigation: NavItem[] = [
   { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, path: '/admin' },
   { id: 'analytics', label: 'التحليلات', icon: BarChart3, path: '/admin/analytics' },
+  { id: 'revenue', label: 'الإيرادات', icon: DollarSign, path: '/admin/revenue' },
+  { id: 'system', label: 'صحة النظام', icon: Heart, path: '/admin/system' },
   { id: 'tenants', label: 'المستأجرون', icon: Building2, path: '/admin/tenants' },
   { id: 'licenses', label: 'التراخيص', icon: Key, path: '/admin/licenses' },
   { id: 'activity', label: 'سجل الأنشطة', icon: Activity, path: '/admin/activity-logs' },

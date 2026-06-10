@@ -236,6 +236,116 @@ export async function GET(request: NextRequest) {
       where: { createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
     })
 
+    // ══════════════════════════════════════════════════
+    // NEW: System Health
+    // ══════════════════════════════════════════════════
+    let dbStatus = 'connected'
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch {
+      dbStatus = 'disconnected'
+    }
+
+    const uptimeSeconds = process.uptime()
+    const memUsage = process.memoryUsage()
+
+    const now = new Date()
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    const [activeUsersLast24h, activeUsersLast7d] = await Promise.all([
+      db.platformAdminToken.count({ where: { createdAt: { gte: last24h } } }),
+      db.platformAdminToken.count({ where: { createdAt: { gte: last7d } } }),
+    ])
+
+    const systemHealth = {
+      dbStatus,
+      uptime: {
+        seconds: Math.round(uptimeSeconds),
+        formatted: `${Math.floor(uptimeSeconds / 86400)}d ${Math.floor((uptimeSeconds % 86400) / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m`,
+      },
+      memoryUsage: {
+        rss: Math.round((memUsage.rss / 1024 / 1024) * 100) / 100,
+        heapTotal: Math.round((memUsage.heapTotal / 1024 / 1024) * 100) / 100,
+        heapUsed: Math.round((memUsage.heapUsed / 1024 / 1024) * 100) / 100,
+        external: Math.round((memUsage.external / 1024 / 1024) * 100) / 100,
+      },
+      activeUsersLast24h,
+      activeUsersLast7d,
+    }
+
+    // ══════════════════════════════════════════════════
+    // NEW: License Warnings (expiring counts)
+    // ══════════════════════════════════════════════════
+    const addDays = (days: number) => {
+      const d = new Date()
+      d.setDate(d.getDate() + days)
+      return d
+    }
+
+    const [expiring1Day, expiring3Days, expiring7Days, expiring14Days, expiring30Days] = await Promise.all([
+      db.license.count({ where: { status: 'active', isLifetime: false, expiresAt: { gt: now, lte: addDays(1) } } }),
+      db.license.count({ where: { status: 'active', isLifetime: false, expiresAt: { gt: now, lte: addDays(3) } } }),
+      db.license.count({ where: { status: 'active', isLifetime: false, expiresAt: { gt: now, lte: addDays(7) } } }),
+      db.license.count({ where: { status: 'active', isLifetime: false, expiresAt: { gt: now, lte: addDays(14) } } }),
+      db.license.count({ where: { status: 'active', isLifetime: false, expiresAt: { gt: now, lte: addDays(30) } } }),
+    ])
+
+    const licenseWarnings = {
+      expiring1Day,
+      expiring3Days,
+      expiring7Days,
+      expiring14Days,
+      expiring30Days,
+    }
+
+    // ══════════════════════════════════════════════════
+    // NEW: Churn Rate
+    // ══════════════════════════════════════════════════
+    const cancelledTenants = await db.tenant.count({ where: { status: 'cancelled' } })
+    const churnRate = totalTenants > 0
+      ? Math.round((cancelledTenants / totalTenants) * 10000) / 100
+      : 0
+
+    // ══════════════════════════════════════════════════
+    // NEW: Average Revenue Per User (ARPU)
+    // ══════════════════════════════════════════════════
+    const activePaidTenants = await db.tenant.count({
+      where: {
+        status: 'active',
+        licenses: {
+          some: {
+            status: 'active',
+            type: { in: ['basic', 'professional', 'enterprise', 'lifetime'] },
+          },
+        },
+      },
+    })
+    const averageRevenuePerUser = activePaidTenants > 0
+      ? Math.round(((totalRevenueFromRecords._sum.amount || 0) / activePaidTenants) * 100) / 100
+      : 0
+
+    // ══════════════════════════════════════════════════
+    // NEW: Today Stats
+    // ══════════════════════════════════════════════════
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    const [newTenantsToday, revenueToday, newLicensesToday] = await Promise.all([
+      db.tenant.count({ where: { createdAt: { gte: todayStart } } }),
+      db.revenueRecord.aggregate({
+        where: { createdAt: { gte: todayStart } },
+        _sum: { amount: true },
+      }),
+      db.license.count({ where: { createdAt: { gte: todayStart } } }),
+    ])
+
+    const todayStats = {
+      newTenants: newTenantsToday,
+      revenue: revenueToday._sum.amount || 0,
+      newLicenses: newLicensesToday,
+    }
+
     return NextResponse.json({
       stats: {
         totalTenants,
@@ -327,6 +437,12 @@ export async function GET(request: NextRequest) {
         targetName: a.targetName,
         createdAt: a.createdAt,
       })),
+      // ── NEW FIELDS ──
+      systemHealth,
+      licenseWarnings,
+      churnRate,
+      averageRevenuePerUser,
+      todayStats,
     })
   } catch (error) {
     console.error('Admin dashboard error:', error)

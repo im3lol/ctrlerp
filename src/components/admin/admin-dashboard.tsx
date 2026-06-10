@@ -27,6 +27,15 @@ import {
   Eye,
   CalendarDays,
   Zap,
+  Heart,
+  Server,
+  MemoryStick,
+  Database,
+  RefreshCw,
+  CreditCard,
+  UsersRound,
+  TrendingDown as ChurnIcon,
+  ArrowRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -113,6 +122,36 @@ interface RecentActivity {
   createdAt: string
 }
 
+interface SystemHealthMini {
+  dbStatus: string
+  uptime: {
+    seconds: number
+    formatted: string
+  }
+  memoryUsage: {
+    rss: number
+    heapTotal: number
+    heapUsed: number
+    external: number
+  }
+  activeUsersLast24h: number
+  activeUsersLast7d: number
+}
+
+interface LicenseWarningsData {
+  expiring1Day: number
+  expiring3Days: number
+  expiring7Days: number
+  expiring14Days: number
+  expiring30Days: number
+}
+
+interface TodayStatsData {
+  newTenants: number
+  revenue: number
+  newLicenses: number
+}
+
 interface DashboardData {
   stats: DashboardStats
   revenue: RevenueStats
@@ -121,6 +160,11 @@ interface DashboardData {
   alerts: AlertData
   recentTenants: RecentTenant[]
   recentActivities: RecentActivity[]
+  systemHealth: SystemHealthMini
+  licenseWarnings: LicenseWarningsData
+  churnRate: number
+  averageRevenuePerUser: number
+  todayStats: TodayStatsData
 }
 
 const statusLabels: Record<string, string> = {
@@ -160,6 +204,14 @@ const categoryColors: Record<string, string> = {
   system: 'bg-amber-500/10 text-amber-400',
   user: 'bg-cyan-500/10 text-cyan-400',
 }
+
+const warningConfigs = [
+  { key: 'expiring1Day' as const, label: 'يوم', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+  { key: 'expiring3Days' as const, label: '3 أيام', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+  { key: 'expiring7Days' as const, label: '7 أيام', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  { key: 'expiring14Days' as const, label: '14 يوم', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+  { key: 'expiring30Days' as const, label: '30 يوم', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+]
 
 function formatDate(dateStr: string) {
   try {
@@ -293,7 +345,11 @@ export default function AdminDashboard() {
     )
   }
 
-  const { stats, revenue, growth, charts, alerts, recentTenants, recentActivities } = data
+  const { stats, revenue, growth, charts, alerts, recentTenants, recentActivities, systemHealth, licenseWarnings, churnRate, averageRevenuePerUser, todayStats } = data
+
+  const memoryPercent = systemHealth?.memoryUsage?.heapTotal > 0
+    ? Math.round((systemHealth.memoryUsage.heapUsed / systemHealth.memoryUsage.heapTotal) * 100)
+    : 0
 
   return (
     <div className="space-y-6">
@@ -320,50 +376,86 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Alerts Section - Expiring & Expired */}
-      {(alerts.expiringLicenses.length > 0 || alerts.recentlyExpired.length > 0) && (
-        <div className="space-y-3">
-          {alerts.expiringLicenses.length > 0 && (
-            <Card className="bg-amber-500/5 border-amber-500/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="h-5 w-5 text-amber-400" />
-                  <h3 className="text-sm font-semibold text-amber-400">تراخيص تنتهي قريبًا ({alerts.expiringLicenses.length})</h3>
+      {/* Today's Stats Row */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="bg-slate-800/50 border-blue-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-blue-500/10">
+                <Building2 className="h-5 w-5 text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-400 truncate">مستأجرون جدد اليوم</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-white">{todayStats?.newTenants ?? 0}</p>
+                  <CalendarDays className="h-3.5 w-3.5 text-blue-400" />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {alerts.expiringLicenses.slice(0, 5).map(l => (
-                    <div key={l.id} className="flex items-center gap-2 bg-amber-500/10 rounded-lg px-3 py-1.5">
-                      <span className="text-sm text-white">{l.tenant.name}</span>
-                      <Badge variant="outline" className="text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
-                        {l.daysLeft} يوم
-                      </Badge>
-                    </div>
-                  ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-800/50 border-emerald-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10">
+                <DollarSign className="h-5 w-5 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-400 truncate">إيرادات اليوم</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-emerald-400">{(todayStats?.revenue ?? 0).toLocaleString()}</p>
+                  <span className="text-xs text-slate-500">EGP</span>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-          {alerts.recentlyExpired.length > 0 && (
-            <Card className="bg-red-500/5 border-red-500/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <XCircle className="h-5 w-5 text-red-400" />
-                  <h3 className="text-sm font-semibold text-red-400">تراخيص منتهية ({alerts.recentlyExpired.length})</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-800/50 border-violet-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-violet-500/10">
+                <Key className="h-5 w-5 text-violet-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-400 truncate">تراخيص جديدة اليوم</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-white">{todayStats?.newLicenses ?? 0}</p>
+                  <CalendarDays className="h-3.5 w-3.5 text-violet-400" />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {alerts.recentlyExpired.slice(0, 5).map(l => (
-                    <div key={l.id} className="flex items-center gap-2 bg-red-500/10 rounded-lg px-3 py-1.5">
-                      <span className="text-sm text-white">{l.tenant.name}</span>
-                      <Badge variant="outline" className="text-[10px] bg-red-500/20 text-red-400 border-red-500/30">
-                        منتهي
-                      </Badge>
-                    </div>
-                  ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* License Warnings Section */}
+      {licenseWarnings && (
+        <Card className="bg-slate-800/50 border-amber-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-400" />
+                <h3 className="text-sm font-semibold text-amber-400">تحذيرات التراخيص المنتهية</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/admin/licenses')}
+                className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 text-xs gap-1"
+              >
+                عرض الكل <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-5 gap-3">
+              {warningConfigs.map((wc) => (
+                <div key={wc.key} className={cn('p-3 rounded-xl border text-center', wc.bg, wc.border)}>
+                  <p className={cn('text-2xl font-bold', wc.color)}>{licenseWarnings[wc.key]}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">خلال {wc.label}</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Main Stats Grid */}
@@ -400,12 +492,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* Revenue + Growth Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {[
           { title: 'إجمالي الإيرادات', value: `${(revenue?.totalRevenue || 0).toLocaleString()} EGP`, icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', growth: growth.revenueGrowthPercent },
           { title: 'الاشتراكات المتكررة (MRR)', value: `${(revenue?.monthlyRecurring || 0).toLocaleString()} EGP`, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
           { title: 'إيرادات مدى الحياة', value: `${(revenue?.lifetimeRevenue || 0).toLocaleString()} EGP`, icon: Infinity, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
           { title: 'اشتراكات مدفوعة', value: revenue?.activePaidCount || 0, icon: Key, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+          { title: 'معدل الفقد', value: `${churnRate}%`, icon: ChurnIcon, color: churnRate > 10 ? 'text-red-400' : churnRate > 5 ? 'text-amber-400' : 'text-emerald-400', bg: churnRate > 10 ? 'bg-red-500/10' : churnRate > 5 ? 'bg-amber-500/10' : 'bg-emerald-500/10', border: churnRate > 10 ? 'border-red-500/20' : churnRate > 5 ? 'border-amber-500/20' : 'border-emerald-500/20' },
+          { title: 'ARPU', value: `${(averageRevenuePerUser || 0).toLocaleString()} EGP`, icon: UsersRound, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
         ].map((stat) => (
           <Card key={stat.title} className={cn('bg-slate-800/50 border shadow-sm', stat.border)}>
             <CardContent className="p-4">
@@ -429,6 +523,127 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* System Health Mini + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* System Health Mini Card */}
+        <Card className="bg-slate-800/50 border-slate-700/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
+                <Heart className="h-4 w-4 text-emerald-400" />
+                صحة النظام
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/admin/system')}
+                className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 text-xs gap-1"
+              >
+                التفاصيل <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              {/* DB Status */}
+              <div className="p-3 rounded-lg bg-slate-700/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <Database className="h-4 w-4 text-blue-400" />
+                  <span className="text-xs text-slate-400">قاعدة البيانات</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    'h-2.5 w-2.5 rounded-full',
+                    systemHealth?.dbStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
+                  )} />
+                  <span className={cn('text-sm font-bold', systemHealth?.dbStatus === 'connected' ? 'text-emerald-400' : 'text-red-400')}>
+                    {systemHealth?.dbStatus === 'connected' ? 'متصل' : 'غير متصل'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Uptime */}
+              <div className="p-3 rounded-lg bg-slate-700/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <Server className="h-4 w-4 text-blue-400" />
+                  <span className="text-xs text-slate-400">وقت التشغيل</span>
+                </div>
+                <p className="text-sm font-bold text-blue-400">{systemHealth?.uptime?.formatted || '—'}</p>
+              </div>
+
+              {/* Memory */}
+              <div className="p-3 rounded-lg bg-slate-700/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <MemoryStick className="h-4 w-4 text-violet-400" />
+                  <span className="text-xs text-slate-400">استخدام الذاكرة</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-violet-400">{memoryPercent}%</p>
+                  <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-violet-500 rounded-full" style={{ width: `${memoryPercent}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Users */}
+              <div className="p-3 rounded-lg bg-slate-700/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-emerald-400" />
+                  <span className="text-xs text-slate-400">نشطون (24س)</span>
+                </div>
+                <p className="text-sm font-bold text-emerald-400">{systemHealth?.activeUsersLast24h ?? 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card className="bg-slate-800/50 border-slate-700/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-400" />
+              إجراءات سريعة
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={() => router.push('/admin/system')}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center gap-2 border-slate-700 hover:bg-slate-700/50 hover:border-emerald-500/30 transition-all"
+              >
+                <Heart className="h-6 w-6 text-emerald-400" />
+                <span className="text-xs text-slate-300">صحة النظام</span>
+              </Button>
+              <Button
+                onClick={() => router.push('/admin/revenue')}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center gap-2 border-slate-700 hover:bg-slate-700/50 hover:border-emerald-500/30 transition-all"
+              >
+                <DollarSign className="h-6 w-6 text-emerald-400" />
+                <span className="text-xs text-slate-300">تفاصيل الإيرادات</span>
+              </Button>
+              <Button
+                onClick={() => router.push('/admin/tenants')}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center gap-2 border-slate-700 hover:bg-slate-700/50 hover:border-violet-500/30 transition-all"
+              >
+                <Building2 className="h-6 w-6 text-violet-400" />
+                <span className="text-xs text-slate-300">عرض المستأجرين</span>
+              </Button>
+              <Button
+                onClick={() => router.push('/admin/licenses')}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center gap-2 border-slate-700 hover:bg-slate-700/50 hover:border-amber-500/30 transition-all"
+              >
+                <Key className="h-6 w-6 text-amber-400" />
+                <span className="text-xs text-slate-300">إنشاء ترخيص</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* System Usage Metrics */}
@@ -509,7 +724,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* License Distribution + Trial Conversion + Activity Feed */}
+      {/* License Distribution + Revenue by Type + Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* License Distribution */}
         <Card className="bg-slate-800/50 border-slate-700/50">
