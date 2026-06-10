@@ -432,8 +432,8 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                 className={cn(
                   'cursor-pointer transition-all duration-200 hover:shadow-md',
                   isSelected
-                    ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 hover:border-emerald-300'
+                    ? 'border-violet-600 bg-violet-50/50 ring-2 ring-violet-600/20'
+                    : 'border-slate-200 hover:border-violet-300'
                 )}
                 onClick={() => setTemplate(key)}
               >
@@ -442,7 +442,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                     <div
                       className={cn(
                         'p-2.5 rounded-xl',
-                        isSelected ? 'bg-emerald-500' : 'bg-slate-100'
+                        isSelected ? 'bg-violet-600' : 'bg-slate-100'
                       )}
                     >
                       <data.icon
@@ -456,7 +456,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold text-slate-900">{data.label}</h4>
                         {isSelected && (
-                          <Check className="h-4 w-4 text-emerald-600" />
+                          <Check className="h-4 w-4 text-violet-600" />
                         )}
                       </div>
                     </div>
@@ -468,7 +468,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                         <div
                           className={cn(
                             'h-1.5 w-1.5 rounded-full',
-                            isSelected ? 'bg-emerald-500' : 'bg-slate-300'
+                            isSelected ? 'bg-violet-600' : 'bg-slate-300'
                           )}
                         />
                         <span className="text-slate-600">{acc}</span>
@@ -496,7 +496,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
               'خصم مسموح / مكتسب',
             ].map((acc, i) => (
               <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <div className="h-1.5 w-1.5 rounded-full bg-violet-400" />
                 <span>{acc}</span>
               </div>
             ))}
@@ -517,13 +517,13 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
       </div>
 
       {/* Default warehouse indicator */}
-      <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-        <Warehouse className="h-5 w-5 text-emerald-600" />
+      <div className="flex items-center gap-3 p-3 bg-violet-50 border border-violet-200 rounded-lg">
+        <Warehouse className="h-5 w-5 text-violet-600" />
         <div>
-          <p className="text-sm font-medium text-emerald-800">المخزن الرئيسي</p>
-          <p className="text-xs text-emerald-600">سيتم إنشاؤه تلقائياً</p>
+          <p className="text-sm font-medium text-violet-800">المخزن الرئيسي</p>
+          <p className="text-xs text-violet-600">سيتم إنشاؤه تلقائياً</p>
         </div>
-        <Badge className="bg-emerald-100 text-emerald-700 me-auto">تلقائي</Badge>
+        <Badge className="bg-violet-100 text-violet-700 me-auto">تلقائي</Badge>
       </div>
 
       {/* Additional warehouses */}
@@ -897,7 +897,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
           <Card className="border-slate-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Building2 className="h-4 w-4 text-emerald-600" />
+                <Building2 className="h-4 w-4 text-violet-600" />
                 <h4 className="font-semibold text-slate-900">بيانات الشركة</h4>
               </div>
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
@@ -949,11 +949,11 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
           <Card className="border-slate-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <GitBranch className="h-4 w-4 text-emerald-600" />
+                <GitBranch className="h-4 w-4 text-violet-600" />
                 <h4 className="font-semibold text-slate-900">شجرة الحسابات</h4>
               </div>
               <div className="flex items-center gap-2">
-                <Badge className="bg-emerald-100 text-emerald-700">
+                <Badge className="bg-violet-100 text-violet-700">
                   {templateData[template].label}
                 </Badge>
                 <span className="text-sm text-slate-600">
@@ -967,11 +967,11 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
           <Card className="border-slate-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Warehouse className="h-4 w-4 text-emerald-600" />
+                <Warehouse className="h-4 w-4 text-violet-600" />
                 <h4 className="font-semibold text-slate-900">المخازن</h4>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge className="bg-emerald-100 text-emerald-700">المخزن الرئيسي (تلقائي)</Badge>
+                <Badge className="bg-violet-100 text-violet-700">المخزن الرئيسي (تلقائي)</Badge>
                 {validWarehouses.map((wh, i) => (
                   <Badge key={i} variant="outline" className="border-slate-300">
                     {wh.nameAr}
@@ -988,7 +988,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
           <Card className="border-slate-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Landmark className="h-4 w-4 text-emerald-600" />
+                <Landmark className="h-4 w-4 text-violet-600" />
                 <h4 className="font-semibold text-slate-900">البنوك والصناديق</h4>
               </div>
               <div className="space-y-2">
@@ -1028,7 +1028,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
           <Card className="border-slate-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Ruler className="h-4 w-4 text-emerald-600" />
+                <Ruler className="h-4 w-4 text-violet-600" />
                 <h4 className="font-semibold text-slate-900">وحدات القياس</h4>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1045,7 +1045,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
           <Card className="border-slate-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Receipt className="h-4 w-4 text-emerald-600" />
+                <Receipt className="h-4 w-4 text-violet-600" />
                 <h4 className="font-semibold text-slate-900">الضرائب</h4>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -1077,7 +1077,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-emerald-600 rounded-xl flex items-center justify-center">
+              <div className="h-10 w-10 bg-violet-600 rounded-xl flex items-center justify-center">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -1114,8 +1114,8 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                     }}
                     className={cn(
                       'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors w-full',
-                      isCompleted && 'cursor-pointer hover:bg-emerald-50',
-                      isCurrent && 'bg-emerald-50',
+                      isCompleted && 'cursor-pointer hover:bg-violet-50',
+                      isCurrent && 'bg-violet-50',
                       !isCompleted && !isCurrent && 'cursor-default'
                     )}
                   >
@@ -1123,9 +1123,9 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                       className={cn(
                         'h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-colors',
                         isCompleted
-                          ? 'bg-emerald-500 text-white'
+                          ? 'bg-violet-600 text-white'
                           : isCurrent
-                          ? 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500'
+                          ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-600'
                           : 'bg-slate-100 text-slate-400'
                       )}
                     >
@@ -1139,9 +1139,9 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                       className={cn(
                         'hidden sm:inline text-xs font-medium truncate',
                         isCompleted
-                          ? 'text-emerald-700'
+                          ? 'text-violet-700'
                           : isCurrent
-                          ? 'text-emerald-700'
+                          ? 'text-violet-700'
                           : 'text-slate-400'
                       )}
                     >
@@ -1152,7 +1152,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
                     <div
                       className={cn(
                         'h-0.5 flex-1 min-w-[16px] rounded-full mx-1',
-                        isCompleted ? 'bg-emerald-500' : 'bg-slate-200'
+                        isCompleted ? 'bg-violet-600' : 'bg-slate-200'
                       )}
                     />
                   )}
@@ -1187,7 +1187,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
             <Button
               onClick={handleNext}
               disabled={!canProceed()}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white"
             >
               التالي
               <ArrowLeft className="h-4 w-4" />
@@ -1196,7 +1196,7 @@ export default function SetupWizard({ open, onClose, required = false }: SetupWi
             <Button
               onClick={handleSubmit}
               disabled={loading || !canProceed()}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white min-w-[160px]"
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white min-w-[160px]"
             >
               {loading ? (
                 <>

@@ -55,8 +55,8 @@ export default function BalanceSheetReport() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <PieChart className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 bg-violet-100 rounded-xl flex items-center justify-center">
+            <PieChart className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">الميزانية العمومية</h2>
@@ -82,14 +82,14 @@ export default function BalanceSheetReport() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
         </div>
       ) : data ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 print:grid-cols-2 print:gap-2">
           {/* Assets Side */}
-          <Card className="border-emerald-200 print:shadow-none">
-            <CardHeader className="bg-emerald-50 pb-3">
-              <CardTitle className="text-lg font-bold text-emerald-800">الأصول</CardTitle>
+          <Card className="border-violet-200 print:shadow-none">
+            <CardHeader className="bg-violet-50 pb-3">
+              <CardTitle className="text-lg font-bold text-violet-800">الأصول</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               {data.assets.accounts.filter(a => a.balance !== 0).length > 0 ? (
@@ -104,9 +104,9 @@ export default function BalanceSheetReport() {
                     </div>
                   ))}
                   <Separator className="my-2" />
-                  <div className="flex justify-between items-center py-2 px-2 bg-emerald-50 rounded-lg font-bold">
-                    <span className="text-emerald-800">إجمالي الأصول</span>
-                    <span className="font-mono text-emerald-800">{formatCurrency(data.assets.total)}</span>
+                  <div className="flex justify-between items-center py-2 px-2 bg-violet-50 rounded-lg font-bold">
+                    <span className="text-violet-800">إجمالي الأصول</span>
+                    <span className="font-mono text-violet-800">{formatCurrency(data.assets.total)}</span>
                   </div>
                 </div>
               ) : (
@@ -185,13 +185,13 @@ export default function BalanceSheetReport() {
           {/* Balance Check */}
           <div className="lg:col-span-2 print:col-span-2">
             {data.isBalanced ? (
-              <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-3 p-4 bg-violet-50 border border-violet-200 rounded-xl">
+                <CheckCircle2 className="h-6 w-6 text-violet-600 shrink-0" />
                 <div>
-                  <p className="font-bold text-emerald-800">الميزانية متوازنة</p>
-                  <p className="text-sm text-emerald-600">الأصول = الخصوم + حقوق الملكية</p>
+                  <p className="font-bold text-violet-800">الميزانية متوازنة</p>
+                  <p className="text-sm text-violet-600">الأصول = الخصوم + حقوق الملكية</p>
                 </div>
-                <Badge className="bg-emerald-600 text-white mr-auto">✓ متوازن</Badge>
+                <Badge className="bg-violet-600 text-white mr-auto">✓ متوازن</Badge>
               </div>
             ) : (
               <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">

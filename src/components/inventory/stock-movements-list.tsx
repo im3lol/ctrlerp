@@ -266,14 +266,14 @@ export default function StockMovementsList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <ArrowLeftRight className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <ArrowLeftRight className="h-5 w-5 text-violet-600" />
               </div>
               <CardTitle className="text-lg">حركات المخزن</CardTitle>
             </div>
             <Button
               onClick={handleOpenAdjust}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <SlidersHorizontal className="h-4 w-4" />
               تسوية مخزن
@@ -284,11 +284,11 @@ export default function StockMovementsList() {
           {/* Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
             {itemFilter && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-sm text-violet-700">
                 <span>تصفية حسب الصنف</span>
                 <button
                   onClick={() => setItemFilter(null)}
-                  className="h-5 w-5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center"
+                  className="h-5 w-5 rounded-full bg-violet-200 hover:bg-violet-300 flex items-center justify-center"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -513,7 +513,7 @@ export default function StockMovementsList() {
             <Button
               onClick={handleAdjustSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               إنشاء التسوية

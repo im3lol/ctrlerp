@@ -888,7 +888,7 @@ export default function PurchaseReturnFormPage() {
             {currentStatus !== 'DRAFT' && (
               <div className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                currentStatus === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-700' :
+                currentStatus === 'CONFIRMED' ? 'bg-violet-50 text-violet-700' :
                 currentStatus === 'CANCELLED' ? 'bg-slate-50 text-slate-500' : 'bg-slate-50 text-slate-500'
               )}>
                 <span>حالة المرتجع: {getDocumentStatusBadge(currentStatus)}</span>

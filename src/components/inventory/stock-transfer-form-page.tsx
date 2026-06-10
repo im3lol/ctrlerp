@@ -128,7 +128,7 @@ const WAREHOUSE_TYPE_LABELS: Record<string, string> = {
 }
 
 const WAREHOUSE_TYPE_COLORS: Record<string, string> = {
-  WAREHOUSE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  WAREHOUSE: 'bg-violet-50 text-violet-700 border-violet-200',
   ZONE: 'bg-teal-50 text-teal-700 border-teal-200',
   RACK: 'bg-amber-50 text-amber-700 border-amber-200',
   SHELF: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -143,7 +143,7 @@ const statusLabels: Record<string, string> = {
 
 const statusBadgeStyles: Record<string, string> = {
   DRAFT: 'bg-slate-50 text-slate-700 border-slate-200',
-  CONFIRMED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  CONFIRMED: 'bg-violet-50 text-violet-700 border-violet-200',
   CANCELLED: 'bg-red-50 text-red-700 border-red-200',
 }
 
@@ -545,8 +545,8 @@ export default function StockTransferFormPage() {
             العودة لتحويلات المخزون
           </Button>
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-              <ArrowRightLeft className="h-5 w-5 text-emerald-600" />
+            <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+              <ArrowRightLeft className="h-5 w-5 text-violet-600" />
             </div>
             <div className="flex items-center gap-3 min-w-0">
               <h1 className="text-xl font-bold text-slate-900 truncate">
@@ -568,8 +568,8 @@ export default function StockTransferFormPage() {
           <Card className="border shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <WarehouseIcon className="h-3.5 w-3.5 text-emerald-600" />
+                <div className="h-7 w-7 rounded-lg bg-violet-50 flex items-center justify-center">
+                  <WarehouseIcon className="h-3.5 w-3.5 text-violet-600" />
                 </div>
                 <span className="text-xs text-slate-400">من مخزن</span>
               </div>
@@ -669,8 +669,8 @@ export default function StockTransferFormPage() {
         <Card className="border shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <Package className="h-4 w-4 text-emerald-600" />
+              <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                <Package className="h-4 w-4 text-violet-600" />
               </div>
               <CardTitle className="text-base">الأصناف المحولة</CardTitle>
             </div>
@@ -730,7 +730,7 @@ export default function StockTransferFormPage() {
             <Button
               onClick={handleConfirmTransfer}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -809,8 +809,8 @@ export default function StockTransferFormPage() {
           العودة لتحويلات المخزون
         </Button>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <ArrowRightLeft className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+            <ArrowRightLeft className="h-5 w-5 text-violet-600" />
           </div>
           <h1 className="text-xl font-bold text-slate-900">
             تحويل مخزون جديد
@@ -822,8 +822,8 @@ export default function StockTransferFormPage() {
       <Card className="border shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <FileText className="h-4 w-4 text-emerald-600" />
+            <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+              <FileText className="h-4 w-4 text-violet-600" />
             </div>
             <CardTitle className="text-base">بيانات التحويل</CardTitle>
           </div>
@@ -966,13 +966,13 @@ export default function StockTransferFormPage() {
             <div
               className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300 ${
                 barcodeFlash
-                  ? 'bg-emerald-100'
-                  : 'bg-emerald-50'
+                  ? 'bg-violet-100'
+                  : 'bg-violet-50'
               }`}
             >
               <Barcode
                 className={`h-5 w-5 transition-colors duration-300 ${
-                  barcodeFlash ? 'text-emerald-700' : 'text-emerald-600'
+                  barcodeFlash ? 'text-violet-700' : 'text-violet-600'
                 }`}
               />
             </div>
@@ -985,7 +985,7 @@ export default function StockTransferFormPage() {
                 placeholder="امسح الباركود أو اكتب الكود..."
                 className={`h-10 font-mono transition-all duration-300 ${
                   barcodeFlash
-                    ? 'border-emerald-400 ring-2 ring-emerald-200'
+                    ? 'border-violet-400 ring-2 ring-violet-200'
                     : 'border-slate-200'
                 }`}
                 dir="ltr"
@@ -1004,8 +1004,8 @@ export default function StockTransferFormPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <Package className="h-4 w-4 text-emerald-600" />
+              <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                <Package className="h-4 w-4 text-violet-600" />
               </div>
               <CardTitle className="text-base">أصناف التحويل</CardTitle>
             </div>
@@ -1014,7 +1014,7 @@ export default function StockTransferFormPage() {
               variant="outline"
               size="sm"
               onClick={handleAddLine}
-              className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+              className="gap-1.5 text-violet-600 border-violet-200 hover:bg-violet-50"
             >
               <Plus className="h-3.5 w-3.5" />
               إضافة صنف
@@ -1144,7 +1144,7 @@ export default function StockTransferFormPage() {
                   </span>
                   <span className="text-sm text-slate-500">
                     إجمالي الكمية:{' '}
-                    <span className="font-semibold text-emerald-700" dir="ltr">
+                    <span className="font-semibold text-violet-700" dir="ltr">
                       {lines
                         .filter((l) => l.itemId && l.quantity > 0)
                         .reduce((sum, l) => sum + l.quantity, 0)
@@ -1163,7 +1163,7 @@ export default function StockTransferFormPage() {
         <Button
           onClick={handleCreateSubmit}
           disabled={submitting}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+          className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

@@ -241,8 +241,8 @@ export default function PurchaseInvoicesList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">فواتير الشراء</CardTitle>
@@ -253,7 +253,7 @@ export default function PurchaseInvoicesList() {
             </div>
             <Button
               onClick={handleOpenAdd}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               فاتورة شراء جديدة
@@ -350,7 +350,7 @@ export default function PurchaseInvoicesList() {
                       <TableCell className="font-mono" dir="ltr">
                         {formatCurrency(inv.totalAmount)}
                       </TableCell>
-                      <TableCell className="font-mono text-emerald-600" dir="ltr">
+                      <TableCell className="font-mono text-violet-600" dir="ltr">
                         {formatCurrency(inv.paidAmount)}
                       </TableCell>
                       <TableCell className={`font-mono ${inv.balanceDue > 0 ? 'text-red-600' : 'text-slate-400'}`} dir="ltr">
@@ -367,7 +367,7 @@ export default function PurchaseInvoicesList() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleViewDetail(inv.id)}
-                            className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                             title="عرض التفاصيل"
                           >
                             <Eye className="h-4 w-4" />
@@ -378,7 +378,7 @@ export default function PurchaseInvoicesList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => openConfirmDialog(inv.id, 'confirm')}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                 title="تأكيد"
                               >
                                 <CheckCircle className="h-4 w-4" />
@@ -512,11 +512,11 @@ export default function PurchaseInvoicesList() {
                 <Separator />
                 <div className="flex justify-between text-base font-bold">
                   <span>الإجمالي</span>
-                  <span className="font-mono text-emerald-700" dir="ltr">{formatCurrency(detailInvoice.totalAmount)}</span>
+                  <span className="font-mono text-violet-700" dir="ltr">{formatCurrency(detailInvoice.totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">المدفوع</span>
-                  <span className="font-mono text-emerald-600" dir="ltr">{formatCurrency(detailInvoice.paidAmount)}</span>
+                  <span className="font-mono text-violet-600" dir="ltr">{formatCurrency(detailInvoice.paidAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-medium">
                   <span>المتبقي</span>
@@ -557,7 +557,7 @@ export default function PurchaseInvoicesList() {
               disabled={submitting}
               className={
                 confirmAction === 'confirm'
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white gap-2'
+                  ? 'bg-violet-600 hover:bg-violet-700 text-white gap-2'
                   : 'bg-red-600 hover:bg-red-700 text-white gap-2'
               }
             >

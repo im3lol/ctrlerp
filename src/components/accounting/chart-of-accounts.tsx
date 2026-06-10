@@ -89,7 +89,7 @@ const accountTypeColors: Record<string, string> = {
   ASSET: 'bg-cyan-50 text-cyan-700 border-cyan-200',
   LIABILITY: 'bg-red-50 text-red-700 border-red-200',
   EQUITY: 'bg-purple-50 text-purple-700 border-purple-200',
-  REVENUE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  REVENUE: 'bg-violet-50 text-violet-700 border-violet-200',
   EXPENSE: 'bg-orange-50 text-orange-700 border-orange-200',
 }
 
@@ -97,7 +97,7 @@ const accountTypeDotColors: Record<string, string> = {
   ASSET: 'bg-cyan-500',
   LIABILITY: 'bg-red-500',
   EQUITY: 'bg-purple-500',
-  REVENUE: 'bg-emerald-500',
+  REVENUE: 'bg-violet-600',
   EXPENSE: 'bg-orange-500',
 }
 
@@ -139,7 +139,7 @@ function TreeNode({ account, level, expandedIds, onToggle, onEdit }: TreeNodePro
         ) : (
           <div className="h-6 w-6 flex items-center justify-center shrink-0">
             {account.isLeaf ? (
-              <Leaf className="h-3.5 w-3.5 text-emerald-400" />
+              <Leaf className="h-3.5 w-3.5 text-violet-400" />
             ) : (
               <div className="h-1.5 w-1.5 rounded-full bg-slate-300" />
             )}
@@ -177,7 +177,7 @@ function TreeNode({ account, level, expandedIds, onToggle, onEdit }: TreeNodePro
 
         {/* Leaf indicator */}
         {account.isLeaf && (
-          <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200 shrink-0">
+          <Badge variant="outline" className="text-xs bg-violet-50 text-violet-600 border-violet-200 shrink-0">
             فرعي
           </Badge>
         )}
@@ -193,7 +193,7 @@ function TreeNode({ account, level, expandedIds, onToggle, onEdit }: TreeNodePro
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 shrink-0"
+          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-violet-600 hover:bg-violet-50 shrink-0"
           onClick={(e) => {
             e.stopPropagation()
             onEdit(account)
@@ -436,8 +436,8 @@ export default function ChartOfAccounts() {
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <GitBranch className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <GitBranch className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">شجرة الحسابات</CardTitle>
@@ -465,7 +465,7 @@ export default function ChartOfAccounts() {
               </Button>
               <Button
                 onClick={handleOpenAdd}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
               >
                 <Plus className="h-4 w-4" />
                 إضافة حساب
@@ -627,7 +627,7 @@ export default function ChartOfAccounts() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? 'تحديث' : 'إضافة'}

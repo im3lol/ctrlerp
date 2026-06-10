@@ -101,7 +101,7 @@ export default function SalesDashboard() {
 
   // ── Quick Actions ──
   const quickActions: QuickAction[] = [
-    { id: 'customers', label: 'العملاء', description: 'إدارة العملاء', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', viewId: 'customers' },
+    { id: 'customers', label: 'العملاء', description: 'إدارة العملاء', icon: Users, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', viewId: 'customers' },
     { id: 'new-order', label: 'أمر بيع جديد', description: 'إنشاء أمر بيع', icon: ClipboardCheck, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', viewId: 'sales-order-form' },
     { id: 'new-invoice', label: 'فاتورة بيع جديدة', description: 'إنشاء فاتورة بيع', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', viewId: 'sales-invoice-form' },
     { id: 'orders', label: 'أوامر البيع', description: 'عرض أوامر البيع', icon: ShoppingCart, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', viewId: 'sales-orders' },
@@ -111,7 +111,7 @@ export default function SalesDashboard() {
 
   // ── Stat Cards Definition ──
   const statCards = [
-    { key: 'totalSalesAmount', label: 'إجمالي المبيعات', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', isCurrency: true },
+    { key: 'totalSalesAmount', label: 'إجمالي المبيعات', icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', isCurrency: true },
     { key: 'customerCount', label: 'العملاء', icon: Users, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', isCurrency: false },
     { key: 'pendingSalesOrders', label: 'أوامر بيع معلقة', icon: ClipboardCheck, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', isCurrency: false, isAlert: true },
     { key: 'pendingSalesInvoices', label: 'فواتير معلقة', icon: FileText, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', isCurrency: false, isAlert: true },
@@ -125,13 +125,13 @@ export default function SalesDashboard() {
   } : {}
 
   // ── Monthly sales bar colors ──
-  const barColors = ['bg-emerald-400', 'bg-teal-400', 'bg-amber-400', 'bg-purple-400', 'bg-orange-400', 'bg-rose-400', 'bg-cyan-400']
+  const barColors = ['bg-violet-400', 'bg-teal-400', 'bg-amber-400', 'bg-purple-400', 'bg-orange-400', 'bg-rose-400', 'bg-cyan-400']
 
   // ── Invoice status color ──
   const invoiceStatusStyles: Record<string, { color: string; bg: string; label: string }> = {
     DRAFT: { color: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200', label: 'مسودة' },
     CONFIRMED: { color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', label: 'مؤكدة' },
-    PAID: { color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'مدفوعة' },
+    PAID: { color: 'text-violet-700', bg: 'bg-violet-50 border-violet-200', label: 'مدفوعة' },
     PARTIAL_PAID: { color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', label: 'مدفوعة جزئياً' },
     CANCELLED: { color: 'text-red-700', bg: 'bg-red-50 border-red-200', label: 'ملغية' },
   }
@@ -204,8 +204,8 @@ export default function SalesDashboard() {
       <Card className="border shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <ShoppingCart className="h-4.5 w-4.5 text-emerald-600" />
+            <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
+              <ShoppingCart className="h-4.5 w-4.5 text-violet-600" />
             </div>
             <CardTitle className="text-base font-semibold">اختصارات المبيعات</CardTitle>
           </div>
@@ -242,12 +242,12 @@ export default function SalesDashboard() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <Users className="h-4 w-4 text-emerald-600" />
+                <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                  <Users className="h-4 w-4 text-violet-600" />
                 </div>
                 <CardTitle className="text-sm font-semibold">أعلى العملاء</CardTitle>
               </div>
-              <button onClick={() => setView('customers')} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+              <button onClick={() => setView('customers')} className="text-xs text-violet-600 hover:text-violet-700 font-medium">
                 عرض الكل ←
               </button>
             </div>
@@ -270,7 +270,7 @@ export default function SalesDashboard() {
                         </div>
                         <div className="mt-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                            className="h-full bg-violet-400 rounded-full transition-all duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -301,7 +301,7 @@ export default function SalesDashboard() {
                 </div>
                 <CardTitle className="text-sm font-semibold">آخر أوامر البيع</CardTitle>
               </div>
-              <button onClick={() => setView('sales-orders')} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+              <button onClick={() => setView('sales-orders')} className="text-xs text-violet-600 hover:text-violet-700 font-medium">
                 عرض الكل ←
               </button>
             </div>
@@ -348,8 +348,8 @@ export default function SalesDashboard() {
       <Card className="border shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-violet-600" />
             </div>
             <CardTitle className="text-sm font-semibold">ملخص مالي</CardTitle>
           </div>
@@ -357,9 +357,9 @@ export default function SalesDashboard() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Total Sales */}
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-              <p className="text-sm text-emerald-600 font-medium">إجمالي المبيعات</p>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(data.totalSalesAmount)}</p>
+            <div className="p-4 rounded-xl bg-violet-50 border border-violet-200">
+              <p className="text-sm text-violet-600 font-medium">إجمالي المبيعات</p>
+              <p className="text-2xl font-bold text-violet-700 mt-1">{formatCurrency(data.totalSalesAmount)}</p>
             </div>
             {/* Total Paid */}
             <div className="p-4 rounded-xl bg-teal-50 border border-teal-200">
@@ -404,7 +404,7 @@ export default function SalesDashboard() {
                 </div>
                 <CardTitle className="text-sm font-semibold">آخر الفواتير</CardTitle>
               </div>
-              <button onClick={() => setView('sales-invoices')} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+              <button onClick={() => setView('sales-invoices')} className="text-xs text-violet-600 hover:text-violet-700 font-medium">
                 عرض الكل ←
               </button>
             </div>

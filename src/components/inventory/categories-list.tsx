@@ -275,14 +275,14 @@ export default function CategoriesList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Tags className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <Tags className="h-5 w-5 text-violet-600" />
               </div>
               <CardTitle className="text-lg">الفئات</CardTitle>
             </div>
             <Button
               onClick={handleOpenAdd}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               إضافة فئة
@@ -346,7 +346,7 @@ export default function CategoriesList() {
                       </TableCell>
                       <TableCell>
                         {cat.isActive ? (
-                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                             نشطة
                           </Badge>
                         ) : (
@@ -361,7 +361,7 @@ export default function CategoriesList() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleOpenEdit(cat)}
-                            className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -469,7 +469,7 @@ export default function CategoriesList() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? 'تحديث' : 'إضافة'}

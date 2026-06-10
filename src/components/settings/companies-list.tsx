@@ -310,8 +310,8 @@ export default function CompaniesList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">إدارة الشركات</CardTitle>
@@ -350,13 +350,13 @@ export default function CompaniesList() {
                     return (
                       <TableRow
                         key={company.id}
-                        className={isCurrent ? 'bg-emerald-50/50' : ''}
+                        className={isCurrent ? 'bg-violet-50/50' : ''}
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div
                               className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
-                                isCurrent ? 'bg-emerald-500' : 'bg-slate-100'
+                                isCurrent ? 'bg-violet-600' : 'bg-slate-100'
                               }`}
                             >
                               <Building2
@@ -369,7 +369,7 @@ export default function CompaniesList() {
                               <div className="flex items-center gap-2">
                                 <p className="font-semibold text-sm">{company.nameAr}</p>
                                 {isCurrent && (
-                                  <Badge className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0">
+                                  <Badge className="bg-violet-100 text-violet-700 text-[10px] px-1.5 py-0">
                                     الحالية
                                   </Badge>
                                 )}
@@ -406,7 +406,7 @@ export default function CompaniesList() {
                           <Badge
                             className={`text-xs ${
                               company.status === 'active'
-                                ? 'bg-emerald-100 text-emerald-700'
+                                ? 'bg-violet-100 text-violet-700'
                                 : 'bg-red-100 text-red-700'
                             }`}
                           >
@@ -423,7 +423,7 @@ export default function CompaniesList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleSwitchToCompany(company.id)}
-                                className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                className="h-8 w-8 text-violet-600 hover:text-violet-800 hover:bg-violet-50"
                                 title="التبديل إلى هذه الشركة"
                               >
                                 <CheckCircle2 className="h-4 w-4" />
@@ -433,7 +433,7 @@ export default function CompaniesList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleOpenDetail(company)}
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               title="عرض التفاصيل"
                             >
                               <Eye className="h-4 w-4" />
@@ -564,7 +564,7 @@ export default function CompaniesList() {
             <Button
               onClick={handleSaveEdit}
               disabled={editSaving}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {editSaving && <Loader2 className="h-4 w-4 animate-spin" />}
               حفظ التعديلات
@@ -665,7 +665,7 @@ export default function CompaniesList() {
         <DialogContent className="sm:max-w-xl" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-emerald-600" />
+              <Building2 className="h-5 w-5 text-violet-600" />
               تفاصيل الشركة
             </DialogTitle>
           </DialogHeader>
@@ -676,7 +676,7 @@ export default function CompaniesList() {
               <div className="flex items-center gap-4 bg-slate-50 rounded-lg p-4">
                 <div
                   className={`h-14 w-14 rounded-xl flex items-center justify-center ${
-                    detailCompany.id === currentCompanyId ? 'bg-emerald-500' : 'bg-slate-200'
+                    detailCompany.id === currentCompanyId ? 'bg-violet-600' : 'bg-slate-200'
                   }`}
                 >
                   <Building2
@@ -693,7 +693,7 @@ export default function CompaniesList() {
                   <Badge
                     className={`${
                       detailCompany.status === 'active'
-                        ? 'bg-emerald-100 text-emerald-700'
+                        ? 'bg-violet-100 text-violet-700'
                         : 'bg-red-100 text-red-700'
                     }`}
                   >
@@ -749,7 +749,7 @@ export default function CompaniesList() {
                       }
                       return (
                         <div key={key} className="bg-slate-50 rounded-lg p-2.5 text-center">
-                          <p className="font-mono font-bold text-emerald-700 text-lg" dir="ltr">{count}</p>
+                          <p className="font-mono font-bold text-violet-700 text-lg" dir="ltr">{count}</p>
                           <p className="text-[10px] text-slate-500">{labelMap[key] || key}</p>
                         </div>
                       )
@@ -766,7 +766,7 @@ export default function CompaniesList() {
                       handleSwitchToCompany(detailCompany.id)
                       setDetailOpen(false)
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                    className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     التبديل إليها

@@ -48,6 +48,7 @@ import {
   Check,
   ChevronsUpDown,
   Undo2,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -1006,11 +1007,11 @@ function AppContent() {
           <SheetContent side="right" className="w-72 p-0">
             <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
             <div className="h-14 flex items-center gap-3 px-4 border-b shrink-0">
-              <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <LayoutDashboard className="h-4 w-4 text-white" />
+              <div className="h-8 w-8 bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] rounded-lg flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-white" />
               </div>
-              <span className="font-bold text-emerald-700 text-lg">
-                Ctrl
+              <span className="font-bold text-violet-700 text-lg" style={{ fontFamily: "var(--font-thmanyah-serif)" }}>
+                كنترول
               </span>
             </div>
             <ScrollArea className="h-[calc(100dvh-3.5rem)]">
@@ -1025,7 +1026,7 @@ function AppContent() {
               />
               {/* Mobile user section */}
               <div className="border-t p-3 mt-2 flex items-center gap-3">
-                <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-sm">
+                <div className="h-8 w-8 bg-violet-100 rounded-full flex items-center justify-center text-violet-700 font-bold text-sm">
                   {(user?.name || 'م')[0]}
                 </div>
                 <span className="text-sm font-medium text-slate-700 truncate">{user?.name || 'مستخدم'}</span>
@@ -1067,7 +1068,7 @@ function AppContent() {
 
         {/* User menu */}
         <div className="hidden sm:flex items-center gap-2 ms-2">
-          <div className="h-8 w-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-sm">
+          <div className="h-8 w-8 bg-violet-100 rounded-full flex items-center justify-center text-violet-700 font-bold text-sm">
             {(user?.name || 'م')[0]}
           </div>
           <div className="text-right">
@@ -1105,16 +1106,16 @@ function AppContent() {
           <div className="h-14 flex items-center px-4 border-b shrink-0">
             {sidebarOpen ? (
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                  <LayoutDashboard className="h-4 w-4 text-white" />
+                <div className="h-8 w-8 bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] rounded-lg flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-bold text-emerald-700 text-lg">
-                  Ctrl
+                <span className="font-bold text-violet-700 text-lg" style={{ fontFamily: "var(--font-thmanyah-serif)" }}>
+                  كنترول
                 </span>
               </div>
             ) : (
-              <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center mx-auto">
-                <LayoutDashboard className="h-4 w-4 text-white" />
+              <div className="h-8 w-8 bg-gradient-to-bl from-[#7C3AED] to-[#5B21B6] rounded-lg flex items-center justify-center mx-auto">
+                <Sparkles className="h-4 w-4 text-white" />
               </div>
             )}
           </div>

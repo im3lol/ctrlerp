@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       { type: 'ASSET', label: 'الأصول', color: 'bg-cyan-400' },
       { type: 'LIABILITY', label: 'الالتزامات', color: 'bg-red-400' },
       { type: 'EQUITY', label: 'حقوق الملكية', color: 'bg-purple-400' },
-      { type: 'REVENUE', label: 'الإيرادات', color: 'bg-emerald-400' },
+      { type: 'REVENUE', label: 'الإيرادات', color: 'bg-violet-400' },
       { type: 'EXPENSE', label: 'المصروفات', color: 'bg-orange-400' },
     ]
 

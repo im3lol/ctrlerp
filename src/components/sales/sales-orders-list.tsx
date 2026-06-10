@@ -366,8 +366,8 @@ export default function SalesOrdersList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">أوامر البيع</CardTitle>
@@ -378,7 +378,7 @@ export default function SalesOrdersList() {
             </div>
             <Button
               onClick={handleOpenNew}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               أمر بيع جديد
@@ -389,11 +389,11 @@ export default function SalesOrdersList() {
           {/* Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
             {itemFilter && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-sm text-violet-700">
                 <span>تصفية حسب الصنف</span>
                 <button
                   onClick={() => setItemFilter(null)}
-                  className="h-5 w-5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center"
+                  className="h-5 w-5 rounded-full bg-violet-200 hover:bg-violet-300 flex items-center justify-center"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -477,7 +477,7 @@ export default function SalesOrdersList() {
                         <TableCell>
                           <button
                             onClick={() => fetchOrderDetail(order.id)}
-                            className="font-mono text-sm text-emerald-700 hover:text-emerald-900 hover:underline font-semibold"
+                            className="font-mono text-sm text-violet-700 hover:text-violet-900 hover:underline font-semibold"
                           >
                             {order.number}
                           </button>
@@ -494,11 +494,11 @@ export default function SalesOrdersList() {
                             <div className="flex items-center gap-2">
                               <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden min-w-[60px]">
                                 <div
-                                  className="h-full bg-emerald-500 rounded-full transition-all"
+                                  className="h-full bg-violet-600 rounded-full transition-all"
                                   style={{ width: `${delInfo.percent}%` }}
                                 />
                               </div>
-                              <span className="text-xs font-mono text-emerald-600" dir="ltr">
+                              <span className="text-xs font-mono text-violet-600" dir="ltr">
                                 {delInfo.percent}%
                               </span>
                             </div>
@@ -522,7 +522,7 @@ export default function SalesOrdersList() {
                                     setConfirmingId(order.id)
                                     setConfirmDialogOpen(true)
                                   }}
-                                  className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                  className="h-8 w-8 text-violet-600 hover:text-violet-800 hover:bg-violet-50"
                                   title="تأكيد"
                                 >
                                   <CheckCircle2 className="h-4 w-4" />
@@ -531,7 +531,7 @@ export default function SalesOrdersList() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleOpenEdit(order.id)}
-                                  className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                  className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                   title="تعديل"
                                 >
                                   <Eye className="h-4 w-4" />
@@ -556,7 +556,7 @@ export default function SalesOrdersList() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => fetchOrderDetail(order.id)}
-                                  className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                  className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                   title="عرض التفاصيل"
                                 >
                                   <Eye className="h-4 w-4" />
@@ -565,7 +565,7 @@ export default function SalesOrdersList() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleCreateDeliveryNote(order)}
-                                  className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                  className="h-8 w-8 text-violet-600 hover:text-violet-800 hover:bg-violet-50"
                                   title="إنشاء إذن صرف"
                                 >
                                   <Truck className="h-4 w-4" />
@@ -598,7 +598,7 @@ export default function SalesOrdersList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => fetchOrderDetail(order.id)}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                 title="عرض التفاصيل"
                               >
                                 <Eye className="h-4 w-4" />
@@ -609,7 +609,7 @@ export default function SalesOrdersList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => fetchOrderDetail(order.id)}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                 title="عرض التفاصيل"
                               >
                                 <Eye className="h-4 w-4" />
@@ -641,7 +641,7 @@ export default function SalesOrdersList() {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={confirming}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {confirming && <Loader2 className="h-4 w-4 animate-spin" />}
               تأكيد
@@ -678,7 +678,7 @@ export default function SalesOrdersList() {
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           {detailLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             </div>
           ) : detailOrder ? (
             <>
@@ -750,7 +750,7 @@ export default function SalesOrdersList() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <span className={`font-mono text-sm ${isFullyDelivered ? 'text-emerald-600' : remaining > 0 && deliveredQty > 0 ? 'text-amber-600' : ''}`} dir="ltr">
+                                <span className={`font-mono text-sm ${isFullyDelivered ? 'text-violet-600' : remaining > 0 && deliveredQty > 0 ? 'text-amber-600' : ''}`} dir="ltr">
                                   {deliveredQty}
                                 </span>
                                 {!isFullyDelivered && deliveredQty > 0 && (
@@ -759,7 +759,7 @@ export default function SalesOrdersList() {
                                   </Badge>
                                 )}
                                 {isFullyDelivered && (
-                                  <Badge className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0">
+                                  <Badge className="bg-violet-100 text-violet-700 text-[10px] px-1.5 py-0">
                                     مكتمل
                                   </Badge>
                                 )}
@@ -798,7 +798,7 @@ export default function SalesOrdersList() {
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span>الإجمالي</span>
-                    <span className="font-mono text-emerald-700" dir="ltr">{formatCurrency(detailOrder.totalAmount)}</span>
+                    <span className="font-mono text-violet-700" dir="ltr">{formatCurrency(detailOrder.totalAmount)}</span>
                   </div>
                 </div>
 
@@ -806,7 +806,7 @@ export default function SalesOrdersList() {
                 {detailOrder.deliveryNotes && detailOrder.deliveryNotes.length > 0 && (
                   <div className="space-y-2">
                     <Label className="text-base font-semibold flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-emerald-600" />
+                      <Truck className="h-4 w-4 text-violet-600" />
                       أذون الصرف المرتبطة
                     </Label>
                     <div className="border rounded-lg overflow-hidden">
@@ -822,7 +822,7 @@ export default function SalesOrdersList() {
                         <TableBody>
                           {detailOrder.deliveryNotes.map((dn) => (
                             <TableRow key={dn.id}>
-                              <TableCell className="font-mono text-sm text-emerald-700" dir="ltr">
+                              <TableCell className="font-mono text-sm text-violet-700" dir="ltr">
                                 {dn.number}
                               </TableCell>
                               <TableCell className="text-sm text-slate-500">
@@ -853,7 +853,7 @@ export default function SalesOrdersList() {
                           handleCreateDeliveryNote(detailOrder)
                           setDetailDialogOpen(false)
                         }}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                        className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
                       >
                         <Truck className="h-4 w-4" />
                         إنشاء إذن صرف

@@ -123,8 +123,8 @@ export default function CompanyForm() {
     <Card className="border shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+            <Building2 className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <CardTitle className="text-lg">بيانات الشركة</CardTitle>
@@ -245,7 +245,7 @@ export default function CompanyForm() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-8 h-10"
+            className="bg-violet-600 hover:bg-violet-700 text-white gap-2 px-8 h-10"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />

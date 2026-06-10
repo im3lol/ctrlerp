@@ -14,9 +14,9 @@ export function getDocumentStatusBadge(status: string) {
     case 'PENDING':
       return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-medium">قيد المراجعة</Badge>
     case 'CONFIRMED':
-      return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">مؤكد</Badge>
+      return <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 font-medium">مؤكد</Badge>
     case 'APPROVED':
-      return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">معتمد</Badge>
+      return <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 font-medium">معتمد</Badge>
     case 'FULFILLED':
       return <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200 font-medium">مكتمل</Badge>
     case 'IN_PROGRESS':
@@ -28,7 +28,7 @@ export function getDocumentStatusBadge(status: string) {
     case 'CLOSED':
       return <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 font-medium">مغلق</Badge>
     case 'POSTED':
-      return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">مرحّل</Badge>
+      return <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 font-medium">مرحّل</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -51,9 +51,9 @@ interface ActionButton {
 interface DocumentPageHeaderProps {
   /** Icon component for the document type */
   icon: ElementType
-  /** Icon background color class (e.g. 'bg-emerald-50') */
+  /** Icon background color class (e.g. 'bg-violet-50') */
   iconBg?: string
-  /** Icon color class (e.g. 'text-emerald-600') */
+  /** Icon color class (e.g. 'text-violet-600') */
   iconColor?: string
   /** Document title when new (e.g. 'أمر شراء جديد') */
   newTitle: string
@@ -75,8 +75,8 @@ interface DocumentPageHeaderProps {
 
 export default function DocumentPageHeader({
   icon: Icon,
-  iconBg = 'bg-emerald-50',
-  iconColor = 'text-emerald-600',
+  iconBg = 'bg-violet-50',
+  iconColor = 'text-violet-600',
   newTitle,
   editTitlePrefix,
   documentNumber,
@@ -145,8 +145,8 @@ export default function DocumentPageHeader({
             className={`gap-2 text-sm ${
               action.className ||
               (idx === primaryActions.length - 1
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50')
+                ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                : 'border-violet-200 text-violet-700 hover:bg-violet-50')
             }`}
           >
             {action.loading ? (

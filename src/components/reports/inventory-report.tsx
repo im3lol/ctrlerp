@@ -71,8 +71,8 @@ export default function InventoryReport() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Package className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 bg-violet-100 rounded-xl flex items-center justify-center">
+            <Package className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">تقرير المخازن</h2>
@@ -101,10 +101,10 @@ export default function InventoryReport() {
       {/* Summary Cards */}
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Card className="border-emerald-200">
+          <Card className="border-violet-200">
             <CardContent className="p-4 text-center">
               <p className="text-xs text-slate-500 mb-1">إجمالي قيمة المخزون</p>
-              <p className="text-lg font-bold text-emerald-700">{formatCurrency(data.grandTotal)}</p>
+              <p className="text-lg font-bold text-violet-700">{formatCurrency(data.grandTotal)}</p>
             </CardContent>
           </Card>
           <Card className="border-cyan-200">
@@ -127,7 +127,7 @@ export default function InventoryReport() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             </div>
           ) : data && data.lines.length > 0 ? (
             <div className="overflow-x-auto">
@@ -161,7 +161,7 @@ export default function InventoryReport() {
                             منخفض
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 text-xs">
+                          <Badge variant="secondary" className="bg-violet-100 text-violet-800 text-xs">
                             طبيعي
                           </Badge>
                         )}
@@ -169,11 +169,11 @@ export default function InventoryReport() {
                     </TableRow>
                   ))}
                   {/* Grand Total */}
-                  <TableRow className="bg-emerald-50 font-bold border-t-2 border-emerald-200">
-                    <TableCell colSpan={5} className="text-center text-emerald-800">
+                  <TableRow className="bg-violet-50 font-bold border-t-2 border-violet-200">
+                    <TableCell colSpan={5} className="text-center text-violet-800">
                       الإجمالي العام
                     </TableCell>
-                    <TableCell className="font-mono text-emerald-800">{formatCurrency(data.grandTotal)}</TableCell>
+                    <TableCell className="font-mono text-violet-800">{formatCurrency(data.grandTotal)}</TableCell>
                     <TableCell colSpan={2} />
                   </TableRow>
                 </TableBody>

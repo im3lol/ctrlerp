@@ -638,7 +638,7 @@ export default function DeliveryNoteFormPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
       </div>
     )
   }
@@ -839,7 +839,7 @@ export default function DeliveryNoteFormPage() {
               variant="outline"
               size="sm"
               onClick={addLine}
-              className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+              className="gap-1.5 text-violet-600 border-violet-200 hover:bg-violet-50"
             >
               <Plus className="h-3.5 w-3.5" />
               إضافة سطر
@@ -886,7 +886,7 @@ export default function DeliveryNoteFormPage() {
                           handleAddItemById(item.id)
                           setSearchQuery('')
                         }}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-emerald-50 border-b last:border-0 transition-colors"
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-violet-50 border-b last:border-0 transition-colors"
                       >
                         <span className="font-medium">{item.nameAr || item.nameEn || item.code}</span>
                         <span className="text-slate-400 mr-2 font-mono text-xs">({item.code})</span>

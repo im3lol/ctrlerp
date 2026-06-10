@@ -448,7 +448,7 @@ export default function MaterialRequestFormPage() {
               variant="outline"
               size="sm"
               onClick={addLine}
-              className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+              className="gap-1.5 text-violet-600 border-violet-200 hover:bg-violet-50"
             >
               <Plus className="h-3.5 w-3.5" />
               إضافة سطر
@@ -489,7 +489,7 @@ export default function MaterialRequestFormPage() {
                           handleAddItemById(item.id)
                           setSearchQuery('')
                         }}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-emerald-50 border-b last:border-0 transition-colors"
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-violet-50 border-b last:border-0 transition-colors"
                       >
                         <span className="font-medium">{item.nameAr || item.nameEn || item.code}</span>
                         <span className="text-slate-400 mr-2 font-mono text-xs">({item.code})</span>

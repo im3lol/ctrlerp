@@ -449,8 +449,8 @@ export default function JournalEntriesList() {
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">القيود اليومية</CardTitle>
@@ -459,7 +459,7 @@ export default function JournalEntriesList() {
             </div>
             <Button
               onClick={handleOpenCreate}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               إضافة قيد
@@ -541,7 +541,7 @@ export default function JournalEntriesList() {
                         <TableCell>
                           <button
                             onClick={() => handleViewDetail(entry.id)}
-                            className="font-mono text-sm text-emerald-700 hover:text-emerald-900 hover:underline font-medium"
+                            className="font-mono text-sm text-violet-700 hover:text-violet-900 hover:underline font-medium"
                           >
                             {entry.number}
                           </button>
@@ -571,7 +571,7 @@ export default function JournalEntriesList() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               onClick={() => handleViewDetail(entry.id)}
                               title="عرض التفاصيل"
                             >
@@ -594,7 +594,7 @@ export default function JournalEntriesList() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                  className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                   onClick={() => handleOpenEdit(entry)}
                                   title="تعديل"
                                 >
@@ -814,14 +814,14 @@ export default function JournalEntriesList() {
                     <span
                       className={cn(
                         'font-mono text-sm font-bold',
-                        isBalanced ? 'text-emerald-600' : 'text-red-600'
+                        isBalanced ? 'text-violet-600' : 'text-red-600'
                       )}
                       dir="ltr"
                     >
                       {formatCurrency(Math.abs(totalDebit - totalCredit))}
                     </span>
                     {isBalanced ? (
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1">
+                      <Badge className="bg-violet-50 text-violet-700 border-violet-200 gap-1">
                         <CheckCircle2 className="h-3 w-3" />
                         متوازن
                       </Badge>
@@ -849,7 +849,7 @@ export default function JournalEntriesList() {
               <Button
                 onClick={handleSaveDraft}
                 disabled={submitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 flex-1"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-2 flex-1"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {editingId ? 'تحديث المسودة' : 'حفظ كمسودة'}
@@ -864,7 +864,7 @@ export default function JournalEntriesList() {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-emerald-600" />
+              <FileText className="h-5 w-5 text-violet-600" />
               تفاصيل القيد
             </DialogTitle>
             <DialogDescription>
@@ -972,7 +972,7 @@ export default function JournalEntriesList() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <CheckCircle2 className="h-5 w-5 text-violet-600" />
               تأكيد الترحيل
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -983,7 +983,7 @@ export default function JournalEntriesList() {
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePost}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-violet-600 hover:bg-violet-700 text-white"
             >
               ترحيل
             </AlertDialogAction>

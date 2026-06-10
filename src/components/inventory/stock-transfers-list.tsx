@@ -113,7 +113,7 @@ const statusLabels: Record<string, string> = {
 
 const statusBadgeStyles: Record<string, string> = {
   DRAFT: 'bg-slate-50 text-slate-700 border-slate-200',
-  CONFIRMED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  CONFIRMED: 'bg-violet-50 text-violet-700 border-violet-200',
   CANCELLED: 'bg-red-50 text-red-700 border-red-200',
 }
 
@@ -390,14 +390,14 @@ export default function StockTransfersList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <ArrowRightLeft className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <ArrowRightLeft className="h-5 w-5 text-violet-600" />
               </div>
               <CardTitle className="text-lg">تحويلات المخزون</CardTitle>
             </div>
             <Button
               onClick={handleOpenCreate}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               تحويل جديد
@@ -467,7 +467,7 @@ export default function StockTransfersList() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-slate-500 hover:text-emerald-600"
+                            className="h-8 w-8 text-slate-500 hover:text-violet-600"
                             onClick={() => handleViewTransfer(transfer.id)}
                             title="عرض التفاصيل"
                           >
@@ -478,7 +478,7 @@ export default function StockTransfersList() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600"
                                 onClick={async () => {
                                   setSubmitting(true)
                                   try {
@@ -568,7 +568,7 @@ export default function StockTransfersList() {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="h-5 w-5 text-emerald-600" />
+              <ArrowRightLeft className="h-5 w-5 text-violet-600" />
               تحويل مخزون جديد
             </DialogTitle>
             <DialogDescription>
@@ -661,7 +661,7 @@ export default function StockTransfersList() {
                 variant="outline"
                 size="sm"
                 onClick={handleAddLine}
-                className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                className="gap-1 text-violet-600 border-violet-200 hover:bg-violet-50"
               >
                 <Plus className="h-3.5 w-3.5" />
                 إضافة صنف
@@ -747,7 +747,7 @@ export default function StockTransfersList() {
             <Button
               onClick={handleCreateSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               إنشاء التحويل
@@ -761,13 +761,13 @@ export default function StockTransfersList() {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           {viewLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             </div>
           ) : selectedTransfer ? (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <ArrowRightLeft className="h-5 w-5 text-emerald-600" />
+                  <ArrowRightLeft className="h-5 w-5 text-violet-600" />
                   تحويل مخزون {selectedTransfer.number}
                 </DialogTitle>
                 <DialogDescription>
@@ -873,7 +873,7 @@ export default function StockTransfersList() {
                     <Button
                       onClick={handleConfirmTransfer}
                       disabled={submitting}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                      className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
                     >
                       {submitting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

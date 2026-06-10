@@ -19,24 +19,24 @@ export default function CompanySelector({ onSelect }: CompanySelectorProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-bl from-emerald-700 via-emerald-800 to-emerald-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-bl from-violet-700 via-violet-800 to-violet-900 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-600/20 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-violet-600/20 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-500/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-emerald-400/10 rounded-full blur-2xl" />
+        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-violet-400/10 rounded-full blur-2xl" />
       </div>
 
       <div className="relative z-10 w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
           <Avatar className="h-16 w-16 mx-auto mb-4 border-2 border-white/20 shadow-lg">
-            <AvatarFallback className="bg-emerald-600 text-white text-xl font-bold">
+            <AvatarFallback className="bg-violet-600 text-white text-xl font-bold">
               {user?.name?.charAt(0) || 'م'}
             </AvatarFallback>
           </Avatar>
           <h2 className="text-2xl font-bold text-white">مرحباً، {user?.name || 'المستخدم'}</h2>
-          <p className="text-emerald-200 mt-1">اختر الشركة للدخول إليها</p>
+          <p className="text-violet-200 mt-1">اختر الشركة للدخول إليها</p>
         </div>
 
         {/* Company Grid */}
@@ -68,7 +68,7 @@ export default function CompanySelector({ onSelect }: CompanySelectorProps) {
         <div className="text-center mt-8">
           <Button
             variant="ghost"
-            className="text-emerald-200 hover:text-white hover:bg-white/10 gap-2"
+            className="text-violet-200 hover:text-white hover:bg-white/10 gap-2"
             onClick={() => logout()}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -91,12 +91,12 @@ function CompanyCard({
     <Card className="border-0 bg-white shadow-xl shadow-black/10 hover:shadow-2xl hover:shadow-black/15 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer group overflow-hidden">
       <CardContent className="p-0">
         {/* Top accent bar */}
-        <div className="h-1.5 bg-gradient-to-l from-emerald-500 to-teal-500" />
+        <div className="h-1.5 bg-gradient-to-l from-violet-600 to-teal-500" />
         <div className="p-5">
           <div className="flex items-start gap-4">
             {/* Company Icon */}
-            <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:bg-emerald-100 transition-colors">
-              <Building2 className="h-6 w-6 text-emerald-600" />
+            <div className="h-12 w-12 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:bg-violet-100 transition-colors">
+              <Building2 className="h-6 w-6 text-violet-600" />
             </div>
 
             {/* Company Info */}
@@ -108,7 +108,7 @@ function CompanyCard({
                 {company.nameEn}
               </p>
               <div className="mt-2">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-violet-50 text-violet-700">
                   {roleLabels[company.role] || company.role}
                 </span>
               </div>
@@ -117,7 +117,7 @@ function CompanyCard({
 
           {/* Enter Button */}
           <Button
-            className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-2 shadow-sm"
+            className="w-full mt-4 bg-violet-600 hover:bg-violet-700 text-white rounded-lg gap-2 shadow-sm"
             onClick={(e) => {
               e.stopPropagation()
               onSelect(company.id)

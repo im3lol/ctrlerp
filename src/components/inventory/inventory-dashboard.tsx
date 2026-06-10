@@ -88,7 +88,7 @@ export default function InventoryDashboard() {
 
   // ── Quick Actions ──
   const quickActions: QuickAction[] = [
-    { id: 'warehouses', label: 'المخازن', description: 'إدارة المخازن والمناطق', icon: Warehouse, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', viewId: 'warehouses' },
+    { id: 'warehouses', label: 'المخازن', description: 'إدارة المخازن والمناطق', icon: Warehouse, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', viewId: 'warehouses' },
     { id: 'items', label: 'الأصناف', description: 'إدارة الأصناف والمنتجات', icon: Package, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', viewId: 'items' },
     { id: 'categories', label: 'الفئات', description: 'تصنيف الأصناف', icon: Tags, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', viewId: 'categories' },
     { id: 'material-requests', label: 'طلب مواد', description: 'إنشاء طلب مواد جديد', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', viewId: 'material-requests', badge: data?.pendingActions.materialRequests },
@@ -102,7 +102,7 @@ export default function InventoryDashboard() {
 
   // ── Stat Cards Definition ──
   const statCards = [
-    { key: 'totalStockValue', label: 'قيمة المخزون', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', isCurrency: true },
+    { key: 'totalStockValue', label: 'قيمة المخزون', icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', isCurrency: true },
     { key: 'uniqueItemsInStock', label: 'أصناف بالمخزون', icon: Package, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', isCurrency: false },
     { key: 'warehouseCount', label: 'عدد المخازن', icon: Warehouse, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', isCurrency: false },
     { key: 'lowStockAlerts', label: 'أصناف ناقصة', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', isCurrency: false, isAlert: true },
@@ -117,7 +117,7 @@ export default function InventoryDashboard() {
 
   // ── Movement type styling ──
   const movementStyles: Record<string, { icon: ElementType; color: string; bg: string; label: string }> = {
-    IN: { icon: ArrowDownCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'وارد' },
+    IN: { icon: ArrowDownCircle, color: 'text-violet-600', bg: 'bg-violet-50', label: 'وارد' },
     OUT: { icon: ArrowUpCircle, color: 'text-orange-600', bg: 'bg-orange-50', label: 'صادر' },
     ADJ: { icon: ArrowRightLeft, color: 'text-slate-600', bg: 'bg-slate-50', label: 'تسوية' },
   }
@@ -227,8 +227,8 @@ export default function InventoryDashboard() {
       <Card className="border shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <LayoutGrid className="h-4.5 w-4.5 text-emerald-600" />
+            <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
+              <LayoutGrid className="h-4.5 w-4.5 text-violet-600" />
             </div>
             <CardTitle className="text-base font-semibold">اختصارات المخازن</CardTitle>
           </div>
@@ -270,8 +270,8 @@ export default function InventoryDashboard() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-violet-600" />
                 </div>
                 <CardTitle className="text-sm font-semibold">أعلى الأصناف قيمة</CardTitle>
               </div>
@@ -295,7 +295,7 @@ export default function InventoryDashboard() {
                         </div>
                         <div className="mt-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                            className="h-full bg-violet-400 rounded-full transition-all duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -332,7 +332,7 @@ export default function InventoryDashboard() {
                 {data.warehouseDistribution.map((wh) => {
                   const maxQty = Math.max(...data.warehouseDistribution.map(w => w.totalQuantity), 1)
                   const pct = Math.round((wh.totalQuantity / maxQty) * 100)
-                  const colors = ['bg-emerald-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400']
+                  const colors = ['bg-violet-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400']
                   const colorIdx = data.warehouseDistribution.indexOf(wh) % colors.length
                   return (
                     <div key={wh.warehouseId}>
@@ -404,8 +404,8 @@ export default function InventoryDashboard() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-32 text-slate-400">
-                <Package className="h-8 w-8 mb-2 text-emerald-200" />
-                <p className="text-xs text-emerald-600 font-medium">المخزون كافي ✓</p>
+                <Package className="h-8 w-8 mb-2 text-violet-200" />
+                <p className="text-xs text-violet-600 font-medium">المخزون كافي ✓</p>
                 <p className="text-[10px] text-slate-300 mt-0.5">لا توجد أصناف أقل من الحد الأدنى</p>
               </div>
             )}
@@ -422,7 +422,7 @@ export default function InventoryDashboard() {
                 </div>
                 <CardTitle className="text-sm font-semibold">آخر حركات المخزن</CardTitle>
               </div>
-              <button onClick={() => setView('stock-movements')} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+              <button onClick={() => setView('stock-movements')} className="text-xs text-violet-600 hover:text-violet-700 font-medium">
                 عرض الكل ←
               </button>
             </div>
@@ -482,7 +482,7 @@ export default function InventoryDashboard() {
               {data.categoryDistribution.map((cat) => {
                 const maxVal = Math.max(...data.categoryDistribution.map(c => c.value), 1)
                 const pct = Math.round((cat.value / maxVal) * 100)
-                const colors = ['bg-emerald-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400', 'bg-cyan-400', 'bg-orange-400', 'bg-indigo-400']
+                const colors = ['bg-violet-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400', 'bg-cyan-400', 'bg-orange-400', 'bg-indigo-400']
                 const colorIdx = data.categoryDistribution.indexOf(cat) % colors.length
                 return (
                   <div key={cat.id} className="p-3 rounded-xl border border-slate-100 bg-white hover:shadow-sm transition-shadow">

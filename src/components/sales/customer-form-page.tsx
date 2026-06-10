@@ -133,7 +133,7 @@ export default function CustomerFormPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
       </div>
     )
   }
@@ -147,8 +147,8 @@ export default function CustomerFormPage() {
             <ArrowRight className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Users className="h-5 w-5 text-emerald-600" />
+            <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+              <Users className="h-5 w-5 text-violet-600" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">
@@ -167,7 +167,7 @@ export default function CustomerFormPage() {
           <Button
             onClick={handleSave}
             disabled={submitting}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             حفظ
@@ -280,7 +280,7 @@ export default function CustomerFormPage() {
               />
               <Label>نشط</Label>
               {formData.isActive ? (
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">نشط</Badge>
+                <Badge className="bg-violet-50 text-violet-700 border-violet-200">نشط</Badge>
               ) : (
                 <Badge variant="secondary" className="bg-slate-100 text-slate-500">غير نشط</Badge>
               )}

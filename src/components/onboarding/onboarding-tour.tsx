@@ -288,7 +288,7 @@ function TourTooltip({
                 className={cn(
                   'gap-1',
                   isLast
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    ? 'bg-violet-600 hover:bg-violet-700 text-white'
                     : 'bg-violet-600 hover:bg-violet-700 text-white'
                 )}
               >

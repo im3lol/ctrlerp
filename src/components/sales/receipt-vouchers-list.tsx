@@ -279,7 +279,7 @@ export default function ReceiptVouchersList() {
   const getPaymentMethodBadge = (method: string) => {
     switch (method) {
       case 'CASH':
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">نقدي</Badge>
+        return <Badge className="bg-violet-50 text-violet-700 border-violet-200">نقدي</Badge>
       case 'BANK':
         return <Badge className="bg-teal-50 text-teal-700 border-teal-200">بنكي</Badge>
       case 'CHECK':
@@ -315,8 +315,8 @@ export default function ReceiptVouchersList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Receipt className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <Receipt className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">سندات القبض</CardTitle>
@@ -327,7 +327,7 @@ export default function ReceiptVouchersList() {
             </div>
             <Button
               onClick={handleOpenNew}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               سند قبض جديد
@@ -396,14 +396,14 @@ export default function ReceiptVouchersList() {
                 ) : (
                   receipts.map((rcpt) => (
                     <TableRow key={rcpt.id}>
-                      <TableCell className="font-mono text-sm font-semibold text-emerald-700">
+                      <TableCell className="font-mono text-sm font-semibold text-violet-700">
                         {rcpt.number}
                       </TableCell>
                       <TableCell className="font-medium">{rcpt.customer.nameAr}</TableCell>
                       <TableCell className="text-slate-500 text-sm">
                         {formatDate(rcpt.date)}
                       </TableCell>
-                      <TableCell className="font-mono font-semibold text-emerald-600" dir="ltr">
+                      <TableCell className="font-mono font-semibold text-violet-600" dir="ltr">
                         {formatCurrency(rcpt.amount)}
                       </TableCell>
                       <TableCell>{getPaymentMethodBadge(rcpt.paymentMethod)}</TableCell>
@@ -525,7 +525,7 @@ export default function ReceiptVouchersList() {
                       variant="outline"
                       size="sm"
                       onClick={autoDistribute}
-                      className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50 text-xs"
+                      className="gap-1 text-violet-600 border-violet-200 hover:bg-violet-50 text-xs"
                     >
                       <DollarSign className="h-3 w-3" />
                       توزيع تلقائي
@@ -550,7 +550,7 @@ export default function ReceiptVouchersList() {
                             <TableCell className="font-mono text-sm" dir="ltr">
                               {formatCurrency(inv.totalAmount)}
                             </TableCell>
-                            <TableCell className="font-mono text-sm text-emerald-600" dir="ltr">
+                            <TableCell className="font-mono text-sm text-violet-600" dir="ltr">
                               {formatCurrency(inv.paidAmount)}
                             </TableCell>
                             <TableCell className="font-mono text-sm text-red-600" dir="ltr">
@@ -601,7 +601,7 @@ export default function ReceiptVouchersList() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               إنشاء السند

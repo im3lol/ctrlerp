@@ -525,7 +525,7 @@ export default function PurchaseOrderFormPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
       </div>
     )
   }
@@ -535,8 +535,8 @@ export default function PurchaseOrderFormPage() {
       {/* ── Page Header ── */}
       <DocumentPageHeader
         icon={FileText}
-        iconBg="bg-emerald-50"
-        iconColor="text-emerald-600"
+        iconBg="bg-violet-50"
+        iconColor="text-violet-600"
         newTitle="أمر شراء جديد"
         editTitlePrefix="أمر شراء"
         documentNumber={orderNumber || undefined}
@@ -592,7 +592,7 @@ export default function PurchaseOrderFormPage() {
       <DocumentSection
         title="بيانات أمر الشراء"
         icon={ClipboardList}
-        iconColor="text-emerald-600"
+        iconColor="text-violet-600"
       >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
@@ -649,14 +649,14 @@ export default function PurchaseOrderFormPage() {
       <DocumentSection
         title="بنود أمر الشراء"
         icon={Package}
-        iconColor="text-emerald-600"
+        iconColor="text-violet-600"
         action={
           isEditable ? (
             <Button
               variant="outline"
               size="sm"
               onClick={addLine}
-              className="gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+              className="gap-1.5 text-violet-600 border-violet-200 hover:bg-violet-50"
             >
               <Plus className="h-3.5 w-3.5" />
               إضافة سطر
@@ -694,7 +694,7 @@ export default function PurchaseOrderFormPage() {
                       <button
                         key={item.id}
                         onClick={() => handleAddItemById(item.id)}
-                        className="w-full text-right px-3 py-2 text-sm hover:bg-emerald-50 border-b last:border-0 transition-colors"
+                        className="w-full text-right px-3 py-2 text-sm hover:bg-violet-50 border-b last:border-0 transition-colors"
                       >
                         <span className="font-medium">{item.nameAr || item.nameEn || item.code}</span>
                         <span className="text-slate-400 mr-2 font-mono text-xs">({item.code})</span>
@@ -825,7 +825,7 @@ export default function PurchaseOrderFormPage() {
         <DocumentSection
           title="ملاحظات"
           icon={FileText}
-          iconColor="text-emerald-600"
+          iconColor="text-violet-600"
         >
           <Textarea
             value={orderNotes}
@@ -840,7 +840,7 @@ export default function PurchaseOrderFormPage() {
         <DocumentSection
           title="ملخص الحساب"
           icon={Calculator}
-          iconColor="text-emerald-600"
+          iconColor="text-violet-600"
         >
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
@@ -886,7 +886,7 @@ export default function PurchaseOrderFormPage() {
             <Separator />
             <div className="flex justify-between items-center pt-2">
               <span className="text-base font-bold text-slate-900">الإجمالي</span>
-              <span className="text-2xl font-bold font-mono text-emerald-700" dir="ltr">
+              <span className="text-2xl font-bold font-mono text-violet-700" dir="ltr">
                 {formatCurrency(totals.total)}
               </span>
             </div>

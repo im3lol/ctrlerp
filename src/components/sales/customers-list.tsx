@@ -124,7 +124,7 @@ export default function CustomersList() {
 
   const getBalanceColor = (balance: number) => {
     if (balance > 0) return 'text-red-600'
-    if (balance < 0) return 'text-emerald-600'
+    if (balance < 0) return 'text-violet-600'
     return 'text-slate-400'
   }
 
@@ -159,8 +159,8 @@ export default function CustomersList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Users className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <Users className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">العملاء</CardTitle>
@@ -171,7 +171,7 @@ export default function CustomersList() {
             </div>
             <Button
               onClick={handleOpenAdd}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               إضافة عميل
@@ -266,7 +266,7 @@ export default function CustomersList() {
                       </TableCell>
                       <TableCell>
                         {customer.isActive ? (
-                          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                          <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                             نشط
                           </Badge>
                         ) : (
@@ -281,7 +281,7 @@ export default function CustomersList() {
                             variant="ghost"
                             size="icon"
                             onClick={(e) => { e.stopPropagation(); handleOpenEdit(customer.id) }}
-                            className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                           >
                             <Users className="h-4 w-4" />
                           </Button>

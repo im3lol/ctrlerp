@@ -363,11 +363,11 @@ export default function InvestorsList() {
     <>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="border shadow-sm border-emerald-200">
+        <Card className="border shadow-sm border-violet-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-50">
-                <DollarSign className="h-5 w-5 text-emerald-600" />
+              <div className="p-2.5 rounded-xl bg-violet-50">
+                <DollarSign className="h-5 w-5 text-violet-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-slate-500">إجمالي رأس المال</p>
@@ -434,8 +434,8 @@ export default function InvestorsList() {
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Users className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <Users className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">المستثمرون</CardTitle>
@@ -455,7 +455,7 @@ export default function InvestorsList() {
               </Button>
               <Button
                 onClick={handleOpenAdd}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
               >
                 <Plus className="h-4 w-4" />
                 إضافة مستثمر
@@ -538,7 +538,7 @@ export default function InvestorsList() {
                         </TableCell>
                         <TableCell>
                           {inv.status === 'active' ? (
-                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                               نشط
                             </Badge>
                           ) : (
@@ -553,7 +553,7 @@ export default function InvestorsList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => setLedgerInvestorId(inv.id)}
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               title="عرض الدفتر"
                             >
                               <Eye className="h-4 w-4" />
@@ -694,7 +694,7 @@ export default function InvestorsList() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? 'تحديث' : 'إضافة'}
@@ -766,7 +766,7 @@ export default function InvestorsList() {
             <Button
               onClick={handleRecordInvestment}
               disabled={investmentSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {investmentSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               تسجيل الاستثمار
@@ -877,7 +877,7 @@ export default function InvestorsList() {
               <div className="grid grid-cols-2 gap-1.5">
                 <div className="flex items-center justify-between text-xs bg-white rounded px-2 py-1.5">
                   <span className="text-slate-600">إجمالي الاستثمار</span>
-                  <span className="font-mono font-bold text-emerald-600" dir="ltr">
+                  <span className="font-mono font-bold text-violet-600" dir="ltr">
                     {formatCurrency(deletingInvestor.totalInvestment)}
                   </span>
                 </div>

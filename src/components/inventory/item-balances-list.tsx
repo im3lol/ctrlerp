@@ -163,8 +163,8 @@ export default function ItemBalancesList() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Scale className="h-5 w-5 text-emerald-600" />
+            <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+              <Scale className="h-5 w-5 text-violet-600" />
             </div>
             <div>
               <CardTitle className="text-lg">أرصدة الأصناف</CardTitle>
@@ -305,7 +305,7 @@ export default function ItemBalancesList() {
                       {totalQuantity.toLocaleString('ar-EG')}
                     </TableCell>
                     <TableCell className="font-mono text-slate-400">—</TableCell>
-                    <TableCell className="font-mono font-bold text-emerald-700" dir="ltr">
+                    <TableCell className="font-mono font-bold text-violet-700" dir="ltr">
                       {formatCurrency(totalValue)}
                     </TableCell>
                     <TableCell className="text-slate-400">—</TableCell>

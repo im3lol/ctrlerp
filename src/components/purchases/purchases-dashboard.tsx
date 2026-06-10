@@ -80,7 +80,7 @@ export default function PurchasesDashboard() {
 
   // ── Quick Actions ──
   const quickActions: QuickAction[] = [
-    { id: 'suppliers', label: 'الموردين', description: 'إدارة الموردين', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', viewId: 'suppliers' },
+    { id: 'suppliers', label: 'الموردين', description: 'إدارة الموردين', icon: Building2, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', viewId: 'suppliers' },
     { id: 'purchase-order-form', label: 'أمر شراء جديد', description: 'إنشاء أمر شراء', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', viewId: 'purchase-order-form' },
     { id: 'purchase-invoice-form', label: 'فاتورة شراء جديدة', description: 'إنشاء فاتورة شراء', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', viewId: 'purchase-invoice-form' },
     { id: 'purchase-orders', label: 'أوامر الشراء', description: 'عرض أوامر الشراء', icon: PackageCheck, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', viewId: 'purchase-orders' },
@@ -254,7 +254,7 @@ export default function PurchasesDashboard() {
                 {data.topSuppliers.map((supplier, i) => {
                   const maxVal = data.topSuppliers[0]?.totalAmount || 1
                   const pct = Math.round((supplier.totalAmount / maxVal) * 100)
-                  const colors = ['bg-orange-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-emerald-400', 'bg-rose-400', 'bg-cyan-400', 'bg-indigo-400']
+                  const colors = ['bg-orange-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-violet-400', 'bg-rose-400', 'bg-cyan-400', 'bg-indigo-400']
                   const colorIdx = i % colors.length
                   return (
                     <div key={supplier.supplierId} className="flex items-center gap-3">
@@ -358,12 +358,12 @@ export default function PurchasesDashboard() {
               <p className="text-[10px] text-slate-400 mt-1">إجمالي الفواتير المؤكدة</p>
             </div>
             {/* Total Paid */}
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-              <p className="text-sm text-emerald-600 font-medium">إجمالي المدفوع</p>
+            <div className="p-4 rounded-xl bg-violet-50 border border-violet-100">
+              <p className="text-sm text-violet-600 font-medium">إجمالي المدفوع</p>
               <p className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(data.totalPaidAmount)}</p>
-              <div className="mt-1 h-1.5 bg-emerald-100 rounded-full overflow-hidden">
+              <div className="mt-1 h-1.5 bg-violet-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                  className="h-full bg-violet-400 rounded-full transition-all duration-500"
                   style={{ width: `${data.totalPurchaseAmount > 0 ? Math.round((data.totalPaidAmount / data.totalPurchaseAmount) * 100) : 100}%` }}
                 />
               </div>

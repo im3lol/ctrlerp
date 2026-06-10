@@ -97,7 +97,7 @@ const TYPE_ICON_MAP: Record<string, React.ElementType> = {
 }
 
 const TYPE_COLOR_MAP: Record<string, { bg: string; text: string; border: string }> = {
-  WAREHOUSE: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  WAREHOUSE: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
   ZONE: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
   RACK: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
   SHELF: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
@@ -412,7 +412,7 @@ export default function WarehousesList() {
 
           {/* Status */}
           {node.isActive ? (
-            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0 h-5 shrink-0">
+            <Badge className="bg-violet-50 text-violet-700 border-violet-200 text-[10px] px-1.5 py-0 h-5 shrink-0">
               نشط
             </Badge>
           ) : (
@@ -441,7 +441,7 @@ export default function WarehousesList() {
               variant="ghost"
               size="icon"
               onClick={(e) => { e.stopPropagation(); handleOpenEdit(node) }}
-              className="h-7 w-7 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+              className="h-7 w-7 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
@@ -496,8 +496,8 @@ export default function WarehousesList() {
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <WarehouseIcon className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <WarehouseIcon className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">المخازن والمواقع</CardTitle>
@@ -515,7 +515,7 @@ export default function WarehousesList() {
                   onClick={() => setViewMode('tree')}
                   className={cn(
                     'h-8 gap-1.5 text-xs',
-                    viewMode === 'tree' && 'bg-white shadow-sm text-emerald-700 hover:bg-white'
+                    viewMode === 'tree' && 'bg-white shadow-sm text-violet-700 hover:bg-white'
                   )}
                 >
                   <GitBranch className="h-3.5 w-3.5" />
@@ -527,7 +527,7 @@ export default function WarehousesList() {
                   onClick={() => setViewMode('list')}
                   className={cn(
                     'h-8 gap-1.5 text-xs',
-                    viewMode === 'list' && 'bg-white shadow-sm text-emerald-700 hover:bg-white'
+                    viewMode === 'list' && 'bg-white shadow-sm text-violet-700 hover:bg-white'
                   )}
                 >
                   <List className="h-3.5 w-3.5" />
@@ -565,7 +565,7 @@ export default function WarehousesList() {
               <Button
                 onClick={handleOpenAdd}
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 h-8"
               >
                 <Plus className="h-3.5 w-3.5" />
                 إضافة موقع
@@ -643,7 +643,7 @@ export default function WarehousesList() {
                           <TableCell className="text-slate-500">{wh.manager || '—'}</TableCell>
                           <TableCell>
                             {wh.isActive ? (
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                              <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                                 نشط
                               </Badge>
                             ) : (
@@ -658,7 +658,7 @@ export default function WarehousesList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleOpenEdit(wh)}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
@@ -814,7 +814,7 @@ export default function WarehousesList() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? 'تحديث' : 'إضافة'}
@@ -855,14 +855,14 @@ export default function WarehousesList() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             {/* Template Download */}
-            <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-              <FileSpreadsheet className="h-8 w-8 text-emerald-600 shrink-0" />
+            <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-lg border border-violet-200">
+              <FileSpreadsheet className="h-8 w-8 text-violet-600 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-emerald-800">تحميل قالب Excel</p>
-                <p className="text-xs text-emerald-600">حمّل القالب واملأ البيانات ثم ارفعه</p>
+                <p className="text-sm font-medium text-violet-800">تحميل قالب Excel</p>
+                <p className="text-xs text-violet-600">حمّل القالب واملأ البيانات ثم ارفعه</p>
               </div>
               <a href="/api/inventory/warehouses/template" download>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-100">
                   <Download className="h-3.5 w-3.5" />
                   تحميل
                 </Button>
@@ -875,7 +875,7 @@ export default function WarehousesList() {
               <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
                 {importFile ? (
                   <div className="flex items-center justify-center gap-3">
-                    <FileSpreadsheet className="h-8 w-8 text-emerald-500" />
+                    <FileSpreadsheet className="h-8 w-8 text-violet-600" />
                     <div className="text-right">
                       <p className="text-sm font-medium">{importFile.name}</p>
                       <p className="text-xs text-slate-400">
@@ -915,7 +915,7 @@ export default function WarehousesList() {
               <div className={cn(
                 'p-3 rounded-lg border text-sm',
                 importResult.errorCount === 0
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  ? 'bg-violet-50 border-violet-200 text-violet-800'
                   : 'bg-amber-50 border-amber-200 text-amber-800'
               )}>
                 <div className="flex items-center gap-4 mb-1">
@@ -949,7 +949,7 @@ export default function WarehousesList() {
             <Button
               onClick={handleImport}
               disabled={importing || !importFile}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {importing ? (
                 <>

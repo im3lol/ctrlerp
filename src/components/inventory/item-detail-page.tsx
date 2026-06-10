@@ -117,7 +117,7 @@ interface ItemBalance {
 
 // ── Code type styling ───────────────────────────────────────────────────────────
 const CODE_TYPE_COLORS: Record<string, string> = {
-  UPC: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  UPC: 'bg-violet-50 text-violet-700 border-violet-200',
   EAN: 'bg-teal-50 text-teal-700 border-teal-200',
   SKU: 'bg-amber-50 text-amber-700 border-amber-200',
   ASIN: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -330,10 +330,10 @@ export default function ItemDetailPage() {
       label: 'فواتير المبيعات',
       count: stats?.salesCount ?? item._stats?.salesCount ?? 0,
       icon: Receipt,
-      color: 'emerald',
-      bgColor: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-      countColor: 'text-emerald-700',
+      color: 'violet',
+      bgColor: 'bg-violet-50',
+      iconColor: 'text-violet-600',
+      countColor: 'text-violet-700',
       onClick: () => handleNavigateToRelated('sales', 'sales-invoices'),
     },
     {
@@ -377,8 +377,8 @@ export default function ItemDetailPage() {
       label: 'الفئة',
       value: item.category?.nameAr || '—',
       icon: Tag,
-      iconBg: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
+      iconBg: 'bg-violet-50',
+      iconColor: 'text-violet-600',
     },
     {
       label: 'وحدة القياس',
@@ -443,7 +443,7 @@ export default function ItemDetailPage() {
               // The items-list component handles edit via its own dialog
               setView('items')
             }}
-            className="gap-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+            className="gap-1.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 border-violet-200"
           >
             <Pencil className="h-3.5 w-3.5" />
             تعديل
@@ -484,8 +484,8 @@ export default function ItemDetailPage() {
                 )}
               </div>
             ) : (
-              <div className="h-40 w-40 sm:h-48 sm:w-48 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center border border-emerald-100">
-                <Package className="h-16 w-16 text-emerald-200" />
+              <div className="h-40 w-40 sm:h-48 sm:w-48 rounded-2xl bg-gradient-to-br from-violet-50 to-teal-50 flex items-center justify-center border border-violet-100">
+                <Package className="h-16 w-16 text-violet-200" />
               </div>
             )}
           </div>
@@ -506,7 +506,7 @@ export default function ItemDetailPage() {
               <Badge
                 className={`shrink-0 ${
                   item.isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    ? 'bg-violet-50 text-violet-700 border-violet-200'
                     : 'bg-slate-100 text-slate-500 border-slate-200'
                 }`}
               >
@@ -519,7 +519,7 @@ export default function ItemDetailPage() {
                 {item.code}
               </Badge>
               {item.costMethod === 'FIFO' ? (
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                   الوارد أولاً
                 </Badge>
               ) : (
@@ -545,13 +545,13 @@ export default function ItemDetailPage() {
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-1.5">
                 <span className="text-slate-400">الكمية الإجمالية:</span>
-                <span className={`font-bold ${totalQuantity === 0 ? 'text-red-600' : isLowStock ? 'text-amber-600' : 'text-emerald-700'}`}>
+                <span className={`font-bold ${totalQuantity === 0 ? 'text-red-600' : isLowStock ? 'text-amber-600' : 'text-violet-700'}`}>
                   {totalQuantity.toLocaleString('ar-EG')}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-slate-400">القيمة:</span>
-                <span className="font-bold text-emerald-700" dir="ltr">
+                <span className="font-bold text-violet-700" dir="ltr">
                   {formatCurrency(totalValue)}
                 </span>
               </div>
@@ -596,8 +596,8 @@ export default function ItemDetailPage() {
         <Card className="border shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <Barcode className="h-4 w-4 text-emerald-600" />
+              <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                <Barcode className="h-4 w-4 text-violet-600" />
               </div>
               <CardTitle className="text-base">أكواد المنتج</CardTitle>
             </div>
@@ -654,8 +654,8 @@ export default function ItemDetailPage() {
       {/* ═══ Linked Records (Stats) Section ═══ */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <ChevronLeft className="h-4 w-4 text-emerald-600" />
+          <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+            <ChevronLeft className="h-4 w-4 text-violet-600" />
           </div>
           <h2 className="text-base font-semibold text-slate-800">السجلات المرتبطة</h2>
         </div>
@@ -663,7 +663,7 @@ export default function ItemDetailPage() {
           {statCards.map((stat) => (
             <Card
               key={stat.key}
-              className="border shadow-sm cursor-pointer hover:shadow-md transition-all hover:border-emerald-200 group"
+              className="border shadow-sm cursor-pointer hover:shadow-md transition-all hover:border-violet-200 group"
               onClick={stat.onClick}
             >
               <CardContent className="p-4">
@@ -671,7 +671,7 @@ export default function ItemDetailPage() {
                   <div className={`h-9 w-9 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
                     <stat.icon className={`h-4.5 w-4.5 ${stat.iconColor}`} />
                   </div>
-                  <ChevronLeft className="h-4 w-4 text-slate-300 group-hover:text-emerald-400 transition-colors" />
+                  <ChevronLeft className="h-4 w-4 text-slate-300 group-hover:text-violet-400 transition-colors" />
                 </div>
                 <p className={`text-2xl font-bold ${stat.countColor}`}>
                   {(stat.count).toLocaleString('ar-EG')}
@@ -688,8 +688,8 @@ export default function ItemDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <Warehouse className="h-4 w-4 text-emerald-600" />
+              <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                <Warehouse className="h-4 w-4 text-violet-600" />
               </div>
               <CardTitle className="text-base">أرصدة المخازن</CardTitle>
             </div>
@@ -697,13 +697,13 @@ export default function ItemDetailPage() {
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-400">الإجمالي:</span>
-                  <span className={`font-bold ${totalQuantity === 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                  <span className={`font-bold ${totalQuantity === 0 ? 'text-red-600' : 'text-violet-700'}`}>
                     {totalQuantity.toLocaleString('ar-EG')}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-400">القيمة:</span>
-                  <span className="font-bold text-emerald-700" dir="ltr">
+                  <span className="font-bold text-violet-700" dir="ltr">
                     {formatCurrency(totalValue)}
                   </span>
                 </div>
@@ -772,7 +772,7 @@ export default function ItemDetailPage() {
                               منخفض
                             </Badge>
                           ) : (
-                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
+                            <Badge className="bg-violet-50 text-violet-700 border-violet-200 text-[10px]">
                               متوفر
                             </Badge>
                           )}
@@ -784,13 +784,13 @@ export default function ItemDetailPage() {
                   <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-t-2 border-slate-200">
                     <TableCell className="font-bold text-slate-700">الإجمالي</TableCell>
                     <TableCell
-                      className={`font-mono font-bold ${totalQuantity === 0 ? 'text-red-700' : 'text-emerald-700'}`}
+                      className={`font-mono font-bold ${totalQuantity === 0 ? 'text-red-700' : 'text-violet-700'}`}
                       dir="ltr"
                     >
                       {totalQuantity.toLocaleString('ar-EG')}
                     </TableCell>
                     <TableCell className="font-mono text-slate-400">—</TableCell>
-                    <TableCell className="font-mono font-bold text-emerald-700" dir="ltr">
+                    <TableCell className="font-mono font-bold text-violet-700" dir="ltr">
                       {formatCurrency(totalValue)}
                     </TableCell>
                     <TableCell />

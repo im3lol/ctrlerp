@@ -337,8 +337,8 @@ export default function PurchaseOrdersList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">أوامر الشراء</CardTitle>
@@ -349,7 +349,7 @@ export default function PurchaseOrdersList() {
             </div>
             <Button
               onClick={handleOpenAdd}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               أمر شراء جديد
@@ -462,7 +462,7 @@ export default function PurchaseOrdersList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleViewDetail(ord.id)}
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               title="عرض التفاصيل"
                             >
                               <Eye className="h-4 w-4" />
@@ -473,7 +473,7 @@ export default function PurchaseOrdersList() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => openConfirmDialog(ord.id, 'confirm')}
-                                  className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                  className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                   title="تأكيد"
                                 >
                                   <CheckCircle className="h-4 w-4" />
@@ -638,7 +638,7 @@ export default function PurchaseOrdersList() {
                 <Separator />
                 <div className="flex justify-between text-base font-bold">
                   <span>الإجمالي</span>
-                  <span className="font-mono text-emerald-700" dir="ltr">{formatCurrency(detailOrder.totalAmount)}</span>
+                  <span className="font-mono text-violet-700" dir="ltr">{formatCurrency(detailOrder.totalAmount)}</span>
                 </div>
               </div>
 
@@ -718,7 +718,7 @@ export default function PurchaseOrdersList() {
               disabled={submitting}
               className={
                 confirmAction === 'confirm'
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white gap-2'
+                  ? 'bg-violet-600 hover:bg-violet-700 text-white gap-2'
                   : 'bg-red-600 hover:bg-red-700 text-white gap-2'
               }
             >

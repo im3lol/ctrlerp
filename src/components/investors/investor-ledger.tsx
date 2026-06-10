@@ -192,7 +192,7 @@ export default function InvestorLedger({ investorId, onBack }: InvestorLedgerPro
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'investment':
-        return { label: 'استثمار', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+        return { label: 'استثمار', color: 'bg-violet-50 text-violet-700 border-violet-200' }
       case 'profit_distribution':
         return { label: 'توزيع أرباح', color: 'bg-amber-50 text-amber-700 border-amber-200' }
       case 'withdrawal':
@@ -234,8 +234,8 @@ export default function InvestorLedger({ investorId, onBack }: InvestorLedgerPro
           <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100">
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-            <Users className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+            <Users className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <h2 className="text-lg font-bold text-slate-900">
@@ -247,7 +247,7 @@ export default function InvestorLedger({ investorId, onBack }: InvestorLedgerPro
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setInvestmentDialogOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
           >
             <Banknote className="h-4 w-4" />
             تسجيل مساهمة
@@ -265,11 +265,11 @@ export default function InvestorLedger({ investorId, onBack }: InvestorLedgerPro
 
       {/* Investor Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="border shadow-sm border-emerald-200">
+        <Card className="border shadow-sm border-violet-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-50">
-                <DollarSign className="h-5 w-5 text-emerald-600" />
+              <div className="p-2.5 rounded-xl bg-violet-50">
+                <DollarSign className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <p className="text-xs text-slate-500">صافي رأس المال</p>
@@ -392,7 +392,7 @@ export default function InvestorLedger({ investorId, onBack }: InvestorLedgerPro
                         <TableCell className="text-sm">{tx.description}</TableCell>
                         <TableCell
                           className={`font-mono font-semibold ${
-                            tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            tx.amount >= 0 ? 'text-violet-600' : 'text-rose-600'
                           }`}
                           dir="ltr"
                         >
@@ -470,7 +470,7 @@ export default function InvestorLedger({ investorId, onBack }: InvestorLedgerPro
             <Button
               onClick={handleRecordInvestment}
               disabled={investmentSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {investmentSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               تسجيل

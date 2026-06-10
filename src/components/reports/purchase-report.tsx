@@ -71,7 +71,7 @@ export default function PurchaseReport() {
   const summaryCards = data ? [
     { title: 'إجمالي المشتريات', value: formatCurrency(data.totalPurchases), icon: Truck, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
     { title: 'الخصومات', value: formatCurrency(data.totalDiscount), icon: Percent, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
-    { title: 'الضرائب', value: formatCurrency(data.totalTax), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+    { title: 'الضرائب', value: formatCurrency(data.totalTax), icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200' },
   ] : []
 
   return (
@@ -114,7 +114,7 @@ export default function PurchaseReport() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
         </div>
       ) : data ? (
         <>

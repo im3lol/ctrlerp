@@ -62,9 +62,9 @@ export default function CompanySwitcher({ onOpenSetup }: CompanySwitcherProps) {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="gap-2 px-3 h-9 hover:bg-emerald-50 transition-colors"
+          className="gap-2 px-3 h-9 hover:bg-violet-50 transition-colors"
         >
-          <Building2 className="h-4 w-4 text-emerald-600" />
+          <Building2 className="h-4 w-4 text-violet-600" />
           <span className="text-sm font-medium text-slate-700 max-w-[120px] truncate">
             {currentCompany?.nameAr || 'اختر شركة'}
           </span>
@@ -92,14 +92,14 @@ export default function CompanySwitcher({ onOpenSetup }: CompanySwitcherProps) {
             className={cn(
               'flex items-center gap-3 px-2 py-2.5 rounded-lg cursor-pointer',
               company.id === currentCompanyId &&
-                'bg-emerald-50'
+                'bg-violet-50'
             )}
           >
             <div
               className={cn(
                 'h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
                 company.id === currentCompanyId
-                  ? 'bg-emerald-500'
+                  ? 'bg-violet-600'
                   : 'bg-slate-100'
               )}
             >
@@ -121,7 +121,7 @@ export default function CompanySwitcher({ onOpenSetup }: CompanySwitcherProps) {
               </p>
             </div>
             {company.id === currentCompanyId && (
-              <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+              <Check className="h-4 w-4 text-violet-600 shrink-0" />
             )}
           </DropdownMenuItem>
         ))}
@@ -130,10 +130,10 @@ export default function CompanySwitcher({ onOpenSetup }: CompanySwitcherProps) {
 
         <DropdownMenuItem
           onClick={onOpenSetup}
-          className="flex items-center gap-3 px-2 py-2.5 rounded-lg cursor-pointer text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+          className="flex items-center gap-3 px-2 py-2.5 rounded-lg cursor-pointer text-violet-700 hover:text-violet-800 hover:bg-violet-50"
         >
-          <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-            <Plus className="h-4 w-4 text-emerald-600" />
+          <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+            <Plus className="h-4 w-4 text-violet-600" />
           </div>
           <span className="text-sm font-medium">إنشاء شركة جديدة</span>
         </DropdownMenuItem>

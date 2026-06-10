@@ -59,8 +59,8 @@ export default function IncomeStatementReport() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 bg-violet-100 rounded-xl flex items-center justify-center">
+            <TrendingUp className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">قائمة الدخل</h2>
@@ -95,7 +95,7 @@ export default function IncomeStatementReport() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
         </div>
       ) : data ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 print:grid-cols-2 print:gap-2">
@@ -165,21 +165,21 @@ export default function IncomeStatementReport() {
 
           {/* Net Income */}
           <div className="lg:col-span-2 print:col-span-2">
-            <div className={`flex items-center justify-between p-5 rounded-xl border-2 ${data.netIncome >= 0 ? 'bg-emerald-50 border-emerald-300' : 'bg-red-50 border-red-300'}`}>
+            <div className={`flex items-center justify-between p-5 rounded-xl border-2 ${data.netIncome >= 0 ? 'bg-violet-50 border-violet-300' : 'bg-red-50 border-red-300'}`}>
               <div className="flex items-center gap-3">
                 {data.netIncome >= 0 ? (
-                  <TrendingUp className="h-7 w-7 text-emerald-600" />
+                  <TrendingUp className="h-7 w-7 text-violet-600" />
                 ) : (
                   <TrendingDown className="h-7 w-7 text-red-600" />
                 )}
                 <div>
-                  <p className={`text-lg font-bold ${data.netIncome >= 0 ? 'text-emerald-800' : 'text-red-800'}`}>
+                  <p className={`text-lg font-bold ${data.netIncome >= 0 ? 'text-violet-800' : 'text-red-800'}`}>
                     {data.netIncome >= 0 ? 'صافي الربح' : 'صافي الخسارة'}
                   </p>
                   <p className="text-sm text-slate-500">الإيرادات - المصروفات</p>
                 </div>
               </div>
-              <span className={`text-3xl font-bold font-mono ${data.netIncome >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+              <span className={`text-3xl font-bold font-mono ${data.netIncome >= 0 ? 'text-violet-700' : 'text-red-700'}`}>
                 {formatCurrency(Math.abs(data.netIncome))}
               </span>
             </div>

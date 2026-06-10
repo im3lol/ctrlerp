@@ -72,7 +72,7 @@ const statusLabels: Record<string, string> = {
 
 const statusBadgeStyles: Record<string, string> = {
   DRAFT: 'bg-slate-50 text-slate-700 border-slate-200',
-  CONFIRMED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  CONFIRMED: 'bg-violet-50 text-violet-700 border-violet-200',
   CANCELLED: 'bg-red-50 text-red-700 border-red-200',
 }
 
@@ -255,14 +255,14 @@ export default function PurchaseReceiptsList() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <PackageCheck className="h-5 w-5 text-emerald-600" />
+            <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+              <PackageCheck className="h-5 w-5 text-violet-600" />
             </div>
             <CardTitle className="text-lg">أذون استلام المشتريات</CardTitle>
           </div>
           <Button
             onClick={handleNew}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
           >
             <Plus className="h-4 w-4" />
             إذن استلام جديد
@@ -338,7 +338,7 @@ export default function PurchaseReceiptsList() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-emerald-600"
+                          className="h-8 w-8 text-slate-500 hover:text-violet-600"
                           onClick={() => handleView(receipt.id)}
                           title="عرض التفاصيل"
                         >
@@ -349,7 +349,7 @@ export default function PurchaseReceiptsList() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600"
                               onClick={() => handleInlineConfirm(receipt.id)}
                               title="تأكيد"
                               disabled={submitting}

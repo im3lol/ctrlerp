@@ -79,7 +79,7 @@ const accountTypeColors: Record<string, string> = {
   ASSET: 'text-cyan-700',
   LIABILITY: 'text-red-700',
   EQUITY: 'text-purple-700',
-  REVENUE: 'text-emerald-700',
+  REVENUE: 'text-violet-700',
   EXPENSE: 'text-orange-700',
 }
 
@@ -87,7 +87,7 @@ const accountTypeBgColors: Record<string, string> = {
   ASSET: 'bg-cyan-50 border-cyan-200',
   LIABILITY: 'bg-red-50 border-red-200',
   EQUITY: 'bg-purple-50 border-purple-200',
-  REVENUE: 'bg-emerald-50 border-emerald-200',
+  REVENUE: 'bg-violet-50 border-violet-200',
   EXPENSE: 'bg-orange-50 border-orange-200',
 }
 
@@ -116,7 +116,7 @@ export default function AccountingDashboard() {
   // ── Quick Actions ──
   const quickActions: QuickAction[] = [
     { id: 'chart-of-accounts', label: 'شجرة الحسابات', description: 'إدارة الحسابات', icon: GitBranch, color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200', viewId: 'chart-of-accounts' },
-    { id: 'journal-entries', label: 'القيود اليومية', description: 'عرض القيود', icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', viewId: 'journal-entries' },
+    { id: 'journal-entries', label: 'القيود اليومية', description: 'عرض القيود', icon: BookOpen, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', viewId: 'journal-entries' },
     { id: 'trial-balance', label: 'ميزان المراجعة', description: 'تقرير الأرصدة', icon: Scale, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', viewId: 'trial-balance' },
     { id: 'balance-sheet', label: 'الميزانية العمومية', description: 'تقرير المركز المالي', icon: PieChart, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', viewId: 'balance-sheet' },
     { id: 'income-statement', label: 'قائمة الدخل', description: 'تقرير الأرباح والخسائر', icon: TrendingUp, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', viewId: 'income-statement' },
@@ -125,7 +125,7 @@ export default function AccountingDashboard() {
   // ── Stat Cards Definition ──
   const statCards = [
     { key: 'totalAccounts', label: 'إجمالي الحسابات', icon: GitBranch, color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200', isCurrency: false },
-    { key: 'totalJournalEntries', label: 'إجمالي القيود', icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', isCurrency: false },
+    { key: 'totalJournalEntries', label: 'إجمالي القيود', icon: BookOpen, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', isCurrency: false },
     { key: 'draftEntries', label: 'قيود مسودة', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200', isCurrency: false },
     { key: 'totalDebit', label: 'إجمالي المدين', icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', isCurrency: true },
   ] as const
@@ -216,8 +216,8 @@ export default function AccountingDashboard() {
       <Card className="border shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Calculator className="h-4.5 w-4.5 text-emerald-600" />
+            <div className="h-9 w-9 rounded-xl bg-violet-50 flex items-center justify-center">
+              <Calculator className="h-4.5 w-4.5 text-violet-600" />
             </div>
             <CardTitle className="text-base font-semibold">اختصارات الحسابات</CardTitle>
           </div>
@@ -323,8 +323,8 @@ export default function AccountingDashboard() {
         <Card className="border shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <Scale className="h-4 w-4 text-emerald-600" />
+              <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                <Scale className="h-4 w-4 text-violet-600" />
               </div>
               <CardTitle className="text-sm font-semibold">الملخص المالي</CardTitle>
             </div>
@@ -338,8 +338,8 @@ export default function AccountingDashboard() {
                 <p className="text-[10px] text-slate-400 mt-1">من القيود المرحلة</p>
               </div>
               {/* Total Credit */}
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                <p className="text-sm text-emerald-600 font-medium">إجمالي الدائن</p>
+              <div className="p-4 rounded-xl bg-violet-50 border border-violet-100">
+                <p className="text-sm text-violet-600 font-medium">إجمالي الدائن</p>
                 <p className="text-2xl font-bold text-slate-900 mt-1" dir="ltr">{formatCurrency(data.totalCredit)}</p>
                 <p className="text-[10px] text-slate-400 mt-1">من القيود المرحلة</p>
               </div>
@@ -348,15 +348,15 @@ export default function AccountingDashboard() {
             <div className={cn(
               'mt-4 p-3 rounded-lg border flex items-center gap-3',
               Math.abs(data.totalDebit - data.totalCredit) < 0.01
-                ? 'bg-emerald-50 border-emerald-200'
+                ? 'bg-violet-50 border-violet-200'
                 : 'bg-red-50 border-red-200'
             )}>
               {Math.abs(data.totalDebit - data.totalCredit) < 0.01 ? (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-violet-600 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-emerald-700">الدفاتر متوازنة</p>
-                    <p className="text-[10px] text-emerald-500">المدين = الدائن</p>
+                    <p className="text-sm font-medium text-violet-700">الدفاتر متوازنة</p>
+                    <p className="text-[10px] text-violet-600">المدين = الدائن</p>
                   </div>
                 </>
               ) : (
@@ -398,12 +398,12 @@ export default function AccountingDashboard() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <BookOpen className="h-4 w-4 text-emerald-600" />
+                <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center">
+                  <BookOpen className="h-4 w-4 text-violet-600" />
                 </div>
                 <CardTitle className="text-sm font-semibold">آخر القيود اليومية</CardTitle>
               </div>
-              <button onClick={() => setView('journal-entries')} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+              <button onClick={() => setView('journal-entries')} className="text-xs text-violet-600 hover:text-violet-700 font-medium">
                 عرض الكل ←
               </button>
             </div>
@@ -413,8 +413,8 @@ export default function AccountingDashboard() {
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {data.recentEntries.map((entry) => (
                   <div key={entry.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                      <BookOpen className="h-4 w-4 text-emerald-500" />
+                    <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+                      <BookOpen className="h-4 w-4 text-violet-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -465,7 +465,7 @@ export default function AccountingDashboard() {
                 {data.topAccounts.map((account, i) => {
                   const maxVal = data.topAccounts[0]?.totalDebit || 1
                   const pct = Math.round((account.totalDebit / maxVal) * 100)
-                  const colors = ['bg-cyan-400', 'bg-emerald-400', 'bg-orange-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400', 'bg-lime-400']
+                  const colors = ['bg-cyan-400', 'bg-violet-400', 'bg-orange-400', 'bg-purple-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400', 'bg-lime-400']
                   return (
                     <div key={account.accountId} className="flex items-center gap-3">
                       <span className="text-xs font-mono text-slate-400 w-4">{i + 1}</span>
@@ -533,7 +533,7 @@ export default function AccountingDashboard() {
                           <span className="text-orange-500 font-medium" dir="ltr">
                             م: {formatCurrency(me.totalDebit)}
                           </span>
-                          <span className="text-emerald-500 font-medium" dir="ltr">
+                          <span className="text-violet-600 font-medium" dir="ltr">
                             د: {formatCurrency(me.totalCredit)}
                           </span>
                         </div>
@@ -548,7 +548,7 @@ export default function AccountingDashboard() {
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                          className="h-full bg-violet-400 rounded-full transition-all duration-500"
                           style={{ width: `${creditPct}%` }}
                         />
                       </div>
@@ -562,7 +562,7 @@ export default function AccountingDashboard() {
                   <span className="text-slate-500">مدين</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                  <div className="h-2 w-2 rounded-full bg-violet-400" />
                   <span className="text-slate-500">دائن</span>
                 </div>
               </div>

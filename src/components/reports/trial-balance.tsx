@@ -30,7 +30,7 @@ interface TrialBalanceData {
 }
 
 const accountTypeColors: Record<string, string> = {
-  ASSET: 'bg-emerald-100 text-emerald-800',
+  ASSET: 'bg-violet-100 text-violet-800',
   LIABILITY: 'bg-orange-100 text-orange-800',
   EQUITY: 'bg-purple-100 text-purple-800',
   REVENUE: 'bg-teal-100 text-teal-800',
@@ -67,8 +67,8 @@ export default function TrialBalanceReport() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Scale className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 bg-violet-100 rounded-xl flex items-center justify-center">
+            <Scale className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">ميزان المراجعة</h2>
@@ -97,7 +97,7 @@ export default function TrialBalanceReport() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             </div>
           ) : data && data.lines.length > 0 ? (
             <div className="overflow-x-auto">
@@ -138,7 +138,7 @@ export default function TrialBalanceReport() {
                       <TableCell className="text-left font-mono">
                         {line.totalCredit > 0 ? formatCurrency(line.totalCredit) : '-'}
                       </TableCell>
-                      <TableCell className={`text-left font-mono font-semibold ${line.balance > 0 ? 'text-emerald-600' : line.balance < 0 ? 'text-red-600' : ''}`}>
+                      <TableCell className={`text-left font-mono font-semibold ${line.balance > 0 ? 'text-violet-600' : line.balance < 0 ? 'text-red-600' : ''}`}>
                         {line.balance !== 0 ? formatCurrency(Math.abs(line.balance)) : '-'}
                         {line.balance > 0 && ' م'}
                         {line.balance < 0 && ' د'}
@@ -146,17 +146,17 @@ export default function TrialBalanceReport() {
                     </TableRow>
                   ))}
                   {/* Grand Totals */}
-                  <TableRow className="bg-emerald-50 font-bold border-t-2 border-emerald-200">
-                    <TableCell colSpan={3} className="text-center text-emerald-800">
+                  <TableRow className="bg-violet-50 font-bold border-t-2 border-violet-200">
+                    <TableCell colSpan={3} className="text-center text-violet-800">
                       الإجمالي العام
                     </TableCell>
-                    <TableCell className="text-left font-mono text-emerald-800">
+                    <TableCell className="text-left font-mono text-violet-800">
                       {formatCurrency(data.grandTotals.totalDebit)}
                     </TableCell>
-                    <TableCell className="text-left font-mono text-emerald-800">
+                    <TableCell className="text-left font-mono text-violet-800">
                       {formatCurrency(data.grandTotals.totalCredit)}
                     </TableCell>
-                    <TableCell className={`text-left font-mono ${data.grandTotals.balance === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <TableCell className={`text-left font-mono ${data.grandTotals.balance === 0 ? 'text-violet-600' : 'text-red-600'}`}>
                       {formatCurrency(Math.abs(data.grandTotals.balance))}
                       {data.grandTotals.balance !== 0 && (data.grandTotals.balance > 0 ? ' م' : ' د')}
                     </TableCell>

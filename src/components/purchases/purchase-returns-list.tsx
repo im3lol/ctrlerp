@@ -243,7 +243,7 @@ export default function PurchaseReturnsList() {
             </div>
             <Button
               onClick={handleOpenAdd}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               إضافة مرتجع
@@ -323,7 +323,7 @@ export default function PurchaseReturnsList() {
                             e.stopPropagation()
                             handleOpenEdit(ret.id)
                           }}
-                          className="font-mono text-sm text-emerald-700 hover:text-emerald-900 hover:underline font-semibold"
+                          className="font-mono text-sm text-violet-700 hover:text-violet-900 hover:underline font-semibold"
                         >
                           {ret.number}
                         </button>
@@ -361,7 +361,7 @@ export default function PurchaseReturnsList() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleViewDetail(ret.id)}
-                            className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                             title="عرض التفاصيل"
                           >
                             <Eye className="h-4 w-4" />
@@ -372,7 +372,7 @@ export default function PurchaseReturnsList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => openConfirmDialog(ret.id, 'confirm')}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                 title="تأكيد"
                               >
                                 <CheckCircle className="h-4 w-4" />
@@ -519,7 +519,7 @@ export default function PurchaseReturnsList() {
               disabled={submitting}
               className={
                 confirmAction === 'confirm'
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white gap-2'
+                  ? 'bg-violet-600 hover:bg-violet-700 text-white gap-2'
                   : 'bg-red-600 hover:bg-red-700 text-white gap-2'
               }
             >

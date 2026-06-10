@@ -194,7 +194,7 @@ export default function DistributionsList({ onBack }: DistributionsListProps) {
       case 'DRAFT':
         return <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200 border">مسودة</Badge>
       case 'DISTRIBUTED':
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border">موزعة</Badge>
+        return <Badge className="bg-violet-50 text-violet-700 border-violet-200 border">موزعة</Badge>
       case 'PENDING':
         return <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">معلقة</Badge>
       case 'PAID':
@@ -301,7 +301,7 @@ export default function DistributionsList({ onBack }: DistributionsListProps) {
                 <Button
                   onClick={() => handleDistribute(selectedDistribution.id)}
                   disabled={distributeSubmitting}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                  className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
                 >
                   {distributeSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   <Send className="h-4 w-4" />
@@ -381,7 +381,7 @@ export default function DistributionsList({ onBack }: DistributionsListProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => setDetailId(dist.id)}
-                          className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                          className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                           title="عرض التفاصيل"
                         >
                           <Eye className="h-4 w-4" />
@@ -392,7 +392,7 @@ export default function DistributionsList({ onBack }: DistributionsListProps) {
                             size="icon"
                             onClick={() => handleDistribute(dist.id)}
                             disabled={distributeSubmitting}
-                            className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                             title="توزيع"
                           >
                             <Send className="h-4 w-4" />

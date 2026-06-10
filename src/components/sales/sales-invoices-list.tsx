@@ -297,8 +297,8 @@ export default function SalesInvoicesList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">فواتير البيع</CardTitle>
@@ -309,7 +309,7 @@ export default function SalesInvoicesList() {
             </div>
             <Button
               onClick={handleOpenNew}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               <Plus className="h-4 w-4" />
               فاتورة بيع جديدة
@@ -320,11 +320,11 @@ export default function SalesInvoicesList() {
           {/* Filters */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
             {itemFilter && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-sm text-violet-700">
                 <span>تصفية حسب الصنف</span>
                 <button
                   onClick={() => setItemFilter(null)}
-                  className="h-5 w-5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center"
+                  className="h-5 w-5 rounded-full bg-violet-200 hover:bg-violet-300 flex items-center justify-center"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -410,7 +410,7 @@ export default function SalesInvoicesList() {
                       <TableCell>
                         <button
                           onClick={() => fetchInvoiceDetail(inv.id)}
-                          className="font-mono text-sm text-emerald-700 hover:text-emerald-900 hover:underline font-semibold"
+                          className="font-mono text-sm text-violet-700 hover:text-violet-900 hover:underline font-semibold"
                         >
                           {inv.number}
                         </button>
@@ -428,7 +428,7 @@ export default function SalesInvoicesList() {
                       <TableCell className="font-mono font-semibold" dir="ltr">
                         {formatCurrency(inv.totalAmount)}
                       </TableCell>
-                      <TableCell className="font-mono text-emerald-600" dir="ltr">
+                      <TableCell className="font-mono text-violet-600" dir="ltr">
                         {formatCurrency(inv.paidAmount)}
                       </TableCell>
                       <TableCell className="font-mono text-red-600" dir="ltr">
@@ -450,7 +450,7 @@ export default function SalesInvoicesList() {
                                   setConfirmingId(inv.id)
                                   setConfirmDialogOpen(true)
                                 }}
-                                className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                className="h-8 w-8 text-violet-600 hover:text-violet-800 hover:bg-violet-50"
                                 title="تأكيد"
                               >
                                 <CheckCircle2 className="h-4 w-4" />
@@ -459,7 +459,7 @@ export default function SalesInvoicesList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleOpenEdit(inv.id)}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                 title="تعديل"
                               >
                                 <Eye className="h-4 w-4" />
@@ -484,7 +484,7 @@ export default function SalesInvoicesList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => fetchInvoiceDetail(inv.id)}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                 title="عرض التفاصيل"
                               >
                                 <Eye className="h-4 w-4" />
@@ -508,7 +508,7 @@ export default function SalesInvoicesList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => fetchInvoiceDetail(inv.id)}
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               title="عرض التفاصيل"
                             >
                               <Eye className="h-4 w-4" />
@@ -519,7 +519,7 @@ export default function SalesInvoicesList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => fetchInvoiceDetail(inv.id)}
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               title="عرض التفاصيل"
                             >
                               <Eye className="h-4 w-4" />
@@ -530,7 +530,7 @@ export default function SalesInvoicesList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => fetchInvoiceDetail(inv.id)}
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                               title="عرض التفاصيل"
                             >
                               <Eye className="h-4 w-4" />
@@ -561,7 +561,7 @@ export default function SalesInvoicesList() {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={confirming}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {confirming && <Loader2 className="h-4 w-4 animate-spin" />}
               تأكيد
@@ -598,7 +598,7 @@ export default function SalesInvoicesList() {
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           {detailLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             </div>
           ) : detailInvoice ? (
             <>
@@ -683,11 +683,11 @@ export default function SalesInvoicesList() {
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span>الإجمالي</span>
-                    <span className="font-mono text-emerald-700" dir="ltr">{formatCurrency(detailInvoice.totalAmount)}</span>
+                    <span className="font-mono text-violet-700" dir="ltr">{formatCurrency(detailInvoice.totalAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-emerald-600">المدفوع</span>
-                    <span className="font-mono text-emerald-600" dir="ltr">{formatCurrency(detailInvoice.paidAmount)}</span>
+                    <span className="text-violet-600">المدفوع</span>
+                    <span className="font-mono text-violet-600" dir="ltr">{formatCurrency(detailInvoice.paidAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-semibold">
                     <span className="text-red-600">المتبقي</span>
@@ -714,7 +714,7 @@ export default function SalesInvoicesList() {
                             <TableRow key={rl.id}>
                               <TableCell className="font-mono text-sm">{rl.receiptVoucher.number}</TableCell>
                               <TableCell className="text-sm">{formatDate(rl.receiptVoucher.date)}</TableCell>
-                              <TableCell className="font-mono text-sm text-emerald-600" dir="ltr">
+                              <TableCell className="font-mono text-sm text-violet-600" dir="ltr">
                                 {formatCurrency(rl.amount)}
                               </TableCell>
                               <TableCell className="text-sm">{rl.receiptVoucher.paymentMethod}</TableCell>

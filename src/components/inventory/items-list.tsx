@@ -150,7 +150,7 @@ const CODE_TYPE_OPTIONS = [
 ]
 
 const CODE_TYPE_COLORS: Record<string, string> = {
-  UPC: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  UPC: 'bg-violet-50 text-violet-700 border-violet-200',
   EAN: 'bg-teal-50 text-teal-700 border-teal-200',
   SKU: 'bg-amber-50 text-amber-700 border-amber-200',
   ASIN: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -637,8 +637,8 @@ export default function ItemsList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Package className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <Package className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">الأصناف</CardTitle>
@@ -658,7 +658,7 @@ export default function ItemsList() {
               </Button>
               <Button
                 onClick={handleOpenAdd}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
               >
                 <Plus className="h-4 w-4" />
                 إضافة صنف
@@ -780,7 +780,7 @@ export default function ItemsList() {
                         </TableCell>
                         <TableCell>
                           {item.costMethod === 'FIFO' ? (
-                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                               الوارد أولاً
                             </Badge>
                           ) : (
@@ -791,7 +791,7 @@ export default function ItemsList() {
                         </TableCell>
                         <TableCell>
                           {item.isActive ? (
-                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                               نشط
                             </Badge>
                           ) : (
@@ -806,7 +806,7 @@ export default function ItemsList() {
                               variant="ghost"
                               size="icon"
                               onClick={() => handleOpenEdit(item)}
-                              className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                              className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -844,7 +844,7 @@ export default function ItemsList() {
             <div className="space-y-2">
               <Label>صورة المنتج</Label>
               <div
-                className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-emerald-300 hover:bg-emerald-50/30 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-violet-300 hover:bg-violet-50/30 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
@@ -1117,7 +1117,7 @@ export default function ItemsList() {
             <Button
               onClick={handleSubmit}
               disabled={submitting || uploadingImage}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {(submitting || uploadingImage) && <Loader2 className="h-4 w-4 animate-spin" />}
               {uploadingImage ? 'جاري رفع الصورة...' : editingId ? 'تحديث' : 'إضافة'}
@@ -1171,14 +1171,14 @@ export default function ItemsList() {
             {!importResult ? (
               <>
                 {/* Template Download */}
-                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <FileSpreadsheet className="h-8 w-8 text-emerald-600 shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-lg border border-violet-200">
+                  <FileSpreadsheet className="h-8 w-8 text-violet-600 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-emerald-800">تحميل قالب Excel</p>
-                    <p className="text-xs text-emerald-600">حمّل القالب واملأ البيانات ثم ارفعه</p>
+                    <p className="text-sm font-medium text-violet-800">تحميل قالب Excel</p>
+                    <p className="text-xs text-violet-600">حمّل القالب واملأ البيانات ثم ارفعه</p>
                   </div>
                   <a href="/api/inventory/items/template" download>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 border-violet-300 text-violet-700 hover:bg-violet-100">
                       <Download className="h-3.5 w-3.5" />
                       تحميل
                     </Button>
@@ -1191,7 +1191,7 @@ export default function ItemsList() {
                   <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
                     {importFile ? (
                       <div className="flex items-center justify-center gap-3">
-                        <FileSpreadsheet className="h-8 w-8 text-emerald-500" />
+                        <FileSpreadsheet className="h-8 w-8 text-violet-600" />
                         <div className="text-right">
                           <p className="text-sm font-medium">{importFile.name}</p>
                           <p className="text-xs text-slate-400">
@@ -1235,7 +1235,7 @@ export default function ItemsList() {
                     </div>
                     <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-emerald-500 transition-all duration-200"
+                        className="h-full bg-violet-600 transition-all duration-200"
                         style={{ width: `${importProgress}%` }}
                       />
                     </div>
@@ -1257,7 +1257,7 @@ export default function ItemsList() {
                       <p className="font-mono">imageUrl, barcodes</p>
                     </div>
                   </div>
-                  <p className="mt-2 text-emerald-600 font-medium">
+                  <p className="mt-2 text-violet-600 font-medium">
                     ✅ إذا كان الكود موجود، سيتم التحديث. وإلا سيتم الإنشاء.
                   </p>
                 </div>
@@ -1266,9 +1266,9 @@ export default function ItemsList() {
               <div className="space-y-4">
                 {/* Summary */}
                 <div className="grid grid-cols-4 gap-3">
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-emerald-600">{importResult.createdCount}</p>
-                    <p className="text-xs text-emerald-700">تم الإنشاء</p>
+                  <div className="bg-violet-50 border border-violet-200 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-violet-600">{importResult.createdCount}</p>
+                    <p className="text-xs text-violet-700">تم الإنشاء</p>
                   </div>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-blue-600">{importResult.updatedCount}</p>
@@ -1307,7 +1307,7 @@ export default function ItemsList() {
                               <TableCell className="font-mono">{result.code}</TableCell>
                               <TableCell>
                                 <Badge className={cn(
-                                  result.status === 'created' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                  result.status === 'created' ? 'bg-violet-100 text-violet-700 border-violet-200' :
                                   result.status === 'updated' ? 'bg-blue-100 text-blue-700 border-blue-200' :
                                   'bg-red-100 text-red-700 border-red-200'
                                 )}>
@@ -1343,7 +1343,7 @@ export default function ItemsList() {
               <Button
                 onClick={handleImport}
                 disabled={importing || !importFile}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
               >
                 {importing ? (
                   <>

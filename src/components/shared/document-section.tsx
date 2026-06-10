@@ -19,7 +19,7 @@ interface DocumentSectionProps {
 export function DocumentSection({
   title,
   icon: Icon,
-  iconColor = 'text-emerald-600',
+  iconColor = 'text-violet-600',
   children,
   action,
   className,
@@ -51,7 +51,7 @@ export function LinkedDocumentBadge({ label, value, onClick }: LinkedDocumentBad
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs hover:bg-violet-50 hover:border-violet-200 transition-colors"
     >
       <span className="text-slate-400">{label}:</span>
       <span className="font-medium text-slate-700 font-mono">{value}</span>

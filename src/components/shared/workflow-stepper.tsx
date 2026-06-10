@@ -31,9 +31,9 @@ export default function WorkflowStepper({ steps, className }: WorkflowStepperPro
               className={cn(
                 'h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
                 step.status === 'completed'
-                  ? 'bg-emerald-500 text-white'
+                  ? 'bg-violet-600 text-white'
                   : step.status === 'current'
-                  ? 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500'
+                  ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-600'
                   : 'bg-slate-100 text-slate-400'
               )}
             >
@@ -47,7 +47,7 @@ export default function WorkflowStepper({ steps, className }: WorkflowStepperPro
               className={cn(
                 'text-xs font-medium whitespace-nowrap',
                 step.status === 'completed'
-                  ? 'text-emerald-600'
+                  ? 'text-violet-600'
                   : step.status === 'current'
                   ? 'text-slate-900'
                   : 'text-slate-400'

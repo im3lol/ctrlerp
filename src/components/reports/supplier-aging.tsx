@@ -34,7 +34,7 @@ interface SupplierAgingData {
 function getAgingColor(amount: number, threshold: 'current' | '30' | '60' | '90+'): string {
   if (amount === 0) return ''
   switch (threshold) {
-    case 'current': return 'text-emerald-700'
+    case 'current': return 'text-violet-700'
     case '30': return 'text-yellow-700'
     case '60': return 'text-orange-700'
     case '90+': return 'text-red-700 font-bold'
@@ -44,7 +44,7 @@ function getAgingColor(amount: number, threshold: 'current' | '30' | '60' | '90+
 function getAgingBg(amount: number, threshold: 'current' | '30' | '60' | '90+'): string {
   if (amount === 0) return ''
   switch (threshold) {
-    case 'current': return 'bg-emerald-50'
+    case 'current': return 'bg-violet-50'
     case '30': return 'bg-yellow-50'
     case '60': return 'bg-orange-50'
     case '90+': return 'bg-red-50'
@@ -94,7 +94,7 @@ export default function SupplierAgingReport() {
       {/* Color Legend */}
       <div className="flex items-center gap-4 flex-wrap text-xs">
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded bg-emerald-200" />
+          <div className="h-3 w-3 rounded bg-violet-200" />
           <span className="text-slate-600">حالي (0-30 يوم)</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -116,7 +116,7 @@ export default function SupplierAgingReport() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
             </div>
           ) : data && data.suppliers.length > 0 ? (
             <div className="overflow-x-auto">

@@ -111,7 +111,7 @@ function getRoleBadgeColor(role: string): string {
     super_admin: 'bg-amber-50 text-amber-700 border-amber-200',
     admin: 'bg-red-50 text-red-700 border-red-200',
     accountant: 'bg-teal-50 text-teal-700 border-teal-200',
-    sales: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    sales: 'bg-violet-50 text-violet-700 border-violet-200',
     purchase: 'bg-orange-50 text-orange-700 border-orange-200',
     inventory: 'bg-purple-50 text-purple-700 border-purple-200',
     viewer: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -335,8 +335,8 @@ export default function UsersList() {
         <Card className="border shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <UserCog className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <UserCog className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">المستخدمين والصلاحيات</CardTitle>
@@ -387,7 +387,7 @@ export default function UsersList() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="gap-1 text-xs text-slate-500 hover:text-emerald-600"
+                                  className="gap-1 text-xs text-slate-500 hover:text-violet-600"
                                   onClick={() => handleShowPermissions(user.role)}
                                 >
                                   <Lock className="h-3 w-3" />
@@ -401,7 +401,7 @@ export default function UsersList() {
                           </TableCell>
                           <TableCell>
                             {user.isActive ? (
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                              <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                                 نشط
                               </Badge>
                             ) : (
@@ -425,7 +425,7 @@ export default function UsersList() {
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-emerald-600" />
+                <Shield className="h-5 w-5 text-violet-600" />
                 صلاحيات: {getRoleLabel(selectedRole)}
               </DialogTitle>
               <DialogDescription>
@@ -441,7 +441,7 @@ export default function UsersList() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold text-slate-700">{group.label}</span>
                       {hasAny ? (
-                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                        <Badge className="bg-violet-50 text-violet-700 border-violet-200 text-xs">
                           مسموح
                         </Badge>
                       ) : (
@@ -459,7 +459,7 @@ export default function UsersList() {
                             variant="outline"
                             className={`text-[10px] py-0.5 px-1.5 ${
                               allowed
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                ? 'bg-violet-50 text-violet-700 border-violet-200'
                                 : 'bg-slate-50 text-slate-400 border-slate-200 line-through'
                             }`}
                           >
@@ -489,8 +489,8 @@ export default function UsersList() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <UserCog className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                <UserCog className="h-5 w-5 text-violet-600" />
               </div>
               <div>
                 <CardTitle className="text-lg">المستخدمين والصلاحيات</CardTitle>
@@ -502,7 +502,7 @@ export default function UsersList() {
             {canCreate && (
               <Button
                 onClick={handleOpenAdd}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
               >
                 <Plus className="h-4 w-4" />
                 إضافة مستخدم
@@ -554,7 +554,7 @@ export default function UsersList() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
-                                  className="text-slate-400 hover:text-emerald-600 transition-colors"
+                                  className="text-slate-400 hover:text-violet-600 transition-colors"
                                   onClick={() => handleShowPermissions(user.role)}
                                 >
                                   <Info className="h-3.5 w-3.5" />
@@ -574,7 +574,7 @@ export default function UsersList() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="gap-1 text-xs text-slate-500 hover:text-emerald-600"
+                                className="gap-1 text-xs text-slate-500 hover:text-violet-600"
                                 onClick={() => handleShowPermissions(user.role)}
                               >
                                 <Lock className="h-3 w-3" />
@@ -588,7 +588,7 @@ export default function UsersList() {
                         </TableCell>
                         <TableCell>
                           {user.isActive ? (
-                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <Badge className="bg-violet-50 text-violet-700 border-violet-200">
                               نشط
                             </Badge>
                           ) : (
@@ -604,7 +604,7 @@ export default function UsersList() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleOpenEdit(user)}
-                                className="h-8 w-8 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-50"
                                 disabled={user.role === 'super_admin' && currentUser?.role !== 'super_admin'}
                               >
                                 <Pencil className="h-4 w-4" />
@@ -770,7 +770,7 @@ export default function UsersList() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {editingId ? 'تحديث' : 'إضافة'}
@@ -784,7 +784,7 @@ export default function UsersList() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-emerald-600" />
+              <Shield className="h-5 w-5 text-violet-600" />
               صلاحيات: {getRoleLabel(selectedRole)}
             </DialogTitle>
             <DialogDescription>
@@ -800,7 +800,7 @@ export default function UsersList() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-slate-700">{group.label}</span>
                     {hasAny ? (
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                      <Badge className="bg-violet-50 text-violet-700 border-violet-200 text-xs">
                         مسموح
                       </Badge>
                     ) : (
@@ -818,7 +818,7 @@ export default function UsersList() {
                           variant="outline"
                           className={`text-[10px] py-0.5 px-1.5 ${
                             allowed
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              ? 'bg-violet-50 text-violet-700 border-violet-200'
                               : 'bg-slate-50 text-slate-400 border-slate-200 line-through'
                           }`}
                         >

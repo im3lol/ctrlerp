@@ -71,11 +71,11 @@ export default function SalesReport() {
   const handlePrint = () => window.print()
 
   const summaryCards = data ? [
-    { title: 'إجمالي المبيعات', value: formatCurrency(data.totalSales), icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+    { title: 'إجمالي المبيعات', value: formatCurrency(data.totalSales), icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200' },
     { title: 'الخصومات', value: formatCurrency(data.totalDiscount), icon: Percent, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
     { title: 'الضرائب', value: formatCurrency(data.totalTax), icon: DollarSign, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
     { title: 'تكلفة البضاعة', value: formatCurrency(data.totalCOGS), icon: ShoppingCart, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
-    { title: 'مجمل الربح', value: formatCurrency(data.grossProfit), icon: BarChart3, color: data.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600', bg: data.grossProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50', border: data.grossProfit >= 0 ? 'border-emerald-200' : 'border-red-200' },
+    { title: 'مجمل الربح', value: formatCurrency(data.grossProfit), icon: BarChart3, color: data.grossProfit >= 0 ? 'text-violet-600' : 'text-red-600', bg: data.grossProfit >= 0 ? 'bg-violet-50' : 'bg-red-50', border: data.grossProfit >= 0 ? 'border-violet-200' : 'border-red-200' },
   ] : []
 
   return (
@@ -83,8 +83,8 @@ export default function SalesReport() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <BarChart3 className="h-5 w-5 text-emerald-600" />
+          <div className="h-10 w-10 bg-violet-100 rounded-xl flex items-center justify-center">
+            <BarChart3 className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">تقرير المبيعات</h2>
@@ -118,7 +118,7 @@ export default function SalesReport() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
         </div>
       ) : data ? (
         <>
