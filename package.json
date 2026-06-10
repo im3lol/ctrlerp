@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build && cp -r .next/static .next/standalone/control-erp/.next/ && cp -r public .next/standalone/control-erp/ && cp -r prisma .next/standalone/control-erp/",
+    "build": "next build",
+    "build:standalone": "next build && cp -r .next/static .next/standalone/control-erp/.next/ && cp -r public .next/standalone/control-erp/ && cp -r prisma .next/standalone/control-erp/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
+    "start:standalone": "HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/control-erp/server.js",
     "lint": "eslint .",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
