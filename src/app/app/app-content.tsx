@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, type ElementType } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth, useUser, UserButton, SignInButton, SignUpButton } from '@clerk/nextjs'
+// Clerk removed - using simple email/password auth
 import { useAppStore } from '@/lib/store'
 import type { Module } from '@/lib/store'
 import { formatCurrency, formatDate } from '@/lib/erp-utils'
@@ -707,59 +707,12 @@ function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const hydrated = useAppStore(state => state.hydrated)
 
-  // ── Clerk auth integration ──
-  const { isSignedIn, isLoaded: clerkLoaded } = useAuth()
-  const { user: clerkUser } = useUser()
-
-  // Sync Clerk user with ERP store on sign-in
-  useEffect(() => {
-    if (!clerkLoaded || !isSignedIn || !clerkUser) return
-    // If already authenticated in store, skip
-    if (isAuthenticated) return
-
-    const syncWithClerk = async () => {
-      try {
-        const res = await fetch('/api/clerk/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clerkId: clerkUser.id,
-            email: clerkUser.primaryEmailAddress?.emailAddress,
-            fullName: clerkUser.fullName,
-            firstName: clerkUser.firstName,
-            lastName: clerkUser.lastName,
-          }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.token) setAccessToken(data.token)
-          if (data.user) {
-            setUser({
-              id: data.user.id,
-              name: data.user.name,
-              username: data.user.username,
-              role: data.user.role,
-              email: data.user.email,
-            })
-          }
-          if (data.companies && data.companies.length > 0) {
-            setCompanies(data.companies)
-            setCurrentCompany(data.companies[0].id)
-          }
-        }
-      } catch (err) {
-        console.error('Clerk sync error:', err)
-      }
-    }
-    syncWithClerk()
-  }, [clerkLoaded, isSignedIn, clerkUser, isAuthenticated, setAccessToken, setUser, setCompanies, setCurrentCompany])
-
   // ── Redirect to sign-in if not authenticated ──
   useEffect(() => {
-    if (clerkLoaded && !isSignedIn) {
+    if (hydrated && !isAuthenticated) {
       router.replace('/sign-in')
     }
-  }, [clerkLoaded, isSignedIn, router])
+  }, [hydrated, isAuthenticated, router])
 
   // ── Global fetch interceptor: attach auth token to all /api/ requests ──
   useEffect(() => {
@@ -803,8 +756,8 @@ function AppContent() {
     setSetupWizardOpen(true)
   }, [isAuthenticated, currentCompanyId, companies, setCurrentCompany])
 
-  // ── Loading state while hydrating or Clerk loading ──
-  if (!hydrated || !clerkLoaded) {
+  // ── Loading state while hydrating ──
+  if (!hydrated) {
     return (
       <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -815,8 +768,8 @@ function AppContent() {
     )
   }
 
-  // ── Not authenticated via Clerk → redirect handled by useEffect above, show loading ──
-  if (!isSignedIn) {
+  // ── Not authenticated → redirect handled by useEffect above, show loading ──
+  if (!isAuthenticated) {
     return (
       <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -876,10 +829,10 @@ function AppContent() {
     }
   }
 
-  // ── Logout Handler (wrapped with Clerk SignOutButton) ──
+  // ── Logout Handler ──
   const handleLogout = () => {
     logout()
-    // Clerk sign-out is handled by the SignOutButton component in the dropdown
+    router.push('/sign-in')
   }
 
   // ── Current Title ──
@@ -1127,7 +1080,14 @@ function AppContent() {
           </div>
         </div>
         <div data-tour="user-menu">
-          <UserButton afterSignOutUrl="/sign-in" />
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-slate-500 hover:bg-slate-50 hover:text-red-600 transition-colors"
+            title="تسجيل الخروج"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">خروج</span>
+          </button>
         </div>
       </header>
 
@@ -1175,12 +1135,22 @@ function AppContent() {
           {/* Sidebar footer - user section */}
           {sidebarOpen ? (
             <div className="border-t p-3 shrink-0 flex items-center gap-3">
-              <UserButton afterSignOutUrl="/sign-in" />
-              <span className="text-sm font-medium text-slate-700 truncate">{user?.name || 'مستخدم'}</span>
+              <div className="h-8 w-8 bg-violet-100 rounded-full flex items-center justify-center text-violet-700 font-bold text-sm">
+                {(user?.name || 'م')[0]}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-700 truncate">{user?.name || 'مستخدم'}</p>
+                <p className="text-[10px] text-slate-400">{roleLabels[user?.role || 'viewer']}</p>
+              </div>
+              <button onClick={handleLogout} className="text-slate-400 hover:text-red-500 transition-colors" title="تسجيل الخروج">
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           ) : (
             <div className="border-t p-2 shrink-0 flex justify-center">
-              <UserButton afterSignOutUrl="/sign-in" />
+              <button onClick={handleLogout} className="text-slate-400 hover:text-red-500 transition-colors p-1" title="تسجيل الخروج">
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           )}
         </aside>
