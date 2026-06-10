@@ -69,6 +69,7 @@ import { Separator } from '@/components/ui/separator'
 // Avatar removed - using Clerk UserButton instead
 import CompanySwitcher from '@/components/companies/company-switcher'
 import SetupWizard from '@/components/companies/setup-wizard'
+import OnboardingTour from '@/components/onboarding/onboarding-tour'
 import CompanyForm from '@/components/settings/company-form'
 import CompaniesList from '@/components/settings/companies-list'
 import CurrenciesList from '@/components/settings/currencies-list'
@@ -392,6 +393,7 @@ function SidebarNav({
               key={item.id}
               open={isExpanded}
               onOpenChange={() => onNavClick(item.id, true)}
+              {...(item.id === 'accounting' ? { 'data-tour': 'nav-item' } : {})}
             >
               <CollapsibleTrigger asChild>
                 <button
@@ -526,7 +528,7 @@ function DashboardContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour="dashboard">
       {/* Welcome Banner */}
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
         <div className="flex items-center gap-4">
@@ -613,7 +615,7 @@ function DashboardContent() {
           </CardContent>
         </Card>
 
-        <Card className="border shadow-sm">
+        <Card className="border shadow-sm" data-tour="quick-actions">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">
@@ -789,7 +791,7 @@ function AppContent() {
 
   // autoLogin removed - login is handled at /login route
 
-  // Auto-select company: if authenticated but no company selected, auto-select first or create one
+  // Auto-select company: if authenticated but no company selected, auto-select first or open setup wizard
   useEffect(() => {
     if (!isAuthenticated) return
     if (currentCompanyId) return
@@ -797,38 +799,9 @@ function AppContent() {
       setCurrentCompany(companies[0].id)
       return
     }
-    // No companies yet - try to create a default one
-    const createDefaultCompany = async () => {
-      const userId = useAppStore.getState().user?.id
-      if (!userId) return
-
-      try {
-        const res = await fetch('/api/companies/setup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            company: {
-              nameAr: 'شركة كنترول',
-              nameEn: 'Control Company',
-              baseCurrency: 'EGP',
-            },
-            userId,
-            template: 'trading',
-          }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.id) {
-            setCompanies([{ id: data.id, nameAr: data.nameAr, nameEn: data.nameEn, vatRate: data.vatRate }])
-            setCurrentCompany(data.id)
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-    createDefaultCompany()
-  }, [isAuthenticated, currentCompanyId, companies, setCurrentCompany, setCompanies])
+    // No companies yet - open the setup wizard instead of auto-creating
+    setSetupWizardOpen(true)
+  }, [isAuthenticated, currentCompanyId, companies, setCurrentCompany])
 
   // ── Loading state while hydrating or Clerk loading ──
   if (!hydrated || !clerkLoaded) {
@@ -854,14 +827,14 @@ function AppContent() {
     )
   }
 
-  // ── Authenticated but no company → Show loading while auto-creating ──
+  // ── Authenticated but no company → Show setup wizard ──
   if (!currentCompanyId) {
     return (
       <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-3 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-          <p className="text-sm text-slate-500">جاري إعداد الشركة...</p>
-        </div>
+        <SetupWizard
+          open={setupWizardOpen}
+          onClose={() => setSetupWizardOpen(false)}
+        />
       </div>
     )
   }
@@ -1130,7 +1103,9 @@ function AppContent() {
         <div className="flex-1" />
 
         {/* Company Switcher */}
-        <CompanySwitcher onOpenSetup={() => setSetupWizardOpen(true)} />
+        <div data-tour="company-switcher">
+          <CompanySwitcher onOpenSetup={() => setSetupWizardOpen(true)} />
+        </div>
 
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
@@ -1152,13 +1127,16 @@ function AppContent() {
             </p>
           </div>
         </div>
-        <UserButton afterSignOutUrl="/sign-in" />
+        <div data-tour="user-menu">
+          <UserButton afterSignOutUrl="/sign-in" />
+        </div>
       </header>
 
       {/* ── Body ── */}
       <div className="flex-1 flex overflow-hidden">
         {/* Desktop Sidebar */}
         <aside
+          data-tour="sidebar"
           className={cn(
             'hidden md:flex flex-col bg-white border-l shrink-0 transition-all duration-300 overflow-hidden',
             sidebarOpen ? 'w-72' : 'w-[68px]'
@@ -1215,6 +1193,7 @@ function AppContent() {
       </div>
       {/* Setup Wizard */}
       <SetupWizard open={setupWizardOpen} onClose={() => setSetupWizardOpen(false)} />
+      <OnboardingTour autoStart={!!currentCompanyId} />
     </div>
   )
 }

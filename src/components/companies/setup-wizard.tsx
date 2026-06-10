@@ -137,6 +137,8 @@ export default function SetupWizard({ open, onClose }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const addCompany = useAppStore((s) => s.addCompany)
+  const setCurrentCompany = useAppStore((s) => s.setCurrentCompany)
+  const userId = useAppStore((s) => s.user?.id)
 
   // Form state
   const [company, setCompany] = useState<CompanyForm>({
@@ -213,7 +215,7 @@ export default function SetupWizard({ open, onClose }: SetupWizardProps) {
         warehouses: warehouses.filter((w) => w.nameAr.trim()),
         banks: banks.filter((b) => b.name.trim()),
         cashBoxes: cashBoxes.filter((c) => c.name.trim()),
-        userId: 'admin', // TODO: use actual user id from auth
+        userId: userId || 'admin',
       }
 
       const res = await fetch('/api/companies/setup', {
@@ -237,6 +239,9 @@ export default function SetupWizard({ open, onClose }: SetupWizardProps) {
         logo: result.logo,
         vatRate: result.vatRate,
       })
+
+      // Set as current company
+      setCurrentCompany(result.id)
 
       toast.success('تم إنشاء الشركة بنجاح', {
         description: `تم إنشاء "${result.nameAr}" وإعداد جميع البيانات الافتراضية`,
