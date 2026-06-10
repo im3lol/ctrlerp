@@ -131,9 +131,10 @@ type ElementType = React.ElementType
 interface SetupWizardProps {
   open: boolean
   onClose: () => void
+  required?: boolean // If true, the cancel button is hidden (e.g. first-time setup with no companies)
 }
 
-export default function SetupWizard({ open, onClose }: SetupWizardProps) {
+export default function SetupWizard({ open, onClose, required = false }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const addCompany = useAppStore((s) => s.addCompany)
@@ -1086,16 +1087,18 @@ export default function SetupWizard({ open, onClose }: SetupWizardProps) {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                handleReset()
-                onClose()
-              }}
-              className="text-slate-500"
-            >
-              إلغاء
-            </Button>
+            {!required && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  handleReset()
+                  onClose()
+                }}
+                className="text-slate-500"
+              >
+                إلغاء
+              </Button>
+            )}
           </div>
 
           {/* Step indicator */}

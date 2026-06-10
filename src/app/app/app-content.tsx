@@ -827,15 +827,14 @@ function AppContent() {
     )
   }
 
-  // ── Authenticated but no company → Show setup wizard ──
+  // ── Authenticated but no company → Show setup wizard (required, cannot be skipped) ──
   if (!currentCompanyId) {
     return (
-      <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
-        <SetupWizard
-          open={setupWizardOpen}
-          onClose={() => setSetupWizardOpen(false)}
-        />
-      </div>
+      <SetupWizard
+        open={true}
+        onClose={() => setSetupWizardOpen(false)}
+        required={true}
+      />
     )
   }
 

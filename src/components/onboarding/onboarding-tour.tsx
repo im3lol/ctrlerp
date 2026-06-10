@@ -40,7 +40,7 @@ const tourSteps: TourStep[] = [
     id: 'welcome',
     target: '',
     title: 'مرحباً بك في كنترول!',
-    description: 'هنتعرف معاك على أهم مميزات النظام',
+    description: 'نظام إدارة الموارد المؤسسية المتكامل. هنأخذك في جولة سريعة عشان تتعرف على أهم مميزات النظام وتقدر تبدأ شغلك على طول.',
     icon: Sparkles,
     position: 'center',
   },
@@ -48,7 +48,7 @@ const tourSteps: TourStep[] = [
     id: 'sidebar',
     target: '[data-tour="sidebar"]',
     title: 'القائمة الجانبية',
-    description: 'القائمة الجانبية هي مركز التحكم الرئيسي - من هنا تقدر تتنقل بين كل وحدات النظام',
+    description: 'مركز التحكم الرئيسي في النظام. من هنا تقدر تتنقل بين كل الأقسام: الحسابات، المشتريات، المخازن، المبيعات، التقارير، والإعدادات.',
     icon: Menu,
     position: 'right',
   },
@@ -56,7 +56,7 @@ const tourSteps: TourStep[] = [
     id: 'dashboard',
     target: '[data-tour="dashboard"]',
     title: 'لوحة التحكم',
-    description: 'لوحة التحكم بتعرضلك ملخص أعمالك - المبيعات، المشتريات، والمخزون',
+    description: 'ملخص شامل لأعمالك في مكان واحد. بتعرضلك إجمالي المبيعات والمشتريات، عدد العملاء والموردين، وقيمة المخزون بشكل فوري.',
     icon: LayoutDashboard,
     position: 'left',
   },
@@ -64,7 +64,7 @@ const tourSteps: TourStep[] = [
     id: 'quick-actions',
     target: '[data-tour="quick-actions"]',
     title: 'الإجراءات السريعة',
-    description: 'من الإجراءات السريعة تقدر تعمل فواتير وأوامر بضغطة واحدة',
+    description: 'اختصارات سريعة لأهم العمليات: إنشاء فاتورة بيع، فاتورة شراء، قيد يومية، أو إضافة صنف جديد. بضغطة واحدة بتوصل للمكان المطلوب.',
     icon: Zap,
     position: 'left',
   },
@@ -72,7 +72,7 @@ const tourSteps: TourStep[] = [
     id: 'navigation',
     target: '[data-tour="nav-item"]',
     title: 'التنقل بين الأقسام',
-    description: 'كل وحدة ليها صفحات فرعية - اضغط على السهم عشان تشوف الأقسام',
+    description: 'كل قسم رئيسي فيه صفحات فرعية. اضغط على السهم الصغير عشان يفتحلك القائمة الفرعية وتقدر تتنقل بين الصفحات المختلفة.',
     icon: Navigation,
     position: 'right',
   },
@@ -80,7 +80,7 @@ const tourSteps: TourStep[] = [
     id: 'company-switcher',
     target: '[data-tour="company-switcher"]',
     title: 'التبديل بين الشركات',
-    description: 'لو عندك أكتر من شركة، تقدر تتنقل بينهم من هنا',
+    description: 'لو عندك أكتر من شركة مسجلة في النظام، تقدر تتنقل بينهم بسهولة من هنا. كل شركة ليها بياناتها وحساباتها المستقلة.',
     icon: Building2,
     position: 'bottom',
   },
@@ -88,15 +88,15 @@ const tourSteps: TourStep[] = [
     id: 'user-menu',
     target: '[data-tour="user-menu"]',
     title: 'قائمة المستخدم',
-    description: 'من قائمة المستخدم تقدر تعدل بياناتك وتسجل خروج',
+    description: 'من هنا تقدر تعدل بيانات حسابك الشخصي وتسجل خروج من النظام بشكل آمن.',
     icon: User,
     position: 'bottom',
   },
   {
     id: 'complete',
     target: '',
-    title: 'تمام! أنت جاهز تبدأ 🎉',
-    description: 'لو محتاج مساعدة تاني اضغط على زر المساعدة',
+    title: 'تمام! أنت جاهز تبدأ',
+    description: 'دلوقتي تقدر تبدأ تستخدم النظام. لو محتاج مساعدة في أي وقت، اضغط على زر المصباح في أسفل الشاشة عشان تعيد الجولة.',
     icon: Sparkles,
     position: 'center',
   },
@@ -444,11 +444,14 @@ export default function OnboardingTour({ autoStart = false }: OnboardingTourProp
       {!isOpen && (
         <button
           onClick={handleRestart}
-          className="fixed bottom-6 left-6 z-50 h-12 w-12 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
-          title="مساعدة"
+          className="fixed bottom-6 left-6 z-50 flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 group ps-4 pe-3 py-3"
+          title="إعادة جولة التعريف"
           dir="rtl"
         >
-          <Lightbulb className="h-5 w-5 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-medium whitespace-nowrap group-hover:max-w-0 group-hover:opacity-0 group-hover:ps-0 overflow-hidden transition-all duration-300 max-w-32 opacity-100 ps-2">
+            جولة التعريف
+          </span>
+          <Lightbulb className="h-5 w-5 shrink-0 group-hover:scale-110 transition-transform" />
         </button>
       )}
 
