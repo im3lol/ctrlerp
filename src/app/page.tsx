@@ -1,1246 +1,656 @@
 'use client'
 
-import { useState, useEffect, useCallback, type ElementType } from 'react'
-// Auth handled via token-based system (no SessionProvider needed)
-import { useAppStore } from '@/lib/store'
-import type { Module } from '@/lib/store'
-import { formatCurrency, formatDate } from '@/lib/erp-utils'
-import { roleLabels, canManageCompany, hasPermission } from '@/lib/permissions'
-import type { Permission } from '@/lib/permissions'
-import LoginForm from '@/components/auth/login-form'
-import CompanySelector from '@/components/auth/company-selector'
 import {
-  LayoutDashboard,
-  Settings,
-  Package,
-  Calculator,
-  ShoppingCart,
-  Truck,
   BarChart3,
-  ChevronDown,
-  Menu,
-  Plus,
-  Building2,
-  DollarSign,
-  Ruler,
-  UserCog,
-  GitBranch,
-  Warehouse,
-  Tags,
-  ArrowLeftRight,
-  Scale,
   BookOpen,
+  Package,
+  ShoppingCart,
+  Landmark,
+  TrendingUp,
+  ArrowLeft,
+  Sparkles,
+  Shield,
+  Zap,
+  Calculator,
+  Truck,
+  HandCoins,
+  Settings,
   Users,
+  Building2,
+  CheckCircle,
+  Globe,
+  ChevronLeft,
+  ArrowRight,
+  LayoutDashboard,
+  GitBranch,
+  ClipboardList,
   FileText,
   Receipt,
-  CreditCard,
-  PieChart,
-  TrendingUp,
-  HandCoins,
-  ClipboardList,
-  ClipboardCheck,
-  PackageCheck,
-  Bell,
-  LogOut,
-  Activity,
-  PanelRightClose,
-  PanelRightOpen,
-  Check,
-  ChevronsUpDown,
   Undo2,
+  Warehouse,
+  Tags,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useAppStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import CompanySwitcher from '@/components/companies/company-switcher'
-import SetupWizard from '@/components/companies/setup-wizard'
-import CompanyForm from '@/components/settings/company-form'
-import CompaniesList from '@/components/settings/companies-list'
-import CurrenciesList from '@/components/settings/currencies-list'
-import UOMList from '@/components/settings/uom-list'
-import UsersList from '@/components/settings/users-list'
-import ChartOfAccounts from '@/components/accounting/chart-of-accounts'
-import JournalEntriesList from '@/components/accounting/journal-entries-list'
-import AccountingDashboard from '@/components/accounting/accounting-dashboard'
-import WarehousesList from '@/components/inventory/warehouses-list'
-import CategoriesList from '@/components/inventory/categories-list'
-import ItemsList from '@/components/inventory/items-list'
-import StockMovementsList from '@/components/inventory/stock-movements-list'
-import StockTransfersList from '@/components/inventory/stock-transfers-list'
-import ItemDetailPage from '@/components/inventory/item-detail-page'
-import StockTransferFormPage from '@/components/inventory/stock-transfer-form-page'
-import ItemBalancesList from '@/components/inventory/item-balances-list'
-import MaterialRequestsList from '@/components/inventory/material-requests-list'
-import DeliveryNotesList from '@/components/inventory/delivery-notes-list'
-import PurchaseReceiptsList from '@/components/inventory/purchase-receipts-list'
-import InventoryDashboard from '@/components/inventory/inventory-dashboard'
-import PickListsList from '@/components/inventory/pick-lists-list'
-import MaterialRequestFormPage from '@/components/inventory/material-request-form-page'
-import DeliveryNoteFormPage from '@/components/inventory/delivery-note-form-page'
-import PurchaseReceiptFormPage from '@/components/inventory/purchase-receipt-form-page'
-import PickListFormPage from '@/components/inventory/pick-list-form-page'
-import PurchasesDashboard from '@/components/purchases/purchases-dashboard'
-import SuppliersList from '@/components/purchases/suppliers-list'
-import PurchaseInvoicesList from '@/components/purchases/purchase-invoices-list'
-import SupplierFormPage from '@/components/purchases/supplier-form-page'
-import PurchaseOrderFormPage from '@/components/purchases/purchase-order-form-page'
-import PurchaseInvoiceFormPage from '@/components/purchases/purchase-invoice-form-page'
-import PurchaseReturnFormPage from '@/components/purchases/purchase-return-form-page'
-import PurchaseReturnsList from '@/components/purchases/purchase-returns-list'
-import PurchaseOrdersList from '@/components/purchases/purchase-orders-list'
-import SalesDashboard from '@/components/sales/sales-dashboard'
-import CustomersList from '@/components/sales/customers-list'
-import CustomerFormPage from '@/components/sales/customer-form-page'
-import SalesInvoicesList from '@/components/sales/sales-invoices-list'
-import SalesInvoiceFormPage from '@/components/sales/sales-invoice-form-page'
-import SalesOrdersList from '@/components/sales/sales-orders-list'
-import SalesOrderFormPage from '@/components/sales/sales-order-form-page'
-import SalesReturnFormPage from '@/components/sales/sales-return-form-page'
-import SalesReturnsList from '@/components/sales/sales-returns-list'
-import TrialBalanceReport from '@/components/reports/trial-balance'
-import BalanceSheetReport from '@/components/reports/balance-sheet'
-import IncomeStatementReport from '@/components/reports/income-statement'
-import InventoryReport from '@/components/reports/inventory-report'
-import SalesReport from '@/components/reports/sales-report'
-import PurchaseReport from '@/components/reports/purchase-report'
-import CustomerAgingReport from '@/components/reports/customer-aging'
-import SupplierAgingReport from '@/components/reports/supplier-aging'
-import InvestorsList from '@/components/investors/investors-list'
 
-// ─── Navigation Permission Checks ──────────────────────────────────────────
-
-// Map each nav module to the permission required to view it
-const moduleViewPermissions: Record<string, Permission> = {
-  dashboard: 'settings.view', // Everyone has settings.view, so dashboard is always visible
-  settings: 'settings.edit',   // Only admin/super_admin can see settings (they have settings.edit)
-  inventory: 'inventory.view',
-  accounting: 'accounting.view',
-  sales: 'sales.view',
-  purchases: 'purchases.view',
-  investors: 'investors.view',
-  reports: 'reports.view',
-}
-
-// Filter navigation based on user role
-function filterNavigationByRole(nav: NavItem[], role: string): NavItem[] {
-  return nav
-    .filter((item) => {
-      // Dashboard is always visible
-      if (item.id === 'dashboard') return true
-      const requiredPerm = moduleViewPermissions[item.id]
-      if (!requiredPerm) return true
-      return hasPermission(role, requiredPerm)
-    })
-    .map((item) => {
-      if (!item.children) return item
-      // Filter children based on permissions too
-      const filteredChildren = item.children.filter((child) => {
-        // Special case: 'users' child under settings requires users.view
-        if (child.id === 'users') return hasPermission(role, 'users.view')
-        // chart-of-accounts under settings or accounting - always visible if parent is visible
-        return true
-      })
-      return { ...item, children: filteredChildren.length > 0 ? filteredChildren : undefined }
-    })
-}
-
-// ─── Navigation Configuration ────────────────────────────────────────────────
-
-interface NavChild {
-  id: string
-  label: string
-  icon: ElementType
-}
-
-interface NavItem {
-  id: string
-  label: string
-  icon: ElementType
-  children?: NavChild[]
-}
-
-const navigation: NavItem[] = [
-  {
-    id: 'dashboard',
-    label: 'لوحة التحكم',
-    icon: LayoutDashboard,
-  },
-  {
-    id: 'accounting',
-    label: 'الحسابات',
-    icon: Calculator,
-    children: [
-      { id: 'journal-entries', label: 'القيود اليومية', icon: BookOpen },
-      { id: 'chart-of-accounts', label: 'شجرة الحسابات', icon: GitBranch },
-    ],
-  },
-  {
-    id: 'purchases',
-    label: 'المشتريات',
-    icon: Truck,
-    children: [
-      { id: 'suppliers', label: 'الموردين', icon: Building2 },
-      { id: 'purchase-orders', label: 'أوامر الشراء', icon: ClipboardList },
-      { id: 'purchase-invoices', label: 'فواتير الشراء', icon: FileText },
-      { id: 'purchase-returns', label: 'مرتجعات المشتريات', icon: Undo2 },
-    ],
-  },
-  {
-    id: 'inventory',
-    label: 'المخازن',
-    icon: Package,
-    children: [
-      { id: 'warehouses', label: 'المخازن', icon: Warehouse },
-      { id: 'items', label: 'الأصناف', icon: Package },
-      { id: 'categories', label: 'الفئات', icon: Tags },
-      { id: 'material-requests', label: 'طلبات المواد', icon: ClipboardList },
-      { id: 'stock-transfers', label: 'تحويلات المخزون', icon: ArrowLeftRight },
-      { id: 'delivery-notes', label: 'أذون الصرف', icon: Truck },
-      { id: 'purchase-receipts', label: 'أذون الاستلام', icon: PackageCheck },
-      { id: 'pick-lists', label: 'قوائم التحضير', icon: ClipboardCheck },
-      { id: 'stock-movements', label: 'حركات المخزن', icon: ArrowLeftRight },
-      { id: 'item-balances', label: 'أرصدة الأصناف', icon: Scale },
-    ],
-  },
-  {
-    id: 'sales',
-    label: 'المبيعات',
-    icon: ShoppingCart,
-    children: [
-      { id: 'customers', label: 'العملاء', icon: Users },
-      { id: 'sales-orders', label: 'أوامر البيع', icon: ClipboardCheck },
-      { id: 'sales-invoices', label: 'فواتير البيع', icon: FileText },
-      { id: 'sales-returns', label: 'مرتجعات المبيعات', icon: Undo2 },
-    ],
-  },
-  {
-    id: 'investors',
-    label: 'المستثمرون',
-    icon: HandCoins,
-    children: [
-      { id: 'investors-list', label: 'المستثمرون', icon: Users },
-    ],
-  },
-  {
-    id: 'reports',
-    label: 'التقارير',
-    icon: BarChart3,
-    children: [
-      { id: 'trial-balance', label: 'ميزان المراجعة', icon: Scale },
-      { id: 'balance-sheet', label: 'الميزانية العمومية', icon: PieChart },
-      { id: 'income-statement', label: 'قائمة الدخل', icon: TrendingUp },
-      { id: 'inventory-report', label: 'تقرير المخازن', icon: Package },
-      { id: 'sales-report', label: 'تقرير المبيعات', icon: BarChart3 },
-      { id: 'purchase-report', label: 'تقرير المشتريات', icon: ShoppingCart },
-      { id: 'customer-aging', label: 'أرصدة العملاء', icon: Users },
-      { id: 'supplier-aging', label: 'أرصدة الموردين', icon: Building2 },
-    ],
-  },
-  {
-    id: 'settings',
-    label: 'الإعدادات',
-    icon: Settings,
-    children: [
-      { id: 'companies', label: 'الشركات', icon: Building2 },
-      { id: 'company', label: 'بيانات الشركة', icon: Building2 },
-      { id: 'currencies', label: 'العملات', icon: DollarSign },
-      { id: 'uom', label: 'وحدات القياس', icon: Ruler },
-      { id: 'users', label: 'المستخدمين', icon: UserCog },
-      { id: 'chart-of-accounts', label: 'شجرة الحسابات', icon: GitBranch },
-    ],
-  },
-]
-
-// ─── Title Maps ──────────────────────────────────────────────────────────────
-
-const moduleTitles: Record<string, string> = {
-  dashboard: 'لوحة التحكم',
-  settings: 'الإعدادات',
-  inventory: 'المخازن',
-  accounting: 'الحسابات',
-  sales: 'المبيعات',
-  purchases: 'المشتريات',
-  reports: 'التقارير',
-  investors: 'المستثمرون',
-}
-
-const viewTitles: Record<string, string> = {
-  companies: 'إدارة الشركات',
-  company: 'بيانات الشركة',
-  currencies: 'العملات',
-  uom: 'وحدات القياس',
-  users: 'المستخدمين',
-  'chart-of-accounts': 'شجرة الحسابات',
-  warehouses: 'المخازن',
-  items: 'الأصناف',
-  categories: 'الفئات',
-  'stock-movements': 'حركات المخزن',
-  'stock-transfers': 'تحويلات المخزون',
-  'item-detail': 'تفاصيل الصنف',
-  'stock-transfer-form': 'تحويل مخزون',
-  'item-balances': 'أرصدة الأصناف',
-  'material-requests': 'طلبات المواد',
-  'material-request-form': 'طلب مواد جديد',
-  'delivery-notes': 'أذون الصرف',
-  'delivery-note-form': 'إذن صرف جديد',
-  'purchase-receipts': 'أذون الاستلام',
-  'purchase-receipt-form': 'إذن استلام جديد',
-  'pick-lists': 'قوائم التحضير',
-  'pick-list-form': 'قائمة تحضير جديدة',
-  'journal-entries': 'القيود اليومية',
-  customers: 'العملاء',
-  'sales-orders': 'أوامر البيع',
-  'sales-invoices': 'فواتير البيع',
-  'customer-form': 'إضافة عميل',
-  'sales-order-form': 'أمر بيع جديد',
-  'sales-invoice-form': 'فاتورة بيع جديدة',
-  'sales-return-form': 'مرتجع مبيعات جديد',
-  'sales-returns': 'مرتجعات المبيعات',
-  suppliers: 'الموردين',
-  'purchase-orders': 'أوامر الشراء',
-  'purchase-invoices': 'فواتير الشراء',
-  'supplier-form': 'إضافة مورد',
-  'purchase-order-form': 'أمر شراء جديد',
-  'purchase-invoice-form': 'فاتورة شراء جديدة',
-  'purchase-return-form': 'مرتجع مشتريات جديد',
-  'purchase-returns': 'مرتجعات المشتريات',
-  'trial-balance': 'ميزان المراجعة',
-  'balance-sheet': 'الميزانية العمومية',
-  'income-statement': 'قائمة الدخل',
-  'inventory-report': 'تقرير المخازن',
-  'sales-report': 'تقرير المبيعات',
-  'purchase-report': 'تقرير المشتريات',
-  'customer-aging': 'أرصدة العملاء',
-  'supplier-aging': 'أرصدة الموردين',
-  'investors-list': 'المستثمرون',
-}
-
-// ─── Sidebar Navigation Component ────────────────────────────────────────────
-
-interface SidebarNavProps {
-  currentModule: string
-  currentView: string
-  expandedItems: string[]
-  onNavClick: (id: string, hasChildren: boolean) => void
-  onSubClick: (moduleId: string, viewId: string) => void
-  isCollapsed: boolean
-  userRole: string
-}
-
-function SidebarNav({
-  currentModule,
-  currentView,
-  expandedItems,
-  onNavClick,
-  onSubClick,
-  isCollapsed,
-  userRole,
-}: SidebarNavProps) {
-  const visibleNav = filterNavigationByRole(navigation, userRole)
-
-  if (isCollapsed) {
-    return (
-      <nav className="space-y-1 p-2">
-        {visibleNav.map((item) => {
-          const isActive = currentModule === item.id
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavClick(item.id, !!item.children)}
-              className={cn(
-                'w-full flex items-center justify-center p-3 rounded-lg transition-colors duration-150',
-                isActive
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-              )}
-              title={item.label}
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-            </button>
-          )
-        })}
-      </nav>
-    )
-  }
-
+export default function LandingPage() {
   return (
-    <nav className="space-y-1 p-3">
-      {visibleNav.map((item) => {
-        const isActive = currentModule === item.id && !currentView
-        const isExpanded = expandedItems.includes(item.id)
-        const isParentActive = currentModule === item.id
-        const hasChildren = !!item.children
-
-        if (hasChildren) {
-          return (
-            <Collapsible
-              key={item.id}
-              open={isExpanded}
-              onOpenChange={() => onNavClick(item.id, true)}
-            >
-              <CollapsibleTrigger asChild>
-                <button
-                  className={cn(
-                    'w-full flex flex-row-reverse items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
-                    isParentActive
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  )}
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  <span className="flex-1 text-right">{item.label}</span>
-                  <ChevronDown
-                    className={cn(
-                      'h-4 w-4 shrink-0 transition-transform duration-200',
-                      isExpanded && 'rotate-180'
-                    )}
-                  />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                <div className="me-3 mt-1 space-y-0.5 border-e border-slate-100 pe-3 py-1">
-                  {item.children!.map((child) => {
-                    const isChildActive =
-                      currentModule === item.id && currentView === child.id
-                    return (
-                      <button
-                        key={child.id}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onSubClick(item.id, child.id)
-                        }}
-                        className={cn(
-                          'w-full flex flex-row-reverse items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-150',
-                          isChildActive
-                            ? 'bg-emerald-100/70 text-emerald-800 font-medium'
-                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                        )}
-                      >
-                        <child.icon className="h-4 w-4 shrink-0" />
-                        <span>{child.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )
-        }
-
-        return (
-          <button
-            key={item.id}
-            onClick={() => onNavClick(item.id, false)}
-            className={cn(
-              'w-full flex flex-row-reverse items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
-              isActive
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            )}
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-right">{item.label}</span>
-          </button>
-        )
-      })}
-    </nav>
-  )
-}
-
-// ─── Dashboard Content ───────────────────────────────────────────────────────
-
-interface DashboardData {
-  totalSales: number
-  totalPurchases: number
-  customerCount: number
-  supplierCount: number
-  inventoryValue: number
-  dueInvoices: number
-  recentActivities: Array<{
-    id: string
-    type: string
-    date: string
-    description: string
-    amount: number
-  }>
-}
-
-const dashboardStatDefs = [
-  { key: 'totalSales' as const, title: 'إجمالي المبيعات', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', isCurrency: true },
-  { key: 'totalPurchases' as const, title: 'إجمالي المشتريات', icon: ShoppingCart, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', isCurrency: true },
-  { key: 'customerCount' as const, title: 'عدد العملاء', icon: Users, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', isCurrency: false },
-  { key: 'supplierCount' as const, title: 'عدد الموردين', icon: Building2, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', isCurrency: false },
-  { key: 'inventoryValue' as const, title: 'قيمة المخزون', icon: Package, color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200', isCurrency: true },
-  { key: 'dueInvoices' as const, title: 'الفواتير المستحقة', icon: FileText, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', isCurrency: false },
-]
-
-function DashboardContent() {
-  const companyId = useAppStore(state => state.currentCompanyId)
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  const fetchData = useCallback(async () => {
-    if (!companyId) return
-    try {
-      const res = await fetch(`/api/dashboard?companyId=${companyId}`)
-      if (res.ok) {
-        setData(await res.json())
-      }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }, [companyId])
-
-  useEffect(() => { fetchData() }, [fetchData])
-
-  const statValues: Record<string, number> = data ? {
-    totalSales: data.totalSales,
-    totalPurchases: data.totalPurchases,
-    customerCount: data.customerCount,
-    supplierCount: data.supplierCount,
-    inventoryValue: data.inventoryValue,
-    dueInvoices: data.dueInvoices,
-  } : {}
-
-  const activityIcons: Record<string, { icon: ElementType; color: string; bg: string }> = {
-    stock_movement: { icon: ArrowLeftRight, color: 'text-cyan-600', bg: 'bg-cyan-50' },
-    sales_invoice: { icon: FileText, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    purchase_invoice: { icon: Receipt, color: 'text-orange-600', bg: 'bg-orange-50' },
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-l from-emerald-600 to-emerald-500 rounded-2xl p-6 text-white shadow-lg shadow-emerald-200">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-            <LayoutDashboard className="h-6 w-6" />
+    <div
+      dir="rtl"
+      className="min-h-screen flex flex-col bg-[#050510]"
+      style={{ fontFamily: "var(--font-thmanyah-sans)" }}
+    >
+      {/* ── Navbar ── */}
+      <nav id="main-header" className="fixed top-0 inset-x-0 z-50 bg-transparent transition-all duration-300 py-4 lg:py-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-gradient-to-bl from-[#7C3AED] to-[#F59E0B] rounded-lg flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-white" style={{ fontFamily: "var(--font-thmanyah-serif)" }}>كنترول</span>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold">مرحباً بك في Control ERP</h2>
-            <p className="text-emerald-100 mt-0.5">
-              إليك ملخص أعمالك اليوم
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-sm text-slate-300 hover:text-white transition-colors">المميزات</a>
+            <a href="#modules" className="text-sm text-slate-300 hover:text-white transition-colors">الوحدات</a>
+            <a href="#stats" className="text-sm text-slate-300 hover:text-white transition-colors">الإحصائيات</a>
+            <a href="#why" className="text-sm text-slate-300 hover:text-white transition-colors">ليه كنترول؟</a>
+          </div>
+          <div className="flex items-center gap-3">
+            <a href="/sign-in">
+              <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5 font-medium">
+                تسجيل الدخول
+              </Button>
+            </a>
+            <a href="/sign-up">
+              <Button className="bg-gradient-to-l from-[#7C3AED] to-[#F59E0B] hover:from-[#8B5CF6] hover:to-[#FBBF24] text-white font-bold px-5 rounded-xl transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(124,58,237,0.3)]">
+                ابدأ الآن
+              </Button>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Hero Section ── */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        {/* Grid pattern background */}
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(124,58,237,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.3) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
+
+        {/* Gradient orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div
+            className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-[#7C3AED]/8 rounded-full blur-[120px]"
+            style={{ animation: 'pulse-glow 6s ease-in-out infinite' }}
+          />
+          <div
+            className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-[#F59E0B]/5 rounded-full blur-[100px]"
+            style={{ animation: 'pulse-glow 8s ease-in-out infinite 2s' }}
+          />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#7C3AED]/4 rounded-full blur-[150px]"
+            style={{ animation: 'pulse-glow 10s ease-in-out infinite 4s' }}
+          />
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 text-center">
+          {/* Central rotating element */}
+          <div className="flex justify-center mb-10" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
+            <div className="relative">
+              <div
+                className="h-24 w-24 rounded-full border-2 border-[#7C3AED]/30 flex items-center justify-center"
+                style={{ animation: 'glow-pulse 3s ease-in-out infinite' }}
+              >
+                <div className="h-16 w-16 bg-gradient-to-br from-[#7C3AED]/20 to-[#F59E0B]/20 rounded-full flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-[#A78BFA]" />
+                </div>
+              </div>
+              {/* Rotating ring */}
+              <div
+                className="absolute -inset-4 rounded-full border border-dashed border-[#7C3AED]/20"
+                style={{ animation: 'rotate-slow 20s linear infinite' }}
+              />
+              {/* Outer rotating ring */}
+              <div
+                className="absolute -inset-8 rounded-full border border-dashed border-[#F59E0B]/10"
+                style={{ animation: 'rotate-slow 30s linear infinite reverse' }}
+              />
+            </div>
+          </div>
+
+          {/* Badge */}
+          <div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-8"
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.1s both' }}
+          >
+            <Zap className="h-4 w-4 text-[#A78BFA]" />
+            <span className="text-sm text-[#A78BFA] font-medium">الحل العربي الأول لإدارة الأعمال</span>
+          </div>
+
+          {/* Main Heading */}
+          <h1
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6"
+            style={{
+              fontFamily: "var(--font-thmanyah-serif)",
+              animation: 'fadeInUp 0.6s ease-out 0.2s both',
+            }}
+          >
+            نظامك المتكامل لإدارة
+            <br />
+            <span className="bg-gradient-to-l from-[#A78BFA] to-[#F59E0B] bg-clip-text text-transparent">أعمالك من أول الطلب</span>
+            <br />
+            للتسليم النهائي
+          </h1>
+
+          {/* Subheading */}
+          <p
+            className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed"
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.3s both' }}
+          >
+            تابع، تحكّم، ونفّذ كل خطوة في شغلك من مكان واحد
+            <br className="hidden sm:block" />
+            محاسبة، مخازن، مبيعات، مشتريات، واستثمارات — من غير لخبطة ولا أنظمة متفرقة
+          </p>
+
+          {/* CTA Buttons */}
+          <div
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.4s both' }}
+          >
+            <a href="/sign-up">
+              <Button
+                size="lg"
+                className="bg-gradient-to-l from-[#7C3AED] to-[#F59E0B] hover:from-[#8B5CF6] hover:to-[#FBBF24] text-white font-bold text-lg px-10 h-14 rounded-xl shadow-[0_0_30px_rgba(124,58,237,0.25)] transition-all hover:shadow-[0_0_50px_rgba(124,58,237,0.4)] hover:scale-[1.02]"
+              >
+                ابدأ الآن مجاناً
+                <ArrowLeft className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0 rtl:rotate-180" />
+              </Button>
+            </a>
+            <a href="#features">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-white/10 text-slate-300 hover:text-white hover:border-[#7C3AED]/30 hover:bg-[#7C3AED]/5 font-medium text-lg px-8 h-14 rounded-xl bg-transparent transition-all"
+              >
+                تعرف على المزيد
+              </Button>
+            </a>
+          </div>
+
+          {/* Feature pills floating around */}
+          <div className="hidden lg:block" style={{ animation: 'fadeIn 1s ease-out 1s both' }}>
+            <div className="absolute top-1/3 -right-4 flex flex-col gap-3">
+              {['محاسبة مزدوجة', 'إدارة مخازن', 'مبيعات ومشتريات'].map((label, i) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-slate-300"
+                  style={{ animation: `slide-in-right 0.5s ease-out ${1.2 + i * 0.2}s both` }}
+                >
+                  <div className="h-2 w-2 rounded-full bg-[#A78BFA]" />
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div className="absolute top-1/3 -left-4 flex flex-col gap-3">
+              {['تقارير مالية', 'إدارة استثمارات', 'صلاحيات مرنة'].map((label, i) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-slate-300"
+                  style={{ animation: `slide-in-left 0.5s ease-out ${1.2 + i * 0.2}s both` }}
+                >
+                  <div className="h-2 w-2 rounded-full bg-[#F59E0B]" />
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2" style={{ animation: 'fadeIn 1s ease-out 1.5s both' }}>
+          <div className="w-6 h-10 rounded-full border-2 border-white/20 flex items-start justify-center p-1.5">
+            <div className="w-1.5 h-3 bg-[#A78BFA] rounded-full animate-bounce" />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stats Bar ── */}
+      <section id="stats" className="py-8 border-y border-white/5 bg-[#0a0a14]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div
+                key={stat.label}
+                className="text-center"
+                style={{ animation: `counter 0.5s ease-out ${index * 0.1}s both` }}
+              >
+                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-l from-[#A78BFA] to-[#F59E0B] bg-clip-text text-transparent mb-1" style={{ fontFamily: "var(--font-thmanyah-serif)" }}>
+                  {stat.value}
+                </div>
+                <div className="text-slate-500 font-medium text-sm">
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features Grid Section ── */}
+      <section id="features" className="py-20 sm:py-28 bg-[#0a0a14] relative">
+        {/* Grid background */}
+        <div
+          className="absolute inset-0 opacity-[0.02] pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(124,58,237,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.5) 1px, transparent 1px)',
+            backgroundSize: '50px 50px',
+          }}
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16" style={{ animation: 'fadeInUp 0.6s ease-out' }}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-6">
+              <Sparkles className="h-4 w-4 text-[#A78BFA]" />
+              <span className="text-sm text-[#A78BFA] font-medium">المميزات</span>
+            </div>
+            <h2
+              className="text-3xl sm:text-4xl font-bold text-white mb-4"
+              style={{ fontFamily: "var(--font-thmanyah-serif)" }}
+            >
+              كل ما تحتاجه لإدارة أعمالك
+            </h2>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              نظام شامل يغطي جميع جوانب عملك من المحاسبة إلى إدارة المخازن والمبيعات
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="group relative bg-white/[0.03] rounded-2xl border border-white/[0.06] p-6 hover:border-[#7C3AED]/30 hover:bg-white/[0.05] transition-all duration-500 backdrop-blur-sm"
+                style={{
+                  animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`,
+                  animation: 'border-glow 4s ease-in-out infinite',
+                }}
+              >
+                <div className={`h-14 w-14 rounded-xl ${feature.bgColor} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon className={`h-7 w-7 ${feature.iconColor}`} />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
+                <p className="text-slate-400 leading-relaxed text-sm">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Modules Showcase Section ── */}
+      <section id="modules" className="py-20 sm:py-28 bg-[#050510] relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-6">
+              <Shield className="h-4 w-4 text-[#A78BFA]" />
+              <span className="text-sm text-[#A78BFA] font-medium">الوحدات</span>
+            </div>
+            <h2
+              className="text-3xl sm:text-4xl font-bold text-white mb-4"
+              style={{ fontFamily: "var(--font-thmanyah-serif)" }}
+            >
+              وحدات متكاملة تعمل معاً بسلاسة
+            </h2>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              كل وحدة مرتبطة بالأخرى لضمان تدفق البيانات بسلاسة ودقة التقارير المالية
+            </p>
+          </div>
+
+          {/* Workflow */}
+          <div className="flex flex-col items-center mb-16">
+            <div className="hidden md:flex items-center gap-0 w-full max-w-4xl justify-center">
+              {workflowSteps.map((step, index) => (
+                <div key={step.label} className="flex items-center">
+                  <div className="flex flex-col items-center group">
+                    <div className={`h-20 w-20 rounded-2xl ${step.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-white/5`}>
+                      <step.icon className={`h-9 w-9 ${step.iconColor}`} />
+                    </div>
+                    <span className="text-sm font-bold text-white">{step.label}</span>
+                    <span className="text-xs text-slate-500 mt-1">{step.sublabel}</span>
+                  </div>
+                  {index < workflowSteps.length - 1 && (
+                    <div className="flex items-center mx-4 mb-8">
+                      <div className="w-16 h-0.5 bg-[#7C3AED]/20 relative">
+                        <ChevronLeft className="absolute -left-2 -top-2 h-4 w-4 text-[#7C3AED]/50" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="md:hidden flex flex-col items-center gap-6">
+              {workflowSteps.map((step, index) => (
+                <div key={step.label}>
+                  <div className="flex flex-col items-center">
+                    <div className={`h-16 w-16 rounded-xl ${step.bgColor} flex items-center justify-center mb-3 border border-white/5`}>
+                      <step.icon className={`h-7 w-7 ${step.iconColor}`} />
+                    </div>
+                    <span className="text-sm font-bold text-white">{step.label}</span>
+                    <span className="text-xs text-slate-500 mt-1">{step.sublabel}</span>
+                  </div>
+                  {index < workflowSteps.length - 1 && (
+                    <div className="flex justify-center my-3">
+                      <ArrowLeft className="h-5 w-4 text-[#7C3AED]/50 rotate-90" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Module cards grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {modules.map((mod) => (
+              <div
+                key={mod.label}
+                className="group bg-white/[0.03] rounded-2xl border border-white/[0.06] p-5 hover:border-[#7C3AED]/30 hover:bg-white/[0.05] transition-all duration-300 backdrop-blur-sm"
+              >
+                <div className={`h-12 w-12 rounded-xl ${mod.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                  <mod.icon className={`h-6 w-6 ${mod.iconColor}`} />
+                </div>
+                <h3 className="font-bold text-white mb-1.5">{mod.label}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{mod.description}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {mod.tags.map((tag) => (
+                    <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-[#7C3AED]/5 text-[#A78BFA]/70 border border-[#7C3AED]/10">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why Choose Us Section ── */}
+      <section id="why" className="py-20 sm:py-28 bg-[#0a0a14] relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-6">
+              <CheckCircle className="h-4 w-4 text-[#A78BFA]" />
+              <span className="text-sm text-[#A78BFA] font-medium">ليه كنترول؟</span>
+            </div>
+            <h2
+              className="text-3xl sm:text-4xl font-bold text-white mb-4"
+              style={{ fontFamily: "var(--font-thmanyah-serif)" }}
+            >
+              ليه تختار كنترول؟
+            </h2>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              نظام مصمم خصيصاً للسوق العربي يوفر لك كل ما تحتاجه في مكان واحد
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {whyUs.map((item, i) => (
+              <div
+                key={item.title}
+                className="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-[#7C3AED]/30 transition-all duration-300"
+                style={{ animation: `fadeInUp 0.5s ease-out ${i * 0.15}s both` }}
+              >
+                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#7C3AED]/15 to-[#F59E0B]/15 flex items-center justify-center mx-auto mb-5">
+                  <item.icon className="h-8 w-8 text-[#A78BFA]" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
+                <p className="text-slate-400 leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Section ── */}
+      <section className="py-20 sm:py-28 bg-[#050510] relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#7C3AED]/5 rounded-full blur-[120px]"
+            style={{ animation: 'pulse-glow 6s ease-in-out infinite' }}
+          />
+          <div
+            className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#F59E0B]/3 rounded-full blur-[100px]"
+            style={{ animation: 'pulse-glow 8s ease-in-out infinite 3s' }}
+          />
+        </div>
+
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
+            style={{ fontFamily: "var(--font-thmanyah-serif)" }}
+          >
+            جاهز لإدارة أعمالك باحترافية؟
+          </h2>
+          <p className="text-lg text-slate-300 mb-10 max-w-xl mx-auto">
+            ابدأ الآن واكتشف قوة كنترول في تنظيم أعمالك وتحسين أدائها
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/sign-up">
+              <Button
+                size="lg"
+                className="bg-gradient-to-l from-[#7C3AED] to-[#F59E0B] hover:from-[#8B5CF6] hover:to-[#FBBF24] text-white font-bold text-xl px-12 h-16 rounded-xl shadow-[0_0_30px_rgba(124,58,237,0.25)] transition-all hover:shadow-[0_0_50px_rgba(124,58,237,0.4)] hover:scale-[1.02]"
+              >
+                ابدأ الآن مجاناً
+                <ArrowLeft className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0 rtl:rotate-180" />
+              </Button>
+            </a>
+            <a href="/app">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-white/10 text-slate-300 hover:text-white hover:border-[#7C3AED]/30 hover:bg-[#7C3AED]/5 font-medium text-lg px-8 h-16 rounded-xl bg-transparent transition-all"
+              >
+                دخول النظام
+              </Button>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="bg-[#030308] border-t border-white/5 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-gradient-to-bl from-[#7C3AED] to-[#F59E0B] rounded-lg flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-white font-bold" style={{ fontFamily: "var(--font-thmanyah-serif)" }}>كنترول</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm text-slate-500">
+              <a href="#" className="hover:text-white transition-colors">سياسة الخصوصية</a>
+              <span className="text-slate-700">|</span>
+              <a href="#" className="hover:text-white transition-colors">شروط الاستخدام</a>
+              <span className="text-slate-700">|</span>
+              <a href="#" className="hover:text-white transition-colors">تواصل معنا</a>
+            </div>
+            <p className="text-sm text-slate-600">
+              © {new Date().getFullYear()} كنترول. جميع الحقوق محفوظة.
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {dashboardStatDefs.map((stat) => (
-          <Card
-            key={stat.key}
-            className={cn(
-              'border shadow-sm hover:shadow-md transition-shadow duration-200',
-              stat.border
-            )}
-          >
-            <CardContent className="p-5">
-              <div className="flex items-center gap-4">
-                <div className={cn('p-3 rounded-xl', stat.bg)}>
-                  <stat.icon className={cn('h-6 w-6', stat.color)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-500 truncate">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900 mt-0.5">
-                    {loading ? '...' : stat.isCurrency ? formatCurrency(statValues[stat.key] || 0) : String(statValues[stat.key] || 0)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Recent Activity & Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">
-                آخر الأنشطة
-              </CardTitle>
-              <Activity className="h-4 w-4 text-slate-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {data && data.recentActivities.length > 0 ? (
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {data.recentActivities.map((activity) => {
-                  const ai = activityIcons[activity.type] || { icon: FileText, color: 'text-slate-600', bg: 'bg-slate-50' }
-                  return (
-                    <div key={activity.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                      <div className={cn('p-2 rounded-lg', ai.bg)}>
-                        <ai.icon className={cn('h-4 w-4', ai.color)} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-700 truncate">{activity.description}</p>
-                        <p className="text-xs text-slate-400">{formatDate(activity.date)}</p>
-                      </div>
-                      <span className="font-mono text-sm font-semibold text-slate-700">{formatCurrency(activity.amount)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-40 text-slate-400">
-                <FileText className="h-12 w-12 mb-3 text-slate-200" />
-                <p className="text-sm">لا توجد أنشطة حالياً</p>
-                <p className="text-xs mt-1 text-slate-300">
-                  ستظهر الأنشطة هنا عند إجراء عمليات في النظام
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">
-                إجراءات سريعة
-              </CardTitle>
-              <Plus className="h-4 w-4 text-slate-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <QuickAction label="فاتورة بيع" icon={FileText} />
-              <QuickAction label="فاتورة شراء" icon={Receipt} />
-              <QuickAction label="قيد يومية" icon={BookOpen} />
-              <QuickAction label="إضافة صنف" icon={Package} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      </footer>
     </div>
   )
 }
 
-function QuickAction({ label, icon: Icon }: { label: string; icon: ElementType }) {
-  return (
-    <button className="flex flex-col items-center gap-2 p-4 rounded-xl border border-dashed border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors duration-150 group">
-      <div className="h-10 w-10 rounded-lg bg-slate-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-        <Icon className="h-5 w-5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
-      </div>
-      <span className="text-xs text-slate-500 group-hover:text-emerald-700 font-medium transition-colors">
-        {label}
-      </span>
-    </button>
-  )
-}
+// ─── Data ──────────────────────────────────────────────────────────────────
 
-// ─── Module Placeholder ──────────────────────────────────────────────────────
+const features = [
+  {
+    title: 'لوحة تحكم ذكية',
+    description: 'مؤشرات أداء فورية وتحليلات متقدمة لمتابعة حالة أعمالك في الوقت الحقيقي مع إحصائيات شاملة',
+    icon: BarChart3,
+    bgColor: 'bg-[#7C3AED]/10',
+    iconColor: 'text-[#A78BFA]',
+  },
+  {
+    title: 'محاسبة مزدوجة',
+    description: 'نظام قيود يومية مع ترحيل تلقائي ودعم كامل للدورة المحاسبية وميزان المراجعة',
+    icon: BookOpen,
+    bgColor: 'bg-blue-500/10',
+    iconColor: 'text-blue-400',
+  },
+  {
+    title: 'إدارة مخازن',
+    description: 'تتبع المخزون بطبقات FIFO وهرمية مخازن مع تحويلات وأذون صرف واستلام متكاملة',
+    icon: Package,
+    bgColor: 'bg-[#F59E0B]/10',
+    iconColor: 'text-[#F59E0B]',
+  },
+  {
+    title: 'مبيعات ومشتريات',
+    description: 'دورة مستندات كاملة من الطلب للفاتورة مع إدارة مرتجعات وعروض أسعار احترافية',
+    icon: ShoppingCart,
+    bgColor: 'bg-purple-500/10',
+    iconColor: 'text-purple-400',
+  },
+  {
+    title: 'إدارة استثمارات',
+    description: 'متابعة المستثمرين وتوزيع الأرباح وحساب حصص الملكية بدقة عالية وشفافية كاملة',
+    icon: Landmark,
+    bgColor: 'bg-rose-500/10',
+    iconColor: 'text-rose-400',
+  },
+  {
+    title: 'تقارير مالية',
+    description: 'ميزانية عمومية وقائمة دخل وميزان مراجعة وتقارير أرصدة تفصيلية وشاملة',
+    icon: TrendingUp,
+    bgColor: 'bg-teal-500/10',
+    iconColor: 'text-teal-400',
+  },
+]
 
-function ModulePlaceholder({ title }: { title: string }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-          <Plus className="h-4 w-4" />
-          إضافة جديد
-        </Button>
-      </div>
+const modules = [
+  {
+    label: 'المحاسبة',
+    description: 'قيود يومية وشجرة حسابات وترحيل تلقائي',
+    icon: Calculator,
+    bgColor: 'bg-blue-500/10',
+    iconColor: 'text-blue-400',
+    tags: ['قيود', 'حسابات', 'ترحيل'],
+  },
+  {
+    label: 'المخازن',
+    description: 'إدارة الأصناف والمخازن والحركات والتحويلات',
+    icon: Warehouse,
+    bgColor: 'bg-[#F59E0B]/10',
+    iconColor: 'text-[#F59E0B]',
+    tags: ['أصناف', 'مخازن', 'تحويلات'],
+  },
+  {
+    label: 'المبيعات',
+    description: 'أوامر بيع وفواتير ومرتجعات وعملاء',
+    icon: ShoppingCart,
+    bgColor: 'bg-[#7C3AED]/10',
+    iconColor: 'text-[#A78BFA]',
+    tags: ['فواتير', 'عملاء', 'أوامر'],
+  },
+  {
+    label: 'المشتريات',
+    description: 'أوامر شراء وفواتير وموردين ومرتجعات',
+    icon: Truck,
+    bgColor: 'bg-orange-500/10',
+    iconColor: 'text-orange-400',
+    tags: ['موردين', 'فواتير', 'شراء'],
+  },
+  {
+    label: 'المستثمرون',
+    description: 'إدارة الاستثمارات وتوزيع الأرباح والحصص',
+    icon: HandCoins,
+    bgColor: 'bg-rose-500/10',
+    iconColor: 'text-rose-400',
+    tags: ['أرباح', 'حصص', 'استثمارات'],
+  },
+  {
+    label: 'التقارير',
+    description: 'تقارير مالية وميزان مراجعة وقائمة دخل',
+    icon: BarChart3,
+    bgColor: 'bg-teal-500/10',
+    iconColor: 'text-teal-400',
+    tags: ['ميزانية', 'دخل', 'أرصدة'],
+  },
+  {
+    label: 'الإعدادات',
+    description: 'إدارة الشركات والمستخدمين والصلاحيات',
+    icon: Settings,
+    bgColor: 'bg-slate-500/10',
+    iconColor: 'text-slate-400',
+    tags: ['شركات', 'مستخدمين', 'صلاحيات'],
+  },
+  {
+    label: 'المزيد',
+    description: 'ميزات جديدة تُضاف باستمرار بناءً على احتياجاتكم',
+    icon: Sparkles,
+    bgColor: 'bg-purple-500/10',
+    iconColor: 'text-purple-400',
+    tags: ['قريباً', 'تحديثات'],
+  },
+]
 
-      <Card className="border shadow-sm">
-        <CardContent className="flex flex-col items-center justify-center h-72 text-slate-400">
-          <div className="h-20 w-20 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
-            <Package className="h-10 w-10 text-slate-200" />
-          </div>
-          <p className="text-lg font-medium text-slate-500">
-            سيتم إضافة محتوى {title} قريباً
-          </p>
-          <p className="text-sm mt-1 text-slate-300">
-            هذه الصفحة قيد التطوير
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+const stats = [
+  { value: '+1000', label: 'فاتورة معالجة' },
+  { value: '99.9%', label: 'وقت التشغيل' },
+  { value: '7', label: 'وحدات متكاملة' },
+  { value: '35', label: 'صلاحية مرنة' },
+]
 
-// ─── Auth-aware App Content ──────────────────────────────────────────────────
+const whyUs = [
+  {
+    title: 'تكامل تلقائي',
+    description: 'بيانات الفاتورة تنتقل تلقائياً إلى القيود المحاسبية والتقارير المالية دون تدخل يدوي، مما يوفر الوقت ويمنع الأخطاء',
+    icon: Zap,
+  },
+  {
+    title: 'أمان مضمون',
+    description: 'نظام صلاحيات متقدم يتحكم في وصول كل مستخدم حسب دوره الوظيفي مع حماية كاملة للبيانات المالية والحسابات',
+    icon: Shield,
+  },
+  {
+    title: 'واجهة عربية',
+    description: 'واجهة مستخدم عربية بالكامل مصممة خصيصاً للسوق العربي مع دعم كامل للغة العربية والعملات المحلية',
+    icon: Globe,
+  },
+]
 
-function AppContent() {
-  const {
-    user,
-    currentCompanyId,
-    companies,
-    isAuthenticated,
-    currentModule,
-    currentView,
-    sidebarOpen,
-    setModule,
-    setView,
-    toggleSidebar,
-    setCurrentCompany,
-    setUser,
-    setCompanies,
-    setAccessToken,
-    logout,
-  } = useAppStore()
-
-  const [expandedItems, setExpandedItems] = useState<string[]>([])
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const hydrated = useAppStore(state => state.hydrated)
-
-  // ── Global fetch interceptor: attach auth token to all /api/ requests ──
-  useEffect(() => {
-    const originalFetch = window.fetch
-    window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
-      const token = useAppStore.getState().accessToken
-      
-      if (token && url.startsWith('/api/')) {
-        const headers = new Headers(init?.headers)
-        headers.set('X-Auth-Token', token)
-        init = { ...init, headers }
-      }
-      
-      return originalFetch.call(this, input, init)
-    }
-    
-    return () => {
-      window.fetch = originalFetch
-    }
-  }, [])
-
-  const [setupWizardOpen, setSetupWizardOpen] = useState(false)
-
-  // ── Auto-login: bypass authentication, auto-login as admin ──
-  useEffect(() => {
-    useAppStore.getState().hydrate()
-  }, [])
-
-  // Auto-login effect: if not authenticated after hydration, attempt auto-login
-  useEffect(() => {
-    if (!hydrated) return
-    if (isAuthenticated) return
-
-    const autoLogin = async () => {
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'admin', password: 'admin123' }),
-        })
-        const data = await res.json()
-        if (res.ok && data.user) {
-          setAccessToken(data.token)
-          setUser({
-            id: data.user.id || '',
-            name: data.user.name || 'مدير النظام',
-            username: data.user.username || 'admin',
-            role: data.user.role || 'super_admin',
-            email: data.user.email || undefined,
-          })
-          if (data.companies && data.companies.length > 0) {
-            setCompanies(data.companies)
-            if (data.companies.length === 1) {
-              setCurrentCompany(data.companies[0].id)
-            }
-          }
-        } else {
-          // If login fails, set a default admin user directly (dev mode)
-          setUser({
-            id: 'dev-admin',
-            name: 'مدير النظام',
-            username: 'admin',
-            role: 'super_admin',
-          })
-          setAccessToken('dev-token')
-        }
-      } catch {
-        // If API fails, set a default admin user directly (dev mode)
-        setUser({
-          id: 'dev-admin',
-          name: 'مدير النظام',
-          username: 'admin',
-          role: 'super_admin',
-        })
-        setAccessToken('dev-token')
-      }
-    }
-    autoLogin()
-  }, [hydrated, isAuthenticated, setUser, setCompanies, setCurrentCompany, setAccessToken])
-
-  // Auto-select company: if authenticated but no company selected, auto-select first or create one
-  useEffect(() => {
-    if (!isAuthenticated) return
-    if (currentCompanyId) return
-    if (companies.length > 0) {
-      setCurrentCompany(companies[0].id)
-      return
-    }
-    // No companies yet - try to create a default one
-    const createDefaultCompany = async () => {
-      try {
-        const res = await fetch('/api/companies/setup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nameAr: 'شركة كنترول',
-            nameEn: 'Control Company',
-            baseCurrency: 'EGP',
-          }),
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.company) {
-            setCompanies([{ id: data.company.id, nameAr: data.company.nameAr, nameEn: data.company.nameEn, vatRate: data.company.vatRate }])
-            setCurrentCompany(data.company.id)
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-    createDefaultCompany()
-  }, [isAuthenticated, currentCompanyId, companies, setCurrentCompany, setCompanies])
-
-  // ── Loading state while hydrating or auto-logging in ──
-  if (!hydrated || !isAuthenticated) {
-    return (
-      <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-          <p className="text-sm text-slate-500">جاري التحميل...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Authenticated but no company → Show loading while auto-creating ──
-  if (!currentCompanyId) {
-    return (
-      <div dir="rtl" className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-3 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-          <p className="text-sm text-slate-500">جاري إعداد الشركة...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Authenticated with company → Show ERP Layout ──
-
-  // Current company info
-  const currentCompany = companies.find((c) => c.id === currentCompanyId)
-
-  // ── Navigation Handlers ──
-  const handleNavClick = (id: string, hasChildren: boolean) => {
-    if (hasChildren) {
-      setModule(id as Module)
-      setExpandedItems((prev) =>
-        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-      )
-    } else {
-      setModule(id as Module)
-      setMobileOpen(false)
-    }
-  }
-
-  const handleSubClick = (moduleId: string, viewId: string) => {
-    setModule(moduleId as Module)
-    setView(viewId)
-    setMobileOpen(false)
-  }
-
-  const handleCollapsedNavClick = (id: string, hasChildren: boolean) => {
-    if (hasChildren) {
-      if (!sidebarOpen) {
-        toggleSidebar()
-      }
-      setModule(id as Module)
-      setExpandedItems((prev) =>
-        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-      )
-    } else {
-      setModule(id as Module)
-    }
-  }
-
-  // ── Logout Handler ──
-  const handleLogout = () => {
-    logout()
-  }
-
-  // ── Current Title ──
-  const currentTitle = currentView
-    ? viewTitles[currentView] || currentView
-    : moduleTitles[currentModule] || currentModule
-
-  // ── Render Content ──
-  const renderContent = () => {
-    if (currentModule === 'dashboard' && !currentView) {
-      return <DashboardContent />
-    }
-    if (currentModule === 'settings') {
-      switch (currentView) {
-        case 'companies':
-          return <CompaniesList />
-        case 'company':
-          return <CompanyForm />
-        case 'currencies':
-          return <CurrenciesList />
-        case 'uom':
-          return <UOMList />
-        case 'users':
-          return <UsersList />
-        case 'chart-of-accounts':
-          return <ChartOfAccounts />
-        default:
-          return <ModulePlaceholder title={currentTitle} />
-      }
-    }
-    if (currentModule === 'inventory') {
-      if (!currentView) return <InventoryDashboard />
-      switch (currentView) {
-        case 'warehouses':
-          return <WarehousesList />
-        case 'categories':
-          return <CategoriesList />
-        case 'items':
-          return <ItemsList />
-        case 'stock-movements':
-          return <StockMovementsList />
-        case 'stock-transfers':
-          return <StockTransfersList />
-        case 'item-detail':
-          return <ItemDetailPage />
-        case 'stock-transfer-form':
-          return <StockTransferFormPage />
-        case 'item-balances':
-          return <ItemBalancesList />
-        case 'material-requests':
-          return <MaterialRequestsList />
-        case 'material-request-form':
-          return <MaterialRequestFormPage />
-        case 'delivery-notes':
-          return <DeliveryNotesList />
-        case 'delivery-note-form':
-          return <DeliveryNoteFormPage />
-        case 'purchase-receipts':
-          return <PurchaseReceiptsList />
-        case 'purchase-receipt-form':
-          return <PurchaseReceiptFormPage />
-        case 'pick-lists':
-          return <PickListsList />
-        case 'pick-list-form':
-          return <PickListFormPage />
-        default:
-          return <ModulePlaceholder title={currentTitle} />
-      }
-    }
-    if (currentModule === 'accounting') {
-      if (!currentView) return <AccountingDashboard />
-      switch (currentView) {
-        case 'journal-entries':
-          return <JournalEntriesList />
-        case 'chart-of-accounts':
-          return <ChartOfAccounts />
-        default:
-          return <AccountingDashboard />
-      }
-    }
-    if (currentModule === 'sales') {
-      if (!currentView) return <SalesDashboard />
-      switch (currentView) {
-        case 'customers':
-          return <CustomersList />
-        case 'customer-form':
-          return <CustomerFormPage />
-        case 'sales-orders':
-          return <SalesOrdersList />
-        case 'sales-order-form':
-          return <SalesOrderFormPage />
-        case 'sales-invoices':
-          return <SalesInvoicesList />
-        case 'sales-invoice-form':
-          return <SalesInvoiceFormPage />
-        case 'sales-return-form':
-          return <SalesReturnFormPage />
-        case 'sales-returns':
-          return <SalesReturnsList />
-        default:
-          return <ModulePlaceholder title={currentTitle} />
-      }
-    }
-    if (currentModule === 'purchases') {
-      if (!currentView) return <PurchasesDashboard />
-      switch (currentView) {
-        case 'suppliers':
-          return <SuppliersList />
-        case 'supplier-form':
-          return <SupplierFormPage />
-        case 'purchase-orders':
-          return <PurchaseOrdersList />
-        case 'purchase-order-form':
-          return <PurchaseOrderFormPage />
-        case 'purchase-invoices':
-          return <PurchaseInvoicesList />
-        case 'purchase-invoice-form':
-          return <PurchaseInvoiceFormPage />
-        case 'purchase-return-form':
-          return <PurchaseReturnFormPage />
-        case 'purchase-returns':
-          return <PurchaseReturnsList />
-        default:
-          return <ModulePlaceholder title={currentTitle} />
-      }
-    }
-    if (currentModule === 'investors') {
-      switch (currentView) {
-        case 'investors-list':
-          return <InvestorsList />
-        default:
-          return <InvestorsList />
-      }
-    }
-    if (currentModule === 'reports') {
-      switch (currentView) {
-        case 'trial-balance':
-          return <TrialBalanceReport />
-        case 'balance-sheet':
-          return <BalanceSheetReport />
-        case 'income-statement':
-          return <IncomeStatementReport />
-        case 'inventory-report':
-          return <InventoryReport />
-        case 'sales-report':
-          return <SalesReport />
-        case 'purchase-report':
-          return <PurchaseReport />
-        case 'customer-aging':
-          return <CustomerAgingReport />
-        case 'supplier-aging':
-          return <SupplierAgingReport />
-        default:
-          return <ModulePlaceholder title={currentTitle} />
-      }
-    }
-    return <ModulePlaceholder title={currentTitle} />
-  }
-
-  return (
-    <div dir="rtl" className="min-h-screen flex flex-col bg-slate-50">
-      {/* ── Header ── */}
-      <header className="h-14 border-b bg-white flex items-center px-4 gap-3 sticky top-0 z-40 shrink-0">
-        {/* Mobile menu trigger */}
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-72 p-0">
-            <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle>
-            <div className="h-14 flex items-center gap-3 px-4 border-b shrink-0">
-              <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <LayoutDashboard className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-bold text-emerald-700 text-lg">
-                Ctrl
-              </span>
-            </div>
-            <ScrollArea className="h-[calc(100dvh-3.5rem)]">
-              <SidebarNav
-                currentModule={currentModule}
-                currentView={currentView}
-                expandedItems={expandedItems}
-                onNavClick={handleNavClick}
-                onSubClick={handleSubClick}
-                isCollapsed={false}
-                userRole={user?.role || 'viewer'}
-              />
-              {/* Mobile user section */}
-              <div className="border-t p-3 mt-2">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="text-sm font-medium">تسجيل خروج</span>
-                </button>
-              </div>
-            </ScrollArea>
-          </SheetContent>
-        </Sheet>
-
-        {/* Desktop sidebar toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="hidden md:flex"
-        >
-          {sidebarOpen ? (
-            <PanelRightClose className="h-5 w-5" />
-          ) : (
-            <PanelRightOpen className="h-5 w-5" />
-          )}
-        </Button>
-
-        <Separator orientation="vertical" className="h-6" />
-
-        <h1 className="text-lg font-semibold text-slate-900">{currentTitle}</h1>
-
-        <div className="flex-1" />
-
-        {/* Company Switcher */}
-        <CompanySwitcher onOpenSetup={() => setSetupWizardOpen(true)} />
-
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-slate-500" />
-          <span className="absolute top-2 end-2 h-2 w-2 bg-red-500 rounded-full" />
-        </Button>
-
-        {/* User menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="hidden sm:flex items-center gap-2 ms-2 hover:bg-slate-50 rounded-lg px-2 py-1.5 transition-colors">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-bold">
-                  {user?.name?.charAt(0) || 'م'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-right">
-                <p className="text-sm font-medium text-slate-700 leading-tight truncate max-w-[100px]">
-                  {user?.name || 'مستخدم'}
-                </p>
-                <p className="text-[10px] text-slate-400 leading-tight">
-                  {roleLabels[user?.role || 'viewer']}
-                </p>
-              </div>
-              <ChevronDown className="h-3 w-3 text-slate-400" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-slate-500">{user?.email || user?.username}</p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600 gap-2 cursor-pointer">
-              <LogOut className="h-4 w-4" />
-              تسجيل خروج
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </header>
-
-      {/* ── Body ── */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Desktop Sidebar */}
-        <aside
-          className={cn(
-            'hidden md:flex flex-col bg-white border-l shrink-0 transition-all duration-300 overflow-hidden',
-            sidebarOpen ? 'w-72' : 'w-[68px]'
-          )}
-        >
-          {/* Sidebar header */}
-          <div className="h-14 flex items-center px-4 border-b shrink-0">
-            {sidebarOpen ? (
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                  <LayoutDashboard className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-bold text-emerald-700 text-lg">
-                  Ctrl
-                </span>
-              </div>
-            ) : (
-              <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center mx-auto">
-                <LayoutDashboard className="h-4 w-4 text-white" />
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar navigation */}
-          <ScrollArea className="flex-1">
-            <SidebarNav
-              currentModule={currentModule}
-              currentView={currentView}
-              expandedItems={sidebarOpen ? expandedItems : []}
-              onNavClick={sidebarOpen ? handleNavClick : handleCollapsedNavClick}
-              onSubClick={handleSubClick}
-              isCollapsed={!sidebarOpen}
-              userRole={user?.role || 'viewer'}
-            />
-          </ScrollArea>
-
-          {/* Sidebar footer - user section */}
-          {sidebarOpen && (
-            <div className="border-t p-3 shrink-0">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
-              >
-                <div className="h-8 w-8 bg-red-50 rounded-full flex items-center justify-center">
-                  <LogOut className="h-4 w-4 text-red-500" />
-                </div>
-                <span className="text-sm font-medium">تسجيل خروج</span>
-              </button>
-            </div>
-          )}
-          {!sidebarOpen && (
-            <div className="border-t p-2 shrink-0">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center p-3 rounded-lg hover:bg-red-50 transition-colors"
-                title="تسجيل خروج"
-              >
-                <div className="h-8 w-8 bg-red-50 rounded-full flex items-center justify-center">
-                  <LogOut className="h-4 w-4 text-red-500" />
-                </div>
-              </button>
-            </div>
-          )}
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 md:p-6 max-w-7xl mx-auto">{renderContent()}</div>
-        </main>
-      </div>
-      {/* Setup Wizard */}
-      <SetupWizard open={setupWizardOpen} onClose={() => setSetupWizardOpen(false)} />
-    </div>
-  )
-}
-
-// ─── Main Page Component ──────────────────────────────────────────────────────
-
-export default function Home() {
-  return <AppContent />
-}
+const workflowSteps = [
+  {
+    label: 'أوامر شراء',
+    sublabel: 'إنشاء وتنسيق',
+    icon: ClipboardList,
+    bgColor: 'bg-blue-500/10',
+    iconColor: 'text-blue-400',
+  },
+  {
+    label: 'فواتير',
+    sublabel: 'إصدار ومعالجة',
+    icon: FileText,
+    bgColor: 'bg-[#7C3AED]/10',
+    iconColor: 'text-[#A78BFA]',
+  },
+  {
+    label: 'إيصالات',
+    sublabel: 'تحصيل وصرف',
+    icon: Receipt,
+    bgColor: 'bg-[#F59E0B]/10',
+    iconColor: 'text-[#F59E0B]',
+  },
+  {
+    label: 'مرتجعات',
+    sublabel: 'استرجاع وإعادة',
+    icon: Undo2,
+    bgColor: 'bg-rose-500/10',
+    iconColor: 'text-rose-400',
+  },
+]

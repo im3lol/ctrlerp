@@ -1,3 +1,7 @@
+/**
+ * @deprecated NextAuth configuration - kept for backward compatibility only.
+ * Use Clerk's auth() from '@clerk/nextjs/server' for new features.
+ */
 import NextAuth, { type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { db } from '@/lib/db'

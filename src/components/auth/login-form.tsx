@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label'
 import { LayoutDashboard, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LoginForm() {
-  const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('admin123')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -62,6 +62,10 @@ export default function LoginForm() {
             setCurrentCompany(loginData.companies[0].id)
           }
         }
+        // Redirect to app after successful login
+        setTimeout(() => {
+          window.location.href = '/app'
+        }, 200)
       } else {
         setError('فشل في استرجاع بيانات المستخدم')
       }
@@ -74,12 +78,12 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-emerald-700 via-emerald-800 to-emerald-900 p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-bl from-[#050510] via-[#0a0a14] to-[#050510] p-4 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-600/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-500/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-emerald-400/10 rounded-full blur-2xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#7C3AED]/15 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#7C3AED]/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#F59E0B]/8 rounded-full blur-2xl" />
         <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -94,11 +98,11 @@ export default function LoginForm() {
         <CardHeader className="text-center pb-2 pt-8 px-8">
           {/* Logo */}
           <div className="mx-auto mb-4">
-            <div className="h-16 w-16 bg-gradient-to-bl from-emerald-500 to-emerald-700 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 mx-auto rotate-3 hover:rotate-0 transition-transform duration-300">
+            <div className="h-16 w-16 bg-gradient-to-bl from-[#7C3AED] to-[#F59E0B] rounded-2xl flex items-center justify-center shadow-lg shadow-[#7C3AED]/30 mx-auto rotate-3 hover:rotate-0 transition-transform duration-300">
               <LayoutDashboard className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Control ERP</h1>
+          <h1 className="text-2xl font-bold text-slate-900">كنترول</h1>
           <p className="text-slate-500 mt-1 text-sm">نظام كنترول - إدارة موارد مؤسسية متكاملة</p>
         </CardHeader>
 
@@ -115,7 +119,7 @@ export default function LoginForm() {
             {/* Username Field */}
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium text-slate-700">
-                اسم المستخدم
+                اسم المستخدم أو البريد الإلكتروني
               </Label>
               <div className="relative">
                 <Input
@@ -123,8 +127,8 @@ export default function LoginForm() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="أدخل اسم المستخدم"
-                  className="h-11 pe-4 ps-11 text-right rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 bg-slate-50/50 hover:bg-white transition-colors"
+                  placeholder="أدخل اسم المستخدم أو البريد الإلكتروني"
+                  className="h-11 pe-4 ps-11 text-right rounded-xl border-slate-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20 bg-slate-50/50 hover:bg-white transition-colors"
                   disabled={loading}
                   autoComplete="username"
                   required
@@ -147,7 +151,7 @@ export default function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="أدخل كلمة المرور"
-                  className="h-11 pe-4 ps-11 text-right rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 bg-slate-50/50 hover:bg-white transition-colors"
+                  className="h-11 pe-4 ps-11 text-right rounded-xl border-slate-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20 bg-slate-50/50 hover:bg-white transition-colors"
                   disabled={loading}
                   autoComplete="current-password"
                   required
@@ -170,7 +174,7 @@ export default function LoginForm() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full h-11 bg-gradient-to-l from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl font-medium text-base shadow-lg shadow-emerald-200/50 transition-all duration-200 hover:shadow-emerald-300/50 mt-2"
+              className="w-full h-11 bg-gradient-to-l from-[#7C3AED] to-[#F59E0B] hover:from-[#8B5CF6] hover:to-[#FBBF24] text-white rounded-xl font-medium text-base shadow-lg shadow-[#7C3AED]/30 transition-all duration-200 hover:shadow-[#7C3AED]/50 mt-2"
               disabled={loading}
             >
               {loading ? (
@@ -182,16 +186,6 @@ export default function LoginForm() {
                 'تسجيل الدخول'
               )}
             </Button>
-
-            {/* Credentials hint */}
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <p className="text-[11px] text-slate-400 text-center mb-2">بيانات الدخول الافتراضية</p>
-              <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-                <span className="bg-slate-50 px-2.5 py-1 rounded-lg font-mono">admin</span>
-                <span>/</span>
-                <span className="bg-slate-50 px-2.5 py-1 rounded-lg font-mono">admin123</span>
-              </div>
-            </div>
           </form>
         </CardContent>
       </Card>

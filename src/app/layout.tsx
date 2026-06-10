@@ -1,21 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { ClerkProvider } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
-  title: "Control ERP - ctrlerp.cloud",
-  description: "نظام إدارة الموارد المؤسسية المتكامل - Control ERP - ctrlerp.cloud",
+  title: "كنترول",
+  description: "نظام إدارة الموارد المؤسسية المتكامل - كنترول",
 };
 
 export default function RootLayout({
@@ -24,14 +14,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-        suppressHydrationWarning
-      >
-        {children}
-        <Toaster />
-      </body>
-    </html>
+    <ClerkProvider appearance={{ variables: { colorPrimary: '#7C3AED' } }}>
+      <html lang="ar" dir="rtl" suppressHydrationWarning>
+        <body
+          className="antialiased bg-background text-foreground"
+          style={{ fontFamily: "var(--font-thmanyah-sans)" }}
+          suppressHydrationWarning
+        >
+          {children}
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

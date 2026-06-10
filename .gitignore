@@ -52,3 +52,31 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Scripts & temp files
+keep-alive-forever.sh
+keep-alive.sh
+keep-server-alive.sh
+watchdog.sh
+watchdog-next.sh
+run-erp.sh
+run-forever.sh
+run-production.sh
+run-server.sh
+start-erp.sh
+start-production.sh
+start.sh
+build-and-start.sh
+erp-supervisor.js
+proxy.ts
+create-admin.ts
+
+# Design system archive
+thmanyah-design-system-*.tgz
+
+# Agent context
+agent-ctx/
+
+# Worklog
+worklog.md
+worklog_test

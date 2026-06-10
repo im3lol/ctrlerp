@@ -672,7 +672,7 @@ export default function UsersList() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                placeholder="user@ctrlerp.cloud"
+                placeholder="user@example.com"
                 dir="ltr"
                 className="text-left"
               />

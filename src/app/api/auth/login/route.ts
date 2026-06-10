@@ -9,13 +9,19 @@ export async function POST(request: NextRequest) {
 
     if (!username || !password) {
       return NextResponse.json(
-        { error: 'يرجى إدخال اسم المستخدم وكلمة المرور' },
+        { error: 'يرجى إدخال اسم المستخدم أو البريد الإلكتروني وكلمة المرور' },
         { status: 400 }
       )
     }
 
-    const user = await db.user.findUnique({
-      where: { username },
+    // Support login by username or email
+    const user = await db.user.findFirst({
+      where: {
+        OR: [
+          { username },
+          { email: username },
+        ]
+      }
     })
 
     if (!user) {
