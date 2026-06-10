@@ -128,9 +128,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               ))}
             </div>
 
-            {/* Main Heading - the hero — with generous padding for safe zone */}
+            {/* Main Heading - the hero — with max-width safe zone */}
             <h1
-              className="relative z-10 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.8] px-4 sm:px-8 lg:px-16 xl:px-28"
+              className="relative z-10 max-w-4xl mx-auto text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight"
               style={{
                 fontFamily: "var(--font-thmanyah-serif)",
                 animation: 'fadeInUp 0.6s ease-out 0.1s both',
@@ -163,7 +163,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
             {/* Right side badges - only on xl screens, positioned well outside heading */}
             <div
-              className="hidden 2xl:block absolute top-1/2 right-0 xl:-right-4 -translate-y-1/2"
+              className="hidden xl:block absolute top-[36%] xl:-right-40 -translate-y-1/2"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.4s both' }}
             >
               <div className="flex flex-col gap-8">
@@ -183,7 +183,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
             {/* Left side badge - only on xl screens, positioned well outside heading */}
             <div
-              className="hidden 2xl:block absolute top-1/2 left-0 xl:-left-4 -translate-y-1/2"
+              className="hidden xl:block absolute top-[36%] xl:-left-40 -translate-y-1/2"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.5s both' }}
             >
               <div className="flex flex-col gap-8">
