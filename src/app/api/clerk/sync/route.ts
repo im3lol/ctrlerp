@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
           name: displayName,
           email,
           password: base64Password, // Random password since auth is via Clerk
-          role: 'viewer', // Default role - can be upgraded by admin
+          role: 'admin', // Default role for new Clerk users - they are company owners
           isActive: true,
         }
       })
@@ -103,13 +103,18 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Use company-level role if available, otherwise use global role
+    const effectiveRole = companies.length > 0
+      ? (companies[0].role || user.role)
+      : user.role
+
     return NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         username: user.username,
         email: user.email,
-        role: user.role,
+        role: effectiveRole,
       },
       companies,
       token,

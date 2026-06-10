@@ -799,21 +799,28 @@ function AppContent() {
     }
     // No companies yet - try to create a default one
     const createDefaultCompany = async () => {
+      const userId = useAppStore.getState().user?.id
+      if (!userId) return
+
       try {
         const res = await fetch('/api/companies/setup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            nameAr: 'شركة كنترول',
-            nameEn: 'Control Company',
-            baseCurrency: 'EGP',
+            company: {
+              nameAr: 'شركة كنترول',
+              nameEn: 'Control Company',
+              baseCurrency: 'EGP',
+            },
+            userId,
+            template: 'trading',
           }),
         })
         if (res.ok) {
           const data = await res.json()
-          if (data.company) {
-            setCompanies([{ id: data.company.id, nameAr: data.company.nameAr, nameEn: data.company.nameEn, vatRate: data.company.vatRate }])
-            setCurrentCompany(data.company.id)
+          if (data.id) {
+            setCompanies([{ id: data.id, nameAr: data.nameAr, nameEn: data.nameEn, vatRate: data.vatRate }])
+            setCurrentCompany(data.id)
           }
         }
       } catch {
