@@ -98,33 +98,132 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           }}
         />
 
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center">
+        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 text-center">
           {/* Badge */}
           <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-8"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-12"
             style={{ animation: 'fadeInUp 0.6s ease-out' }}
           >
             <Zap className="h-4 w-4 text-[#A78BFA]" />
             <span className="text-sm text-[#A78BFA] font-medium">الحل العربي الأول لإدارة الأعمال</span>
           </div>
 
-          {/* Main Heading */}
-          <h1
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-snug mb-6"
-            style={{
-              fontFamily: "var(--font-thmanyah-serif)",
-              animation: 'fadeInUp 0.6s ease-out 0.1s both',
-            }}
-          >
-            نظام إدارة موارد
-            <br />
-            <span className="bg-gradient-to-l from-[#A78BFA] to-[#F59E0B] bg-clip-text text-transparent">مؤسسية متكامل</span>
-          </h1>
+          {/* Hero composition: badges around heading */}
+          <div className="relative py-16 sm:py-20 lg:py-24">
+            {/* Top row badges - hidden on mobile */}
+            <div
+              className="hidden lg:flex justify-center gap-16 xl:gap-24 mb-16"
+              style={{ animation: 'fadeInUp 0.6s ease-out 0.2s both' }}
+            >
+              {heroBadges.slice(0, 2).map((badge, i) => (
+                <div
+                  key={badge.label}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.1] hover:border-[#7C3AED]/30 transition-all duration-300 cursor-default"
+                >
+                  <div className={`h-7 w-7 rounded-lg ${badge.bgColor} flex items-center justify-center`}>
+                    <badge.icon className={`h-4 w-4 ${badge.iconColor}`} />
+                  </div>
+                  <span className="text-sm font-medium text-slate-300">{badge.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Main Heading - the hero */}
+            <h1
+              className="relative z-10 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-snug"
+              style={{
+                fontFamily: "var(--font-thmanyah-serif)",
+                animation: 'fadeInUp 0.6s ease-out 0.1s both',
+              }}
+            >
+              نظامك المتكامل لإدارة
+              <br />
+              أعمالك من أول الطلب
+              <br />
+              <span className="bg-gradient-to-l from-[#A78BFA] to-[#F59E0B] bg-clip-text text-transparent">للتسليم النهائي</span>
+            </h1>
+
+            {/* Bottom row badges - hidden on mobile */}
+            <div
+              className="hidden lg:flex justify-center gap-16 xl:gap-24 mt-16"
+              style={{ animation: 'fadeInUp 0.6s ease-out 0.3s both' }}
+            >
+              {heroBadges.slice(2, 4).map((badge, i) => (
+                <div
+                  key={badge.label}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.1] hover:border-[#7C3AED]/30 transition-all duration-300 cursor-default"
+                >
+                  <div className={`h-7 w-7 rounded-lg ${badge.bgColor} flex items-center justify-center`}>
+                    <badge.icon className={`h-4 w-4 ${badge.iconColor}`} />
+                  </div>
+                  <span className="text-sm font-medium text-slate-300">{badge.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Side badges - only on xl screens */}
+            <div
+              className="hidden xl:block absolute top-1/2 -right-8 -translate-y-1/2"
+              style={{ animation: 'fadeInUp 0.8s ease-out 0.4s both' }}
+            >
+              <div className="flex flex-col gap-6">
+                {heroBadges.slice(4, 6).map((badge) => (
+                  <div
+                    key={badge.label}
+                    className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.1] hover:border-[#7C3AED]/30 transition-all duration-300 cursor-default"
+                  >
+                    <div className={`h-7 w-7 rounded-lg ${badge.bgColor} flex items-center justify-center`}>
+                      <badge.icon className={`h-4 w-4 ${badge.iconColor}`} />
+                    </div>
+                    <span className="text-sm font-medium text-slate-300 whitespace-nowrap">{badge.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Left side badge */}
+            <div
+              className="hidden xl:block absolute top-1/2 -left-8 -translate-y-1/2"
+              style={{ animation: 'fadeInUp 0.8s ease-out 0.5s both' }}
+            >
+              <div className="flex flex-col gap-6">
+                {heroBadges.slice(6, 8).map((badge) => (
+                  <div
+                    key={badge.label}
+                    className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.1] hover:border-[#7C3AED]/30 transition-all duration-300 cursor-default"
+                  >
+                    <div className={`h-7 w-7 rounded-lg ${badge.bgColor} flex items-center justify-center`}>
+                      <badge.icon className={`h-4 w-4 ${badge.iconColor}`} />
+                    </div>
+                    <span className="text-sm font-medium text-slate-300 whitespace-nowrap">{badge.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile badges - shown as pills below heading */}
+            <div
+              className="lg:hidden flex flex-wrap justify-center gap-3 mt-10"
+              style={{ animation: 'fadeInUp 0.6s ease-out 0.3s both' }}
+            >
+              {heroBadges.map((badge) => (
+                <div
+                  key={badge.label}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm"
+                >
+                  <div className={`h-5 w-5 rounded-md ${badge.bgColor} flex items-center justify-center`}>
+                    <badge.icon className={`h-3 w-3 ${badge.iconColor}`} />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 whitespace-nowrap">{badge.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Subheading */}
           <p
             className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-loose"
-            style={{ animation: 'fadeInUp 0.6s ease-out 0.2s both' }}
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.4s both' }}
           >
             الحل العربي الأول لإدارة أعمالك بكفاءة واحترافية.
             <br className="hidden sm:block" />
@@ -134,7 +233,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           {/* CTA Buttons */}
           <div
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
-            style={{ animation: 'fadeInUp 0.6s ease-out 0.3s both' }}
+            style={{ animation: 'fadeInUp 0.6s ease-out 0.5s both' }}
           >
             <Button
               onClick={handleGetStarted}
@@ -155,16 +254,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </Button>
             </a>
           </div>
-
-          {/* Floating elements */}
-          <div
-            className="hidden lg:block absolute top-1/3 -right-8 w-16 h-16 bg-[#7C3AED]/10 rounded-2xl border border-[#7C3AED]/20 backdrop-blur-sm"
-            style={{ animation: 'float 6s ease-in-out infinite' }}
-          />
-          <div
-            className="hidden lg:block absolute bottom-1/3 -left-4 w-12 h-12 bg-[#F59E0B]/10 rounded-xl border border-[#F59E0B]/20 backdrop-blur-sm"
-            style={{ animation: 'float 7s ease-in-out infinite 1s' }}
-          />
         </div>
 
         {/* Scroll indicator */}
@@ -396,6 +485,16 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 }
 
 // ─── Data ──────────────────────────────────────────────────────────────────
+
+const heroBadges = [
+  { label: 'تقارير مالية', icon: TrendingUp, bgColor: 'bg-teal-500/20', iconColor: 'text-teal-400' },
+  { label: 'محاسبة مزدوجة', icon: BookOpen, bgColor: 'bg-blue-500/20', iconColor: 'text-blue-400' },
+  { label: 'إدارة مخازن', icon: Package, bgColor: 'bg-amber-500/20', iconColor: 'text-amber-400' },
+  { label: 'صلاحيات مرنة', icon: Shield, bgColor: 'bg-indigo-500/20', iconColor: 'text-indigo-400' },
+  { label: 'مبيعات ومشتريات', icon: ShoppingCart, bgColor: 'bg-purple-500/20', iconColor: 'text-purple-400' },
+  { label: 'لوحة تحكم ذكية', icon: BarChart3, bgColor: 'bg-violet-500/20', iconColor: 'text-violet-400' },
+  { label: 'إدارة استثمارات', icon: Landmark, bgColor: 'bg-rose-500/20', iconColor: 'text-rose-400' },
+]
 
 const features = [
   {
