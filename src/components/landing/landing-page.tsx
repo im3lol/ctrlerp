@@ -110,7 +110,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
           {/* Main Heading */}
           <h1
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-snug mb-6"
             style={{
               fontFamily: "var(--font-thmanyah-serif)",
               animation: 'fadeInUp 0.6s ease-out 0.1s both',
@@ -123,7 +123,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
           {/* Subheading */}
           <p
-            className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-loose"
             style={{ animation: 'fadeInUp 0.6s ease-out 0.2s both' }}
           >
             الحل العربي الأول لإدارة أعمالك بكفاءة واحترافية.
@@ -206,8 +206,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                 <div className={`h-14 w-14 rounded-xl ${feature.bgColor} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
                   <feature.icon className={`h-7 w-7 ${feature.iconColor}`} />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{feature.title}</h3>
-                <p className="text-slate-500 leading-relaxed">{feature.description}</p>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 leading-snug">{feature.title}</h3>
+                <p className="text-sm sm:text-base text-slate-500 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -232,13 +232,13 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             {stats.map((stat, index) => (
               <div
                 key={stat.label}
-                className="text-center"
+                className="text-center min-w-0"
                 style={{ animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both` }}
               >
-                <div className="text-4xl sm:text-5xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-thmanyah-serif)" }}>
+                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-thmanyah-serif)" }}>
                   {stat.value}
                 </div>
-                <div className="text-white/80 font-medium text-sm sm:text-base">
+                <div className="text-white/80 font-medium text-xs sm:text-base leading-relaxed">
                   {stat.label}
                 </div>
               </div>
@@ -270,19 +270,19 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           {/* Workflow diagram */}
           <div className="flex flex-col items-center">
             {/* Desktop workflow */}
-            <div className="hidden md:flex items-center gap-0 w-full max-w-4xl justify-center">
+            <div className="hidden md:flex items-start gap-0 w-full max-w-4xl justify-center">
               {workflowSteps.map((step, index) => (
-                <div key={step.label} className="flex items-center">
-                  <div className="flex flex-col items-center group">
-                    <div className={`h-20 w-20 rounded-2xl ${step.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
-                      <step.icon className={`h-9 w-9 ${step.iconColor}`} />
+                <div key={step.label} className="flex items-start min-w-0">
+                  <div className="flex flex-col items-center group shrink-0">
+                    <div className={`h-16 w-16 md:h-20 md:w-20 rounded-2xl ${step.bgColor} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+                      <step.icon className={`h-7 w-7 md:h-9 md:w-9 ${step.iconColor}`} />
                     </div>
-                    <span className="text-sm font-bold text-slate-800">{step.label}</span>
-                    <span className="text-xs text-slate-400 mt-1">{step.sublabel}</span>
+                    <span className="text-xs md:text-sm font-bold text-slate-800 whitespace-nowrap">{step.label}</span>
+                    <span className="text-[10px] md:text-xs text-slate-400 mt-0.5 whitespace-nowrap">{step.sublabel}</span>
                   </div>
                   {index < workflowSteps.length - 1 && (
-                    <div className="flex items-center mx-4 mb-8">
-                      <div className="w-16 h-0.5 bg-violet-300 relative">
+                    <div className="flex items-center mx-2 md:mx-4 mt-8">
+                      <div className="w-10 md:w-16 h-0.5 bg-violet-300 relative">
                         <ChevronLeft className="absolute -left-2 -top-2 h-4 w-4 text-violet-500" />
                       </div>
                     </div>
@@ -370,20 +370,20 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <footer className="bg-[#030308] border-t border-white/5 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               <div className="h-8 w-8 bg-gradient-to-bl from-[#7C3AED] to-[#F59E0B] rounded-lg flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <span className="text-white font-bold">كنترول</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-sm text-slate-400">
               <a href="#" className="hover:text-white transition-colors">سياسة الخصوصية</a>
-              <span className="text-slate-700">|</span>
+              <span className="text-slate-700 hidden sm:inline">|</span>
               <a href="#" className="hover:text-white transition-colors">شروط الاستخدام</a>
-              <span className="text-slate-700">|</span>
+              <span className="text-slate-700 hidden sm:inline">|</span>
               <a href="#" className="hover:text-white transition-colors">تواصل معنا</a>
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 shrink-0">
               © {new Date().getFullYear()} كنترول. جميع الحقوق محفوظة.
             </p>
           </div>
