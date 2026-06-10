@@ -98,7 +98,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           }}
         />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 text-center">
+        <div className="relative z-10 max-w-7xl 2xl:max-w-[90rem] mx-auto px-6 sm:px-8 lg:px-12 2xl:px-20 text-center">
           {/* Badge */}
           <div
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-12"
@@ -108,11 +108,11 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <span className="text-sm text-[#A78BFA] font-medium">الحل العربي الأول لإدارة الأعمال</span>
           </div>
 
-          {/* Hero composition: badges around heading */}
-          <div className="relative py-16 sm:py-20 lg:py-24">
-            {/* Top row badges - hidden on mobile */}
+          {/* Hero composition: badges around heading with generous safe zone */}
+          <div className="relative py-12 sm:py-16 lg:py-20 xl:py-24">
+            {/* Top row badges - hidden on mobile, generous spacing below */}
             <div
-              className="hidden lg:flex justify-center gap-16 xl:gap-24 mb-16"
+              className="hidden lg:flex justify-center gap-20 xl:gap-28 mb-20 xl:mb-24"
               style={{ animation: 'fadeInUp 0.6s ease-out 0.2s both' }}
             >
               {heroBadges.slice(0, 2).map((badge, i) => (
@@ -128,9 +128,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               ))}
             </div>
 
-            {/* Main Heading - the hero */}
+            {/* Main Heading - the hero — with generous padding for safe zone */}
             <h1
-              className="relative z-10 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.6]"
+              className="relative z-10 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.8] px-4 sm:px-8 lg:px-16 xl:px-28"
               style={{
                 fontFamily: "var(--font-thmanyah-serif)",
                 animation: 'fadeInUp 0.6s ease-out 0.1s both',
@@ -143,9 +143,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               <span className="bg-gradient-to-l from-[#A78BFA] to-[#F59E0B] bg-clip-text text-transparent">للتسليم النهائي</span>
             </h1>
 
-            {/* Bottom row badges - hidden on mobile */}
+            {/* Bottom row badges - hidden on mobile, generous spacing above */}
             <div
-              className="hidden lg:flex justify-center gap-16 xl:gap-24 mt-16"
+              className="hidden lg:flex justify-center gap-20 xl:gap-28 mt-20 xl:mt-24"
               style={{ animation: 'fadeInUp 0.6s ease-out 0.3s both' }}
             >
               {heroBadges.slice(2, 4).map((badge, i) => (
@@ -161,12 +161,12 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               ))}
             </div>
 
-            {/* Side badges - only on xl screens */}
+            {/* Right side badges - only on xl screens, positioned well outside heading */}
             <div
-              className="hidden xl:block absolute top-1/2 -right-8 -translate-y-1/2"
+              className="hidden 2xl:block absolute top-1/2 right-0 xl:-right-4 -translate-y-1/2"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.4s both' }}
             >
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-8">
                 {heroBadges.slice(4, 6).map((badge) => (
                   <div
                     key={badge.label}
@@ -181,12 +181,12 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </div>
             </div>
 
-            {/* Left side badge */}
+            {/* Left side badge - only on xl screens, positioned well outside heading */}
             <div
-              className="hidden xl:block absolute top-1/2 -left-8 -translate-y-1/2"
+              className="hidden 2xl:block absolute top-1/2 left-0 xl:-left-4 -translate-y-1/2"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.5s both' }}
             >
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-8">
                 {heroBadges.slice(6, 8).map((badge) => (
                   <div
                     key={badge.label}
@@ -201,9 +201,9 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
               </div>
             </div>
 
-            {/* Mobile badges - shown as pills below heading */}
+            {/* Mobile & tablet badges - shown as pills well below heading */}
             <div
-              className="lg:hidden flex flex-wrap justify-center gap-3 mt-10"
+              className="lg:hidden flex flex-wrap justify-center gap-3 mt-14"
               style={{ animation: 'fadeInUp 0.6s ease-out 0.3s both' }}
             >
               {heroBadges.map((badge) => (
