@@ -130,7 +130,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
             {/* Main Heading - the hero */}
             <h1
-              className="relative z-10 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-snug"
+              className="relative z-10 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.6]"
               style={{
                 fontFamily: "var(--font-thmanyah-serif)",
                 animation: 'fadeInUp 0.6s ease-out 0.1s both',
