@@ -123,6 +123,61 @@ export async function POST(request: NextRequest) {
       console.error('Seed failed:', seedResult.error)
     }
 
+    // ── Sign and store the trial license in tenant's LicenseStore ──
+    try {
+      const tenantDb = await getTenantDb(tenant.id)
+      const { signLicensePayload, encodeLicenseKey } = await import('@/lib/license-crypto')
+
+      const payload = {
+        licenseId: license.id,
+        tenantId: tenant.id,
+        tenantName: name,
+        type: 'trial' as const,
+        maxUsers: 1,
+        maxCompanies: 1,
+        isLifetime: false,
+        issuedAt: new Date().toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        price: 0,
+        monthlyPrice: 0,
+        currency: 'EGP',
+        features: [],
+        version: 1,
+      }
+
+      const privateKey = process.env.LICENSE_PRIVATE_KEY
+      if (privateKey) {
+        const signedKey = signLicensePayload(payload, privateKey.replace(/\\n/g, '\n'))
+        const encodedKey = encodeLicenseKey(signedKey)
+
+        await tenantDb.licenseStore.create({
+          data: {
+            licenseId: license.id,
+            licenseKey: licenseKey,
+            signedKey: encodedKey,
+            tenantId: tenant.id,
+            type: 'trial',
+            status: 'active',
+            maxUsers: 1,
+            maxCompanies: 1,
+            isLifetime: false,
+            price: 0,
+            monthlyPrice: 0,
+            currency: 'EGP',
+            features: JSON.stringify([]),
+            issuedAt: new Date(),
+            expiresAt,
+            activatedAt: new Date(),
+            lastVerifiedAt: new Date(),
+            verificationCount: 1,
+          },
+        })
+      }
+    } catch (error) {
+      console.error('Failed to sign trial license:', error)
+      // Non-critical for trial
+    }
+
     // ── Log activity ──
     logActivity({
       action: 'tenant_registered',

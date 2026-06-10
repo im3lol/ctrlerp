@@ -208,7 +208,88 @@ export async function POST(request: NextRequest) {
     // Invalidate caches since data changed
     invalidateCache('admin:')
 
-    return NextResponse.json({ license }, { status: 201 })
+    // Generate signed license key for the tenant
+    let encodedLicenseKey: string | undefined
+    try {
+      const { signLicensePayload, encodeLicenseKey } = await import('@/lib/license-crypto')
+
+      const payload = {
+        licenseId: license.id,
+        tenantId,
+        tenantName: tenant.name,
+        type: license.type as any,
+        maxUsers: defaultMaxUsers,
+        maxCompanies: defaultMaxCompanies,
+        isLifetime: lifetime,
+        issuedAt: license.startedAt.toISOString(),
+        expiresAt: license.expiresAt.toISOString(),
+        price: licensePrice,
+        monthlyPrice: licenseMonthlyPrice,
+        currency: licenseCurrency,
+        features: [],
+        version: 1,
+      }
+
+      // Get private key from env (only available on platform server)
+      const privateKey = process.env.LICENSE_PRIVATE_KEY
+      if (privateKey) {
+        const signedKey = signLicensePayload(payload, privateKey.replace(/\\n/g, '\n'))
+        encodedLicenseKey = encodeLicenseKey(signedKey)
+
+        // Store in tenant's LicenseStore
+        try {
+          const { getTenantDb } = await import('@/lib/tenant-db')
+          const tenantDb = await getTenantDb(tenantId)
+          await tenantDb.licenseStore.upsert({
+            where: { licenseId: license.id },
+            create: {
+              licenseId: license.id,
+              licenseKey: licenseKey,
+              signedKey: encodedLicenseKey,
+              tenantId,
+              type: license.type,
+              status: 'active',
+              maxUsers: defaultMaxUsers,
+              maxCompanies: defaultMaxCompanies,
+              isLifetime: lifetime,
+              price: licensePrice,
+              monthlyPrice: licenseMonthlyPrice,
+              currency: licenseCurrency,
+              features: JSON.stringify([]),
+              issuedAt: license.startedAt,
+              expiresAt: license.expiresAt,
+              activatedAt: new Date(),
+              lastVerifiedAt: new Date(),
+              verificationCount: 1,
+            },
+            update: {
+              signedKey: encodedLicenseKey,
+              status: 'active',
+              type: license.type,
+              maxUsers: defaultMaxUsers,
+              maxCompanies: defaultMaxCompanies,
+              isLifetime: lifetime,
+              expiresAt: license.expiresAt,
+              lastVerifiedAt: new Date(),
+            },
+          })
+
+          // Invalidate license cache
+          const { invalidateCache: invCache } = await import('@/lib/cache')
+          invCache('license_status:')
+        } catch (e) {
+          console.error('Failed to store signed key in tenant DB:', e)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sign license key:', error)
+      // Non-critical - license is still created, just not signed
+    }
+
+    return NextResponse.json(
+      encodedLicenseKey ? { license, encodedLicenseKey } : { license },
+      { status: 201 }
+    )
   } catch (error) {
     console.error('Create license error:', error)
     const message = error instanceof Error ? error.message : 'حدث خطأ غير متوقع'

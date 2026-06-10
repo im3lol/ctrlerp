@@ -173,6 +173,63 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // ── Sign and store the trial license in tenant's LicenseStore ──
+    if (provisionResult.success) {
+      try {
+        const tenantDb = await getTenantDb(tenant.id)
+        const { signLicensePayload, encodeLicenseKey } = await import('@/lib/license-crypto')
+
+        const payload = {
+          licenseId: license.id,
+          tenantId: tenant.id,
+          tenantName: name,
+          type: 'trial' as const,
+          maxUsers: 1,
+          maxCompanies: 1,
+          isLifetime: false,
+          issuedAt: new Date().toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          price: 0,
+          monthlyPrice: 0,
+          currency: 'EGP',
+          features: [],
+          version: 1,
+        }
+
+        const privateKey = process.env.LICENSE_PRIVATE_KEY
+        if (privateKey) {
+          const signedKey = signLicensePayload(payload, privateKey.replace(/\\n/g, '\n'))
+          const encodedKey = encodeLicenseKey(signedKey)
+
+          await tenantDb.licenseStore.create({
+            data: {
+              licenseId: license.id,
+              licenseKey: licenseKey,
+              signedKey: encodedKey,
+              tenantId: tenant.id,
+              type: 'trial',
+              status: 'active',
+              maxUsers: 1,
+              maxCompanies: 1,
+              isLifetime: false,
+              price: 0,
+              monthlyPrice: 0,
+              currency: 'EGP',
+              features: JSON.stringify([]),
+              issuedAt: new Date(),
+              expiresAt,
+              activatedAt: new Date(),
+              lastVerifiedAt: new Date(),
+              verificationCount: 1,
+            },
+          })
+        }
+      } catch (error) {
+        console.error('Failed to sign trial license for admin-created tenant:', error)
+        // Non-critical for trial
+      }
+    }
+
     // Invalidate caches
     invalidateCache('admin:')
 

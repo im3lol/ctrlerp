@@ -135,7 +135,7 @@ export async function getCurrentUser(request?: NextRequest): Promise<AuthUser | 
 export async function requireAuth(request?: NextRequest): Promise<AuthUser> {
   const user = await getCurrentUser(request)
   if (!user) {
-    // Dev mode: auto-login as admin (legacy fallback for development only)
+    // Dev mode: auto-login as admin (ONLY in development)
     if (process.env.NODE_ENV === 'development') {
       const adminUser = await db.user.findUnique({
         where: { username: 'admin' },
@@ -171,36 +171,46 @@ export async function requireAuth(request?: NextRequest): Promise<AuthUser> {
     throw new Error('غير مصرح بالدخول')
   }
 
-  // ── License check (using platform DB) ──
+  // ── STRICT License Enforcement ──
+  // System is COMPLETELY LOCKED without a valid license
   if (user.tenantId) {
-    const tenant = await db.tenant.findUnique({
-      where: { id: user.tenantId },
-      include: {
-        licenses: {
-          where: { status: 'active' },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-    })
+    try {
+      const tenantDb = await getTenantDb(user.tenantId)
+      const { checkLicenseValid } = await import('./license-enforcement')
+      const licenseStatus = await checkLicenseValid(tenantDb, user.tenantId)
 
-    if (tenant) {
-      if (tenant.status === 'suspended') {
-        throw new Error('حسابك معلق. يرجى التواصل مع إدارة المنصة')
-      }
-      if (tenant.status === 'cancelled') {
-        throw new Error('حسابك ملغي. يرجى التواصل مع إدارة المنصة')
-      }
-
-      const license = tenant.licenses[0]
-      if (!license) {
-        throw new Error('لا يوجد ترخيص نشط. يرجى التواصل مع إدارة المنصة')
+      if (licenseStatus.locked) {
+        const reasons: Record<string, string> = {
+          'NO_LICENSE': 'لا يوجد ترخيص مفعل - يرجى إدخال مفتاح الترخيص',
+          'LICENSE_EXPIRED': 'انتهت صلاحية الترخيص - يرجى التجديد',
+          'INVALID_SIGNATURE': 'مفتاح الترخيص غير صالح - تم رفض التوقيع',
+          'SIGNATURE_MISMATCH': 'مفتاح الترخيص مزيف أو تم التلاعب به',
+          'MACHINE_MISMATCH': 'مفتاح الترخيص مرتبط بجهاز آخر',
+          'VERIFICATION_ERROR': 'فشل التحقق من الترخيص',
+        }
+        const reason = licenseStatus.reason || 'UNKNOWN'
+        throw new Error(reasons[reason] || 'النظام مقفل - يرجى تفعيل الترخيص')
       }
 
-      if (!license.isLifetime && license.expiresAt < new Date()) {
-        throw new Error('انتهت صلاحية الترخيص. يرجى التجديد للمتابعة')
+      // Check user limits
+      if (licenseStatus.maxUsers > 0) {
+        const activeUsersCount = await tenantDb.user.count({ where: { isActive: true } })
+        if (activeUsersCount > licenseStatus.maxUsers) {
+          throw new Error('تم تجاوز الحد الأقصى للمستخدمين المصرح به')
+        }
       }
+    } catch (error: any) {
+      // Re-throw license errors
+      if (error.message.includes('ترخيص') || error.message.includes('مقفل') || error.message.includes('مزيف') || error.message.includes('مصروف') || error.message.includes('تجاوز') || error.message.includes('مرتبط') || error.message.includes('فشل التحقق') || error.message.includes('انتهت')) {
+        throw error
+      }
+      // Other errors - fail closed
+      throw new Error('فشل التحقق من الترخيص')
     }
+  } else {
+    // No tenantId = no license = LOCKED (unless platform admin)
+    // Platform admin auth is handled separately via admin-guard.ts
+    // Regular users without tenant context should not have access
   }
 
   return user

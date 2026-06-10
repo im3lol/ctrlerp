@@ -166,6 +166,42 @@ model RevenueRecord {
 }
 
 // ============================================
+// LOCAL LICENSE STORE (Tenant DB)
+// Stores verified license info locally for offline validation
+// This model exists in BOTH platform DB and tenant DBs
+// ============================================
+
+model LicenseStore {
+  id                 String   @id @default(cuid())
+  licenseId          String   @unique  // ID from the License model
+  licenseKey         String   @unique  // Display key: CTRL-XXXX-XXXX-XXXX
+  signedKey          String            // Full base64-encoded signed license key
+  tenantId           String            // Platform tenant ID
+  type               String            // trial, basic, professional, enterprise, lifetime
+  status             String   @default("active") // active, expired, suspended, cancelled
+  maxUsers           Int      @default(1)
+  maxCompanies       Int      @default(1)
+  isLifetime         Boolean  @default(false)
+  price              Float    @default(0)
+  monthlyPrice       Float    @default(0)
+  currency           String   @default("EGP")
+  features           String?            // JSON array of enabled features
+  machineFingerprint String?            // Hardware binding for client-hosted deployments
+  issuedAt           DateTime
+  expiresAt          DateTime
+  activatedAt        DateTime @default(now())
+  lastVerifiedAt     DateTime @default(now())
+  verificationCount  Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([licenseKey])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([tenantId])
+}
+
+// ============================================
 // AUTH & MULTI-COMPANY
 // ============================================
 

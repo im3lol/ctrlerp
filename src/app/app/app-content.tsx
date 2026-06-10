@@ -761,6 +761,11 @@ function AppContent() {
         if (res.ok) {
           const data = await res.json()
           setLicenseInfo(data as LicenseInfo)
+
+          // If system is locked, redirect to license activation page
+          if (data.locked || !data.active) {
+            router.replace('/license-activate')
+          }
         }
       } catch (err) {
         console.error('License check error:', err)
@@ -770,7 +775,7 @@ function AppContent() {
     // Re-check every 5 minutes
     const interval = setInterval(checkLicense, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [isAuthenticated, currentCompanyId, setLicenseInfo])
+  }, [isAuthenticated, currentCompanyId, setLicenseInfo, router])
 
   // Auto-select company: if authenticated but no company selected, auto-select first or open setup wizard
   useEffect(() => {

@@ -80,3 +80,6 @@ agent-ctx/
 # Worklog
 worklog.md
 worklog_test
+
+# License keys (must NEVER be committed)
+license-keys/

@@ -32,10 +32,13 @@ export interface LicenseInfo {
   expiresAt: string | null
   daysLeft: number | null
   isTrial: boolean
+  isLifetime?: boolean
   tenantStatus: string | null
   licenseKey?: string | null
   maxUsers?: number | null
   maxCompanies?: number | null
+  locked?: boolean
+  reason?: string | null
 }
 
 // ── localStorage helpers ──────────────────────────────────────────────────────

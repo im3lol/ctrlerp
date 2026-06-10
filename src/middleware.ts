@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // ─────────────────────────────────────────────────────────
-// Multi-tenant Middleware
+// Multi-tenant Middleware with License Enforcement
 // Routes requests to the correct tenant based on subdomain/domain
+// Enforces license checks for tenant-specific routes
 // ─────────────────────────────────────────────────────────
 
 // Platform routes that are NOT tenant-specific
@@ -14,13 +15,25 @@ const PLATFORM_ROUTES = new Set([
   '/sign-in',
   '/sign-up',
   '/login',
+  '/license-activate',
+  '/register',
 ])
 
-/**
- * Check if a path is a platform-level route
- */
+// Routes that should be accessible even without a license (locked system)
+const LICENSE_FREE_ROUTES = new Set([
+  '/license-activate',
+  '/api/license',
+])
+
 function isPlatformPath(pathname: string): boolean {
   for (const route of PLATFORM_ROUTES) {
+    if (pathname.startsWith(route)) return true
+  }
+  return false
+}
+
+function isLicenseFreePath(pathname: string): boolean {
+  for (const route of LICENSE_FREE_ROUTES) {
     if (pathname.startsWith(route)) return true
   }
   return false
@@ -76,8 +89,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host')?.split(':')[0] || ''
 
-  // ── Platform routes (admin, auth) always pass through ──
+  // ── Platform routes always pass through ──
   if (isPlatformPath(pathname)) {
+    return NextResponse.next()
+  }
+
+  // ── License-free routes always pass through ──
+  if (isLicenseFreePath(pathname)) {
     return NextResponse.next()
   }
 
@@ -86,7 +104,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/fonts') ||
     pathname.startsWith('/uploads') ||
-    pathname.includes('.') // File extensions (images, etc.)
+    pathname.includes('.')
   ) {
     return NextResponse.next()
   }
@@ -96,21 +114,19 @@ export function middleware(request: NextRequest) {
 
   if (!subdomain) {
     // No subdomain = platform landing page or direct access
-    // For /app route without tenant context, redirect to platform
     if (pathname.startsWith('/app')) {
-      // This could be a legacy request without subdomain
-      // Let it through - the auth system will handle it
       return NextResponse.next()
     }
     return NextResponse.next()
   }
 
   // ── Tenant-specific request ──
-  // Add X-Tenant-Subdomain header so API routes can use it
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('X-Tenant-Subdomain', subdomain)
 
-  // For the /app route, we serve the same app but with tenant context
+  // For tenant routes, check license via header
+  // The actual license check happens in API routes and auth-guard
+  // Middleware just passes through with tenant context headers
   if (pathname.startsWith('/app') || pathname.startsWith('/api/')) {
     return NextResponse.next({
       request: {
@@ -139,13 +155,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico (favicon)
-     * - public folder files
-     */
     '/((?!_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)',
   ],
 }
