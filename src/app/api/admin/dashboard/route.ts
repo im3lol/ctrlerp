@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
 import { cached, CACHE_TTL } from '@/lib/cache'
+import { getPoolStats } from '@/lib/tenant-db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,10 +31,11 @@ async function computeDashboardData() {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
   // ══════════════════════════════════════════════════
-  // ALL queries in parallel - no sequential queries
+  // ALL queries in parallel - platform DB only
   // ══════════════════════════════════════════════════
   const [
     tenantStatusDistribution,
+    tenantDbStatusDistribution,
     licenseTypeDistribution,
     licenseStatusDistribution,
     revenueByType,
@@ -41,13 +43,13 @@ async function computeDashboardData() {
     recentActivities,
     tenantTimeData,
     revenueTimeData,
-    systemCounts,
     expirationData,
     recentTenants,
     monthlyRevenueAgg,
     todayData,
     systemHealthData,
     activePaidTenants,
+    tenantDomainStats,
   ] = await Promise.all([
     // 1. Tenant counts by status
     db.tenant.groupBy({
@@ -55,20 +57,26 @@ async function computeDashboardData() {
       _count: { status: true },
     }),
 
-    // 2. License counts by type with revenue
+    // 2. Tenant DB status distribution
+    db.tenant.groupBy({
+      by: ['dbStatus'],
+      _count: { dbStatus: true },
+    }),
+
+    // 3. License counts by type with revenue
     db.license.groupBy({
       by: ['type'],
       _count: { id: true },
       _sum: { price: true, monthlyPrice: true },
     }),
 
-    // 3. License counts by status
+    // 4. License counts by status
     db.license.groupBy({
       by: ['status'],
       _count: { id: true },
     }),
 
-    // 4. Revenue by license type (active, price > 0)
+    // 5. Revenue by license type (active, price > 0)
     db.license.groupBy({
       by: ['type'],
       where: { status: 'active', price: { gt: 0 } },
@@ -76,45 +84,31 @@ async function computeDashboardData() {
       _count: { id: true },
     }),
 
-    // 5. Revenue record aggregates
+    // 6. Revenue record aggregates
     db.revenueRecord.aggregate({
       _sum: { amount: true },
       _count: { id: true },
     }),
 
-    // 6. Recent activity logs
+    // 7. Recent activity logs
     db.activityLog.findMany({
       take: 15,
       orderBy: { createdAt: 'desc' },
     }),
 
-    // 7. Tenant creation data for growth chart
+    // 8. Tenant creation data for growth chart
     db.tenant.findMany({
       where: { createdAt: { gte: sixMonthsAgo } },
       select: { createdAt: true },
       orderBy: { createdAt: 'asc' },
     }),
 
-    // 8. Revenue records for trends
+    // 9. Revenue records for trends
     db.revenueRecord.findMany({
       where: { createdAt: { gte: sixMonthsAgo } },
       select: { amount: true, type: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     }),
-
-    // 9. System usage counts (single raw query)
-    db.$queryRaw<
-      { users: bigint; companies: bigint; sales_invoices: bigint; purchase_invoices: bigint; items: bigint; customers: bigint; suppliers: bigint }
-    >`
-      SELECT
-        (SELECT COUNT(*) FROM "User") as users,
-        (SELECT COUNT(*) FROM "Company") as companies,
-        (SELECT COUNT(*) FROM "SalesInvoice") as sales_invoices,
-        (SELECT COUNT(*) FROM "PurchaseInvoice") as purchase_invoices,
-        (SELECT COUNT(*) FROM "Item") as items,
-        (SELECT COUNT(*) FROM "Customer") as customers,
-        (SELECT COUNT(*) FROM "Supplier") as suppliers
-    `,
 
     // 10. License expiration data
     db.license.findMany({
@@ -128,7 +122,7 @@ async function computeDashboardData() {
         key: true,
         type: true,
         expiresAt: true,
-        tenant: { select: { id: true, name: true, email: true } },
+        tenant: { select: { id: true, name: true, email: true, subdomain: true } },
       },
       orderBy: { expiresAt: 'asc' },
     }),
@@ -140,7 +134,6 @@ async function computeDashboardData() {
       include: {
         licenses: { take: 1, orderBy: { createdAt: 'desc' } },
         _count: { select: { companies: true } },
-        owner: { select: { id: true, name: true, username: true } },
       },
     }),
 
@@ -155,7 +148,7 @@ async function computeDashboardData() {
       ORDER BY month ASC
     `,
 
-    // 13. Today stats (parallelized)
+    // 13. Today stats
     Promise.all([
       db.tenant.count({ where: { createdAt: { gte: todayStart } } }),
       db.revenueRecord.aggregate({
@@ -165,7 +158,7 @@ async function computeDashboardData() {
       db.license.count({ where: { createdAt: { gte: todayStart } } }),
     ]),
 
-    // 14. System health check + active users (parallelized)
+    // 14. System health check
     Promise.all([
       (async () => {
         try {
@@ -179,13 +172,22 @@ async function computeDashboardData() {
       db.platformAdminToken.count({ where: { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } } }),
     ]),
 
-    // 15. Active paid tenants count (was sequential before - now parallel)
+    // 15. Active paid tenants count
     db.tenant.count({
       where: {
         status: 'active',
         licenses: { some: { status: 'active', type: { in: ['basic', 'professional', 'enterprise', 'lifetime'] } } },
       },
     }),
+
+    // 16. Domain/subdomain stats
+    Promise.all([
+      db.tenant.count({ where: { customDomain: { not: null } } }),
+      db.tenant.count({ where: { dbStatus: 'ready' } }),
+      db.tenant.count({ where: { dbStatus: 'error' } }),
+      db.tenant.count({ where: { dbStatus: 'pending' } }),
+      db.tenant.count({ where: { dbStatus: 'provisioning' } }),
+    ]),
   ])
 
   // ══════════════════════════════════════════════════
@@ -211,7 +213,7 @@ async function computeDashboardData() {
     .filter(r => r.type === 'lifetime')
     .reduce((s, r) => s + (r._sum.price || 0), 0)
 
-  // --- Revenue trends from monthly aggregates ---
+  // --- Revenue trends ---
   const revenueByMonth: Record<string, number> = {}
   for (let i = 5; i >= 0; i--) {
     const d = new Date()
@@ -226,7 +228,6 @@ async function computeDashboardData() {
       revenueByMonth[key] = Number(r.total)
     }
   })
-  // Use raw records only as fallback when aggregates are 0
   revenueTimeData.forEach(r => {
     const d = new Date(r.createdAt)
     const key = `${months[d.getMonth()]} ${d.getFullYear()}`
@@ -269,8 +270,6 @@ async function computeDashboardData() {
     return d >= lastMonthStart && d < thisMonthStart
   }).reduce((s, r) => s + r.amount, 0)
 
-  const sysCounts = systemCounts[0]
-
   const oneDayLater = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000)
   const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
   const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -309,6 +308,9 @@ async function computeDashboardData() {
     : 0
 
   const [dbStatus, activeUsersLast24h, activeUsersLast7d] = systemHealthData
+  const [customDomainCount, dbReadyCount, dbErrorCount, dbPendingCount, dbProvisioningCount] = tenantDomainStats
+
+  const poolStats = getPoolStats()
 
   const systemHealth = {
     dbStatus,
@@ -324,6 +326,7 @@ async function computeDashboardData() {
     },
     activeUsersLast24h,
     activeUsersLast7d,
+    tenantDbPool: poolStats,
   }
 
   const [newTenantsToday, revenueToday, newLicensesToday] = todayData
@@ -336,14 +339,11 @@ async function computeDashboardData() {
       expiredTenants,
       activePaidLicenses,
       lifetimeTenants,
-      totalUsers: Number(sysCounts.users),
-      totalCompanies: Number(sysCounts.companies),
-      totalInvoices: Number(sysCounts.sales_invoices),
-      totalPurchaseInvoices: Number(sysCounts.purchase_invoices),
-      totalItems: Number(sysCounts.items),
-      totalCustomers: Number(sysCounts.customers),
-      totalSuppliers: Number(sysCounts.suppliers),
       trialConversionRate,
+      customDomainCount,
+      dbReadyCount,
+      dbErrorCount,
+      dbPendingCount,
     },
     revenue: {
       totalRevenue,
@@ -381,6 +381,10 @@ async function computeDashboardData() {
         status: l.status,
         count: l._count.id,
       })),
+      dbStatusDistribution: tenantDbStatusDistribution.map((d) => ({
+        status: d.dbStatus,
+        count: d._count.dbStatus,
+      })),
     },
     alerts: {
       expiringLicenses: expiringLicenses.map(l => ({
@@ -405,8 +409,11 @@ async function computeDashboardData() {
       email: t.email,
       phone: t.phone,
       status: t.status,
+      subdomain: t.subdomain,
+      customDomain: t.customDomain,
+      dbStatus: t.dbStatus,
+      databaseName: t.databaseName,
       createdAt: t.createdAt,
-      owner: t.owner,
       companyCount: t._count.companies,
       license: t.licenses[0] || null,
     })),

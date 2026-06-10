@@ -17,6 +17,10 @@ import {
   Infinity,
   AlertTriangle,
   LogIn,
+  Globe,
+  Database,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,6 +31,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -71,14 +76,31 @@ const typeColors: Record<string, string> = {
   lifetime: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
 }
 
+const dbStatusLabels: Record<string, string> = {
+  pending: 'قيد الانتظار',
+  provisioning: 'جاري التوفير',
+  ready: 'جاهز',
+  error: 'خطأ',
+}
+
+const dbStatusColors: Record<string, string> = {
+  pending: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+  provisioning: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  ready: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  error: 'bg-red-500/10 text-red-400 border-red-500/20',
+}
+
 interface TenantRow {
   id: string
   name: string
   email: string | null
   phone: string | null
   status: string
-  ownerId: string | null
-  owner: { id: string; name: string; username: string } | null
+  subdomain: string
+  customDomain: string | null
+  databaseName: string | null
+  databaseUrl: string | null
+  dbStatus: string
   createdAt: string
   companyCount: number
   license: {
@@ -206,17 +228,31 @@ export default function TenantsList() {
       }
       if (res.ok) {
         fetchTenants()
-      } else {
-        try {
-          const errData = await res.json()
-          setErrorMsg(errData.error || errData.message || 'فشل تحديث الحالة')
-        } catch {
-          setErrorMsg('فشل تحديث الحالة')
-        }
       }
     } catch (err) {
       console.error(err)
-      setErrorMsg('خطأ في الاتصال بالخادم')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleProvision = async (tenantId: string) => {
+    setActionLoading(tenantId)
+    try {
+      const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      if (!token) {
+        router.replace('/admin/login')
+        return
+      }
+      const res = await fetch(`/api/admin/tenants/${tenantId}/provision`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (res.ok) {
+        fetchTenants()
+      }
+    } catch (err) {
+      console.error(err)
     } finally {
       setActionLoading(null)
     }
@@ -235,25 +271,11 @@ export default function TenantsList() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
-      if (res.status === 401) {
-        localStorage.removeItem(ADMIN_TOKEN_KEY)
-        localStorage.removeItem(ADMIN_USER_KEY)
-        router.replace('/admin/login')
-        return
-      }
       if (res.ok) {
         fetchTenants()
-      } else {
-        try {
-          const errData = await res.json()
-          setErrorMsg(errData.error || errData.message || 'فشل حذف المستأجر')
-        } catch {
-          setErrorMsg('فشل حذف المستأجر')
-        }
       }
     } catch (err) {
       console.error(err)
-      setErrorMsg('خطأ في الاتصال بالخادم')
     } finally {
       setActionLoading(null)
     }
@@ -285,7 +307,7 @@ export default function TenantsList() {
               <Input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                placeholder="بحث بالاسم أو البريد أو الهاتف..."
+                placeholder="بحث بالاسم أو البريد أو النطاق الفرعي..."
                 className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 pr-9 focus:border-violet-500"
               />
               {search && (
@@ -321,10 +343,10 @@ export default function TenantsList() {
               <thead>
                 <tr className="border-b border-slate-700/50">
                   <th className="text-right text-xs font-medium text-slate-400 p-3">المستأجر</th>
+                  <th className="text-right text-xs font-medium text-slate-400 p-3">النطاق</th>
+                  <th className="text-right text-xs font-medium text-slate-400 p-3">قاعدة البيانات</th>
                   <th className="text-right text-xs font-medium text-slate-400 p-3">الحالة</th>
                   <th className="text-right text-xs font-medium text-slate-400 p-3">الترخيص</th>
-                  <th className="text-right text-xs font-medium text-slate-400 p-3">الشركات</th>
-                  <th className="text-right text-xs font-medium text-slate-400 p-3">تاريخ الإنشاء</th>
                   <th className="text-right text-xs font-medium text-slate-400 p-3 w-12"></th>
                 </tr>
               </thead>
@@ -376,6 +398,42 @@ export default function TenantsList() {
                         </div>
                       </td>
                       <td className="p-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <Globe className="h-3 w-3 text-cyan-400" />
+                            <a
+                              href={`https://${tenant.subdomain}.ctrlerp.com/app`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-cyan-400 hover:text-cyan-300" dir="ltr"
+                            >
+                              {tenant.subdomain}.ctrlerp.com
+                            </a>
+                            <ExternalLink className="h-2.5 w-2.5 text-cyan-400/50" />
+                          </div>
+                          {tenant.customDomain && (
+                            <div className="flex items-center gap-1.5">
+                              <Globe className="h-3 w-3 text-violet-400" />
+                              <span className="text-xs text-violet-400" dir="ltr">{tenant.customDomain}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="space-y-1">
+                          <Badge
+                            variant="outline"
+                            className={cn(dbStatusColors[tenant.dbStatus] || 'bg-slate-500/10 text-slate-400')}
+                          >
+                            <Database className="h-3 w-3 ml-1" />
+                            {dbStatusLabels[tenant.dbStatus] || tenant.dbStatus}
+                          </Badge>
+                          {tenant.databaseName && (
+                            <p className="text-[10px] text-slate-600" dir="ltr">{tenant.databaseName}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3">
                         <Badge
                           variant="outline"
                           className={cn(statusColors[tenant.status] || 'bg-slate-500/10 text-slate-400')}
@@ -399,36 +457,18 @@ export default function TenantsList() {
                             </div>
                             {tenant.license.isLifetime ? (
                               <span className="block text-xs mt-1 text-cyan-400">مدى الحياة</span>
-                            ) : tenant.license.type === 'trial' ? (
-                              <span className={cn(
-                                'block text-xs mt-1',
-                                getDaysLeft(tenant.license.expiresAt) <= 3 ? 'text-red-400' : 'text-amber-400'
-                              )}>
-                                {getDaysLeft(tenant.license.expiresAt)} يوم متبقي
-                              </span>
                             ) : (
                               <span className={cn(
                                 'block text-xs mt-1',
-                                getDaysLeft(tenant.license.expiresAt) <= 0 ? 'text-red-400' : getDaysLeft(tenant.license.expiresAt) <= 7 ? 'text-amber-400' : 'text-emerald-400'
+                                getDaysLeft(tenant.license.expiresAt) <= 3 ? 'text-red-400' : getDaysLeft(tenant.license.expiresAt) <= 7 ? 'text-amber-400' : 'text-emerald-400'
                               )}>
                                 {getDaysLeft(tenant.license.expiresAt) <= 0 ? 'منتهي' : `${getDaysLeft(tenant.license.expiresAt)} يوم`}
-                              </span>
-                            )}
-                            {tenant.license.price > 0 && (
-                              <span className="block text-[10px] mt-0.5 text-emerald-400">
-                                {tenant.license.price.toLocaleString()} {tenant.license.currency}
                               </span>
                             )}
                           </div>
                         ) : (
                           <span className="text-xs text-slate-600">—</span>
                         )}
-                      </td>
-                      <td className="p-3">
-                        <span className="text-sm text-slate-300">{tenant.companyCount}</span>
-                      </td>
-                      <td className="p-3">
-                        <span className="text-xs text-slate-500">{formatDate(tenant.createdAt)}</span>
                       </td>
                       <td className="p-3">
                         {actionLoading === tenant.id ? (
@@ -448,6 +488,23 @@ export default function TenantsList() {
                                 <Eye className="h-4 w-4 ml-2" />
                                 عرض التفاصيل
                               </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => window.open(`https://${tenant.subdomain}.ctrlerp.com/app`, '_blank')}
+                                className="text-cyan-400 hover:bg-slate-700 cursor-pointer"
+                              >
+                                <ExternalLink className="h-4 w-4 ml-2" />
+                                فتح لوحة المستأجر
+                              </DropdownMenuItem>
+                              {tenant.dbStatus !== 'ready' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleProvision(tenant.id)}
+                                  className="text-blue-400 hover:bg-slate-700 cursor-pointer"
+                                >
+                                  <RefreshCw className="h-4 w-4 ml-2" />
+                                  إعادة توفير قاعدة البيانات
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator className="bg-slate-700" />
                               {tenant.status === 'active' && (
                                 <DropdownMenuItem
                                   onClick={() => handleStatusChange(tenant.id, 'suspended')}

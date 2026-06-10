@@ -44,22 +44,33 @@ model PlatformAdminToken {
 }
 
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  email     String?
-  phone     String?
-  status    String   @default("active") // active, suspended, cancelled
-  ownerId   String?  // The user who registered
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  status        String   @default("active") // active, suspended, cancelled
+  ownerId       String?  // The user who registered (in tenant DB)
+  subdomain     String   @unique @default(cuid()) // e.g., "acme" → acme.ctrlerp.com - default is temp, must be set
+  customDomain  String?  @unique // e.g., "erp.acme.com" (optional custom domain)
+  databaseName  String?  // e.g., "tenant_acme123" (PostgreSQL database name)
+  databaseUrl   String?  // Full connection string for tenant's database
+  dbStatus      String   @default("pending") // pending, provisioning, ready, error
+  planType      String   @default("trial") // trial, basic, professional, enterprise, lifetime
+  maxUsers      Int      @default(5)
+  maxCompanies  Int      @default(1)
+  logo          String?  // Tenant logo URL
+  settings      String?  // JSON string for tenant-specific settings
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  owner     User?          @relation(fields: [ownerId], references: [id])
   companies Company[]
   licenses  License[]
   revenueRecords RevenueRecord[]
 
-  @@unique([ownerId])
   @@index([status])
+  @@index([subdomain])
+  @@index([customDomain])
+  @@index([dbStatus])
   @@index([createdAt])
 }
 
@@ -172,7 +183,6 @@ model User {
 
   companyUsers CompanyUser[]
   accessTokens AccessToken[]
-  ownedTenant  Tenant?
 }
 
 model AccessToken {
@@ -200,7 +210,7 @@ model Company {
   fiscalYearStart String?
   vatRate         Float    @default(14.0)
   status          String   @default("active") // active, inactive
-  tenantId        String?
+  tenantId        String?  // Reference to platform Tenant (for cross-DB identification)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

@@ -3,8 +3,9 @@ import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
 import { logActivity } from '@/lib/activity-logger'
 import { invalidateCache } from '@/lib/cache'
+import { getPoolStats } from '@/lib/tenant-db'
 
-// GET: Tenant details with license, companies, users
+// GET: Tenant details with license, companies, domain, and DB info
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,8 +14,8 @@ export async function GET(
     await requireAdminAuth(request)
     const { id } = await params
 
-    // Parallel: tenant details + user count + total revenue
-    const [tenant, userCount, totalRevenue] = await Promise.all([
+    // Parallel: tenant details + revenue
+    const [tenant, totalRevenue] = await Promise.all([
       db.tenant.findUnique({
         where: { id },
         include: {
@@ -31,24 +32,10 @@ export async function GET(
               createdAt: true,
             },
           },
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              email: true,
-            },
-          },
           revenueRecords: {
             orderBy: { createdAt: 'desc' },
             take: 10,
           },
-        },
-      }),
-      db.companyUser.count({
-        where: {
-          company: { tenantId: id },
-          isActive: true,
         },
       }),
       db.revenueRecord.aggregate({
@@ -61,10 +48,26 @@ export async function GET(
       return NextResponse.json({ error: 'المستأجر غير موجود' }, { status: 404 })
     }
 
+    // Get connection pool stats
+    const poolStats = getPoolStats()
+
+    // Try to get user count from tenant DB if ready
+    let tenantUserCount = null
+    if (tenant.dbStatus === 'ready' && tenant.databaseUrl) {
+      try {
+        const { getTenantDb } = await import('@/lib/tenant-db')
+        const tenantDb = await getTenantDb(id)
+        tenantUserCount = await tenantDb.user.count()
+      } catch {
+        // DB not accessible
+      }
+    }
+
     return NextResponse.json({
       ...tenant,
-      userCount,
+      tenantUserCount,
       totalRevenue: totalRevenue._sum.amount || 0,
+      poolStats: poolStats.tenants.includes(id) ? 'active' : 'idle',
     })
   } catch (error) {
     console.error('Get tenant error:', error)
@@ -73,7 +76,7 @@ export async function GET(
   }
 }
 
-// PATCH: Update tenant status
+// PATCH: Update tenant info (status, domain, etc.)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -83,7 +86,7 @@ export async function PATCH(
     const { id } = await params
 
     const body = await request.json()
-    const { status, name, email, phone } = body
+    const { status, name, email, phone, subdomain, customDomain } = body
 
     const existing = await db.tenant.findUnique({ where: { id } })
     if (!existing) {
@@ -98,18 +101,46 @@ export async function PATCH(
     if (email !== undefined) data.email = email
     if (phone !== undefined) data.phone = phone
 
+    // Domain updates
+    if (subdomain !== undefined) {
+      const subdomainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
+      if (!subdomainRegex.test(subdomain)) {
+        return NextResponse.json({ error: 'صيغة النطاق الفرعي غير صالحة' }, { status: 400 })
+      }
+      const existingSubdomain = await db.tenant.findFirst({
+        where: { subdomain, id: { not: id } },
+      })
+      if (existingSubdomain) {
+        return NextResponse.json({ error: 'النطاق الفرعي مستخدم بالفعل' }, { status: 400 })
+      }
+      data.subdomain = subdomain
+    }
+
+    if (customDomain !== undefined) {
+      if (customDomain) {
+        const domainRegex = /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/
+        if (!domainRegex.test(customDomain)) {
+          return NextResponse.json({ error: 'صيغة النطاق المخصص غير صالحة' }, { status: 400 })
+        }
+        const existingDomain = await db.tenant.findFirst({
+          where: { customDomain, id: { not: id } },
+        })
+        if (existingDomain) {
+          return NextResponse.json({ error: 'النطاق المخصص مستخدم بالفعل' }, { status: 400 })
+        }
+      }
+      data.customDomain = customDomain || null
+    }
+
     const tenant = await db.tenant.update({
       where: { id },
       data,
       include: {
         licenses: { orderBy: { createdAt: 'desc' } },
-        owner: {
-          select: { id: true, name: true, username: true },
-        },
       },
     })
 
-    // Log activity (fire-and-forget)
+    // Log activity
     if (status && status !== existing.status) {
       let action = 'tenant_updated'
       let description = `تحديث بيانات المستأجر ${existing.name}`
@@ -146,7 +177,7 @@ export async function PATCH(
         targetType: 'tenant',
         targetId: id,
         targetName: existing.name,
-        details: { name, email, phone },
+        details: { name, email, phone, subdomain, customDomain },
       })
     }
 
@@ -180,7 +211,6 @@ export async function DELETE(
       data: { status: 'cancelled' },
     })
 
-    // Log activity (fire-and-forget)
     logActivity({
       action: 'tenant_cancelled',
       category: 'tenant',
@@ -192,7 +222,6 @@ export async function DELETE(
       targetName: existing.name,
     })
 
-    // Invalidate caches
     invalidateCache('admin:')
 
     return NextResponse.json({ tenant })

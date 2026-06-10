@@ -4,14 +4,12 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Supabase PostgreSQL connection - always use this URL
-const SUPABASE_URL = 'postgresql://postgres.hojpkyszlbjkscbwquuz:3lolScar%4025%23@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true'
-
+// Platform database - used for Tenant, License, PlatformAdmin, etc.
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    datasourceUrl: SUPABASE_URL,
+    datasourceUrl: process.env.DATABASE_URL,
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db

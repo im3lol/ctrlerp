@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
 import { logActivity } from '@/lib/activity-logger'
 import { invalidateCache } from '@/lib/cache'
+import { provisionTenantDatabase, seedTenantDatabase, generateSubdomain } from '@/lib/tenant-db'
 
 // GET: List all tenants with filtering
 export async function GET(request: NextRequest) {
@@ -12,17 +13,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
+    const dbStatus = searchParams.get('dbStatus') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const skip = (page - 1) * limit
 
     const where: any = {}
     if (status && status !== 'all') where.status = status
+    if (dbStatus && dbStatus !== 'all') where.dbStatus = dbStatus
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
+        { subdomain: { contains: search, mode: 'insensitive' } },
+        { customDomain: { contains: search, mode: 'insensitive' } },
       ]
     }
 
@@ -36,9 +41,6 @@ export async function GET(request: NextRequest) {
           licenses: { take: 1, orderBy: { createdAt: 'desc' } },
           _count: {
             select: { companies: true },
-          },
-          owner: {
-            select: { id: true, name: true, username: true },
           },
         },
       }),
@@ -59,20 +61,46 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Create new tenant with auto trial license
+// POST: Create new tenant with auto trial license + database provisioning
 export async function POST(request: NextRequest) {
   try {
     const admin = await requireAdminAuth(request)
 
     const body = await request.json()
-    const { name, email, phone } = body
+    const { name, email, phone, subdomain, customDomain, adminUsername, adminPassword, adminName, companyName } = body
 
     if (!name) {
       return NextResponse.json({ error: 'اسم المستأجر مطلوب' }, { status: 400 })
     }
 
+    // Generate subdomain from name if not provided
+    const tenantSubdomain = subdomain || generateSubdomain(name)
+
+    // Check subdomain uniqueness
+    const existingSubdomain = await db.tenant.findUnique({ where: { subdomain: tenantSubdomain } })
+    if (existingSubdomain) {
+      return NextResponse.json({ error: 'النطاق الفرعي مستخدم بالفعل' }, { status: 400 })
+    }
+
+    // Check custom domain uniqueness if provided
+    if (customDomain) {
+      const existingDomain = await db.tenant.findUnique({ where: { customDomain } })
+      if (existingDomain) {
+        return NextResponse.json({ error: 'النطاق المخصص مستخدم بالفعل' }, { status: 400 })
+      }
+    }
+
+    // Create tenant record
     const tenant = await db.tenant.create({
-      data: { name, email, phone },
+      data: {
+        name,
+        email,
+        phone,
+        subdomain: tenantSubdomain,
+        customDomain: customDomain || null,
+        dbStatus: 'pending',
+        planType: 'trial',
+      },
     })
 
     // Generate license key
@@ -99,27 +127,70 @@ export async function POST(request: NextRequest) {
         isLifetime: false,
         price: 0,
         monthlyPrice: 0,
+        currency: 'EGP',
         expiresAt,
       },
     })
 
-    // Log activity (fire-and-forget - don't block response)
+    // Provision tenant database (async - don't block response)
+    const provisionResult = await provisionTenantDatabase(tenant.id)
+
+    if (provisionResult.success) {
+      // Seed initial data in the tenant database
+      const seedResult = await seedTenantDatabase(
+        tenant.id,
+        adminUsername || 'admin',
+        adminPassword || 'Admin@2026',
+        adminName || 'مدير النظام',
+        companyName || name
+      )
+
+      if (!seedResult.success) {
+        console.error('Failed to seed tenant database:', seedResult.error)
+      }
+    } else {
+      console.error('Failed to provision tenant database:', provisionResult.error)
+    }
+
+    // Log activity
     logActivity({
       action: 'tenant_created',
       category: 'tenant',
-      description: `إنشاء مستأجر جديد: ${name} مع ترخيص تجريبي 7 أيام`,
+      description: `إنشاء مستأجر جديد: ${name} مع ترخيص تجريبي 7 أيام وقاعدة بيانات منفصلة`,
       performedBy: admin.id,
       performerName: admin.name,
       targetType: 'tenant',
       targetId: tenant.id,
       targetName: name,
-      details: { email, phone, licenseKey },
+      details: {
+        email,
+        phone,
+        licenseKey,
+        subdomain: tenantSubdomain,
+        customDomain,
+        dbProvisioned: provisionResult.success,
+        databaseName: provisionResult.databaseName,
+      },
     })
 
-    // Invalidate caches since data changed
+    // Invalidate caches
     invalidateCache('admin:')
 
-    return NextResponse.json({ tenant, license }, { status: 201 })
+    // Fetch updated tenant with DB status
+    const updatedTenant = await db.tenant.findUnique({
+      where: { id: tenant.id },
+      include: { licenses: { take: 1, orderBy: { createdAt: 'desc' } } },
+    })
+
+    return NextResponse.json({
+      tenant: updatedTenant,
+      license,
+      provision: {
+        success: provisionResult.success,
+        databaseName: provisionResult.databaseName,
+        error: provisionResult.error,
+      },
+    }, { status: 201 })
   } catch (error) {
     console.error('Create tenant error:', error)
     const message = error instanceof Error ? error.message : 'حدث خطأ غير متوقع'
