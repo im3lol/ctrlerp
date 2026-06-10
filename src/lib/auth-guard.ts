@@ -137,7 +137,7 @@ export async function requireAuth(request?: NextRequest): Promise<AuthUser> {
           throw new Error('لا يوجد ترخيص نشط. يرجى التواصل مع إدارة المنصة')
         }
 
-        if (license.expiresAt < new Date()) {
+        if (!license.isLifetime && license.expiresAt < new Date()) {
           throw new Error('انتهت صلاحية الترخيص. يرجى التجديد للمتابعة')
         }
       }

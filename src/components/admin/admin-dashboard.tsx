@@ -7,13 +7,14 @@ import {
   Users,
   Key,
   AlertTriangle,
-  TrendingUp,
   Clock,
   Plus,
   Sparkles,
   CheckCircle2,
   XCircle,
-  PauseCircle,
+  DollarSign,
+  TrendingUp,
+  Infinity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +29,14 @@ interface DashboardStats {
   trialTenants: number
   expiredTenants: number
   activePaidLicenses: number
+  lifetimeTenants: number
+}
+
+interface RevenueStats {
+  totalRevenue: number
+  monthlyRecurring: number
+  lifetimeRevenue: number
+  activePaidCount: number
 }
 
 interface RecentTenant {
@@ -45,11 +54,15 @@ interface RecentTenant {
     status: string
     expiresAt: string
     key: string
+    isLifetime: boolean
+    price: number
+    currency: string
   } | null
 }
 
 interface DashboardData {
   stats: DashboardStats
+  revenue: RevenueStats
   recentTenants: RecentTenant[]
   licenseDistribution: { type: string; count: number }[]
   licenseStatusDistribution: { status: string; count: number }[]
@@ -72,6 +85,7 @@ const typeLabels: Record<string, string> = {
   basic: 'أساسي',
   professional: 'احترافي',
   enterprise: 'مؤسسي',
+  lifetime: 'مدى الحياة',
 }
 
 const typeColors: Record<string, string> = {
@@ -79,6 +93,7 @@ const typeColors: Record<string, string> = {
   basic: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   professional: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   enterprise: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  lifetime: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
 }
 
 function formatDate(dateStr: string) {
@@ -165,7 +180,7 @@ export default function AdminDashboard() {
     )
   }
 
-  const { stats, recentTenants, licenseDistribution } = data
+  const { stats, revenue, recentTenants, licenseDistribution } = data
 
   const statCards = [
     {
@@ -196,6 +211,15 @@ export default function AdminDashboard() {
       border: 'border-amber-500/20',
     },
     {
+      key: 'lifetimeTenants',
+      title: 'مدى الحياة',
+      value: stats.lifetimeTenants || 0,
+      icon: Infinity,
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-500/10',
+      border: 'border-cyan-500/20',
+    },
+    {
       key: 'expiredTenants',
       title: 'منتهي/معلق',
       value: stats.expiredTenants,
@@ -204,14 +228,44 @@ export default function AdminDashboard() {
       bg: 'bg-red-500/10',
       border: 'border-red-500/20',
     },
+  ]
+
+  const revenueCards = [
     {
-      key: 'activePaidLicenses',
-      title: 'التراخيص المدفوعة',
-      value: stats.activePaidLicenses,
-      icon: Key,
+      key: 'totalRevenue',
+      title: 'إجمالي الإيرادات',
+      value: `${(revenue?.totalRevenue || 0).toLocaleString()} EGP`,
+      icon: DollarSign,
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10',
+      border: 'border-emerald-500/20',
+    },
+    {
+      key: 'monthlyRecurring',
+      title: 'الاشتراكات المتكررة',
+      value: `${(revenue?.monthlyRecurring || 0).toLocaleString()} EGP`,
+      icon: TrendingUp,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      border: 'border-blue-500/20',
+    },
+    {
+      key: 'lifetimeRevenue',
+      title: 'إيرادات مدى الحياة',
+      value: `${(revenue?.lifetimeRevenue || 0).toLocaleString()} EGP`,
+      icon: Infinity,
       color: 'text-cyan-400',
       bg: 'bg-cyan-500/10',
       border: 'border-cyan-500/20',
+    },
+    {
+      key: 'activePaidCount',
+      title: 'اشتراكات مدفوعة',
+      value: revenue?.activePaidCount || 0,
+      icon: Key,
+      color: 'text-violet-400',
+      bg: 'bg-violet-500/10',
+      border: 'border-violet-500/20',
     },
   ]
 
@@ -259,6 +313,34 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Revenue Stats */}
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-emerald-400" />
+          الإيرادات
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {revenueCards.map((stat) => (
+            <Card
+              key={stat.key}
+              className={cn('bg-slate-800/50 border shadow-sm', stat.border)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn('p-2.5 rounded-xl', stat.bg)}>
+                    <stat.icon className={cn('h-5 w-5', stat.color)} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-400 truncate">{stat.title}</p>
+                    <p className={cn('text-xl font-bold mt-0.5', stat.color)}>{stat.value}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Distribution & Recent Tenants */}
@@ -341,15 +423,22 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         {tenant.license && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              'text-[10px] px-1.5 py-0',
-                              typeColors[tenant.license.type] || 'bg-slate-500/10 text-slate-400'
+                          <>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                'text-[10px] px-1.5 py-0',
+                                typeColors[tenant.license.type] || 'bg-slate-500/10 text-slate-400'
+                              )}
+                            >
+                              {typeLabels[tenant.license.type] || tenant.license.type}
+                            </Badge>
+                            {tenant.license.price > 0 && (
+                              <span className="text-[10px] text-emerald-400">
+                                {tenant.license.price.toLocaleString()} {tenant.license.currency}
+                              </span>
                             )}
-                          >
-                            {typeLabels[tenant.license.type] || tenant.license.type}
-                          </Badge>
+                          </>
                         )}
                         <span className="text-xs text-slate-500">
                           {tenant.companyCount} شركة
@@ -359,7 +448,7 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                     </div>
-                    {tenant.license && tenant.license.type === 'trial' && (
+                    {tenant.license && tenant.license.type === 'trial' && !tenant.license.isLifetime && (
                       <div className="text-left">
                         <span className={cn(
                           'text-xs font-medium',
@@ -367,6 +456,12 @@ export default function AdminDashboard() {
                         )}>
                           {getDaysLeft(tenant.license.expiresAt)} يوم
                         </span>
+                      </div>
+                    )}
+                    {tenant.license?.isLifetime && (
+                      <div className="flex items-center gap-1">
+                        <Infinity className="h-3.5 w-3.5 text-cyan-400" />
+                        <span className="text-xs font-medium text-cyan-400">مدى الحياة</span>
                       </div>
                     )}
                   </div>

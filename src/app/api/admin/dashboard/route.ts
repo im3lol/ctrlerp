@@ -59,7 +59,34 @@ export async function GET(request: NextRequest) {
     const activePaidLicenses = await db.license.count({
       where: {
         status: 'active',
-        type: { in: ['basic', 'professional', 'enterprise'] },
+        type: { in: ['basic', 'professional', 'enterprise', 'lifetime'] },
+      },
+    })
+
+    // ── Revenue Stats ──
+    const allActiveLicenses = await db.license.findMany({
+      where: { status: 'active' },
+      select: { price: true, currency: true, type: true, isLifetime: true },
+    })
+
+    const totalRevenue = allActiveLicenses
+      .filter(l => l.price > 0)
+      .reduce((sum, l) => sum + l.price, 0)
+
+    const monthlyRecurring = allActiveLicenses
+      .filter(l => !l.isLifetime && l.type !== 'trial' && l.price > 0)
+      .reduce((sum, l) => sum + l.price, 0)
+
+    const lifetimeRevenue = allActiveLicenses
+      .filter(l => l.isLifetime && l.price > 0)
+      .reduce((sum, l) => sum + l.price, 0)
+
+    // Lifetime tenants count
+    const lifetimeTenants = await db.tenant.count({
+      where: {
+        licenses: {
+          some: { isLifetime: true, status: 'active' },
+        },
       },
     })
 
@@ -70,6 +97,13 @@ export async function GET(request: NextRequest) {
         trialTenants,
         expiredTenants,
         activePaidLicenses,
+        lifetimeTenants,
+      },
+      revenue: {
+        totalRevenue,
+        monthlyRecurring,
+        lifetimeRevenue,
+        activePaidCount: allActiveLicenses.filter(l => l.price > 0).length,
       },
       recentTenants: recentTenants.map((t) => ({
         id: t.id,

@@ -38,12 +38,35 @@ export async function GET(request: NextRequest) {
       db.license.count({ where }),
     ])
 
+    // Calculate revenue stats
+    const allLicenses = await db.license.findMany({
+      select: { price: true, currency: true, type: true, status: true, isLifetime: true },
+    })
+
+    const totalRevenue = allLicenses
+      .filter(l => l.status === 'active' && l.price > 0)
+      .reduce((sum, l) => sum + l.price, 0)
+
+    const monthlyRecurring = allLicenses
+      .filter(l => l.status === 'active' && !l.isLifetime && l.type !== 'trial' && l.price > 0)
+      .reduce((sum, l) => sum + l.price, 0)
+
+    const lifetimeRevenue = allLicenses
+      .filter(l => l.status === 'active' && l.isLifetime && l.price > 0)
+      .reduce((sum, l) => sum + l.price, 0)
+
     return NextResponse.json({
       licenses,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      revenue: {
+        totalRevenue,
+        monthlyRecurring,
+        lifetimeRevenue,
+        activePaidCount: allLicenses.filter(l => l.status === 'active' && l.price > 0).length,
+      },
     })
   } catch (error) {
     console.error('List licenses error:', error)
@@ -58,12 +81,12 @@ export async function POST(request: NextRequest) {
     await requireAdminAuth(request)
 
     const body = await request.json()
-    const { tenantId, type, maxUsers, maxCompanies, durationDays } = body
+    const { tenantId, type, maxUsers, maxCompanies, durationMonths, isLifetime, price, currency } = body
 
     if (!tenantId) {
       return NextResponse.json({ error: 'معرف المستأجر مطلوب' }, { status: 400 })
     }
-    if (!type || !['trial', 'basic', 'professional', 'enterprise'].includes(type)) {
+    if (!type || !['trial', 'basic', 'professional', 'enterprise', 'lifetime'].includes(type)) {
       return NextResponse.json({ error: 'نوع الترخيص غير صالح' }, { status: 400 })
     }
 
@@ -88,20 +111,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'يرجى المحاولة مرة أخرى' }, { status: 500 })
     }
 
-    // Default duration based on type
-    const duration = durationDays || (type === 'trial' ? 7 : 365)
-    const defaultMaxUsers = maxUsers || (type === 'trial' ? 1 : type === 'basic' ? 5 : type === 'professional' ? 20 : 100)
-    const defaultMaxCompanies = maxCompanies || (type === 'trial' ? 1 : type === 'basic' ? 2 : type === 'professional' ? 5 : 20)
+    // Calculate expiry date
+    const lifetime = isLifetime || type === 'lifetime'
+    let expiresAt: Date
+
+    if (lifetime) {
+      // Lifetime: set to far future date
+      expiresAt = new Date('2099-12-31T23:59:59.999Z')
+    } else if (durationMonths && durationMonths > 0) {
+      // Duration in months
+      expiresAt = new Date()
+      expiresAt.setMonth(expiresAt.getMonth() + durationMonths)
+    } else if (type === 'trial') {
+      // Trial: 7 days
+      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    } else {
+      // Default: 12 months
+      expiresAt = new Date()
+      expiresAt.setMonth(expiresAt.getMonth() + 12)
+    }
+
+    // Default limits based on type
+    const defaultMaxUsers = maxUsers || (type === 'trial' ? 1 : type === 'basic' ? 5 : type === 'professional' ? 20 : type === 'enterprise' ? 100 : type === 'lifetime' ? 999 : 5)
+    const defaultMaxCompanies = maxCompanies || (type === 'trial' ? 1 : type === 'basic' ? 2 : type === 'professional' ? 5 : type === 'enterprise' ? 20 : type === 'lifetime' ? 999 : 5)
+
+    // Deactivate existing active licenses for this tenant
+    await db.license.updateMany({
+      where: { tenantId, status: 'active' },
+      data: { status: 'expired' },
+    })
 
     const license = await db.license.create({
       data: {
         tenantId,
         key: licenseKey,
-        type,
+        type: lifetime && type !== 'lifetime' ? type : type,
         status: 'active',
         maxUsers: defaultMaxUsers,
         maxCompanies: defaultMaxCompanies,
-        expiresAt: new Date(Date.now() + duration * 24 * 60 * 60 * 1000),
+        isLifetime: lifetime,
+        price: price || 0,
+        currency: currency || 'EGP',
+        expiresAt,
       },
       include: {
         tenant: {

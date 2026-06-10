@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building2, Key, Users, Calendar, Mail, Phone, Loader2, Copy, CheckCircle2 } from 'lucide-react'
+import { Building2, Key, Users, Calendar, Mail, Phone, Loader2, Copy, CheckCircle2, Infinity, DollarSign } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,7 @@ const typeLabels: Record<string, string> = {
   basic: 'أساسي',
   professional: 'احترافي',
   enterprise: 'مؤسسي',
+  lifetime: 'مدى الحياة',
 }
 
 const typeColors: Record<string, string> = {
@@ -39,6 +40,7 @@ const typeColors: Record<string, string> = {
   basic: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   professional: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   enterprise: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  lifetime: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
 }
 
 interface TenantDetail {
@@ -58,6 +60,9 @@ interface TenantDetail {
     status: string
     maxUsers: number
     maxCompanies: number
+    isLifetime: boolean
+    price: number
+    currency: string
     expiresAt: string
     createdAt: string
   }>
@@ -93,6 +98,11 @@ function getDaysLeft(expiresAt: string): number {
   const now = new Date()
   const expiry = new Date(expiresAt)
   return Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+}
+
+function formatPrice(price: number, currency: string) {
+  if (price === 0) return '—'
+  return `${price.toLocaleString()} ${currency}`
 }
 
 export default function TenantDetailDialog({ open, onClose, tenantId }: TenantDetailDialogProps) {
@@ -203,24 +213,39 @@ export default function TenantDetailDialog({ open, onClose, tenantId }: TenantDe
                   {tenant.licenses.map((license) => (
                     <div key={license.id} className="bg-slate-700/30 rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <Badge
-                          variant="outline"
-                          className={cn(typeColors[license.type] || 'bg-slate-500/10 text-slate-400')}
-                        >
-                          {typeLabels[license.type] || license.type}
-                        </Badge>
-                        <span className={cn(
-                          'text-xs font-medium',
-                          getDaysLeft(license.expiresAt) <= 0
-                            ? 'text-red-400'
-                            : getDaysLeft(license.expiresAt) <= 7
-                              ? 'text-amber-400'
-                              : 'text-emerald-400'
-                        )}>
-                          {getDaysLeft(license.expiresAt) <= 0
-                            ? 'منتهي'
-                            : `${getDaysLeft(license.expiresAt)} يوم متبقي`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={cn(typeColors[license.type] || 'bg-slate-500/10 text-slate-400')}
+                          >
+                            {typeLabels[license.type] || license.type}
+                          </Badge>
+                          {license.isLifetime && (
+                            <Badge
+                              variant="outline"
+                              className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                            >
+                              <Infinity className="h-3 w-3 ml-1" />
+                              مدى الحياة
+                            </Badge>
+                          )}
+                        </div>
+                        {license.isLifetime ? (
+                          <span className="text-xs font-medium text-cyan-400">لا تنتهي</span>
+                        ) : (
+                          <span className={cn(
+                            'text-xs font-medium',
+                            getDaysLeft(license.expiresAt) <= 0
+                              ? 'text-red-400'
+                              : getDaysLeft(license.expiresAt) <= 7
+                                ? 'text-amber-400'
+                                : 'text-emerald-400'
+                          )}>
+                            {getDaysLeft(license.expiresAt) <= 0
+                              ? 'منتهي'
+                              : `${getDaysLeft(license.expiresAt)} يوم متبقي`}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <code className="text-xs text-slate-300 bg-slate-700/50 px-2 py-0.5 rounded font-mono" dir="ltr">
@@ -241,6 +266,14 @@ export default function TenantDetailDialog({ open, onClose, tenantId }: TenantDe
                         <span>الحد الأقصى للمستخدمين: {license.maxUsers}</span>
                         <span>الحد الأقصى للشركات: {license.maxCompanies}</span>
                       </div>
+                      {license.price > 0 && (
+                        <div className="flex items-center gap-1 text-xs">
+                          <DollarSign className="h-3 w-3 text-emerald-400" />
+                          <span className="text-emerald-400 font-medium">
+                            {formatPrice(license.price, license.currency)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

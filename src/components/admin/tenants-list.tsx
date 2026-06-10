@@ -14,6 +14,7 @@ import {
   Loader2,
   Filter,
   X,
+  Infinity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,6 +57,7 @@ const typeLabels: Record<string, string> = {
   basic: 'أساسي',
   professional: 'احترافي',
   enterprise: 'مؤسسي',
+  lifetime: 'مدى الحياة',
 }
 
 const typeColors: Record<string, string> = {
@@ -63,6 +65,7 @@ const typeColors: Record<string, string> = {
   basic: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   professional: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   enterprise: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  lifetime: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
 }
 
 interface TenantRow {
@@ -81,6 +84,9 @@ interface TenantRow {
     status: string
     expiresAt: string
     key: string
+    isLifetime: boolean
+    price: number
+    currency: string
   } | null
 }
 
@@ -307,18 +313,37 @@ export default function TenantsList() {
                       <td className="p-3">
                         {tenant.license ? (
                           <div>
-                            <Badge
-                              variant="outline"
-                              className={cn(typeColors[tenant.license.type] || 'bg-slate-500/10 text-slate-400')}
-                            >
-                              {typeLabels[tenant.license.type] || tenant.license.type}
-                            </Badge>
-                            {tenant.license.type === 'trial' && (
+                            <div className="flex items-center gap-1.5">
+                              <Badge
+                                variant="outline"
+                                className={cn(typeColors[tenant.license.type] || 'bg-slate-500/10 text-slate-400')}
+                              >
+                                {typeLabels[tenant.license.type] || tenant.license.type}
+                              </Badge>
+                              {tenant.license.isLifetime && (
+                                <Infinity className="h-3 w-3 text-cyan-400" />
+                              )}
+                            </div>
+                            {tenant.license.isLifetime ? (
+                              <span className="block text-xs mt-1 text-cyan-400">مدى الحياة</span>
+                            ) : tenant.license.type === 'trial' ? (
                               <span className={cn(
                                 'block text-xs mt-1',
                                 getDaysLeft(tenant.license.expiresAt) <= 3 ? 'text-red-400' : 'text-amber-400'
                               )}>
                                 {getDaysLeft(tenant.license.expiresAt)} يوم متبقي
+                              </span>
+                            ) : (
+                              <span className={cn(
+                                'block text-xs mt-1',
+                                getDaysLeft(tenant.license.expiresAt) <= 0 ? 'text-red-400' : getDaysLeft(tenant.license.expiresAt) <= 7 ? 'text-amber-400' : 'text-emerald-400'
+                              )}>
+                                {getDaysLeft(tenant.license.expiresAt) <= 0 ? 'منتهي' : `${getDaysLeft(tenant.license.expiresAt)} يوم`}
+                              </span>
+                            )}
+                            {tenant.license.price > 0 && (
+                              <span className="block text-[10px] mt-0.5 text-emerald-400">
+                                {tenant.license.price.toLocaleString()} {tenant.license.currency}
                               </span>
                             )}
                           </div>

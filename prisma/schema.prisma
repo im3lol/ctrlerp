@@ -60,12 +60,15 @@ model License {
   id           String   @id @default(cuid())
   tenantId     String
   key          String   @unique
-  type         String   // trial, basic, professional, enterprise
+  type         String   // trial, basic, professional, enterprise, lifetime
   status       String   @default("active") // active, expired, suspended, cancelled
   maxUsers     Int      @default(1)
   maxCompanies Int      @default(1)
+  isLifetime   Boolean  @default(false)
+  price        Float    @default(0) // subscription price paid
+  currency     String   @default("EGP") // currency of the price
   startedAt    DateTime @default(now())
-  expiresAt    DateTime
+  expiresAt    DateTime // far future date for lifetime licenses (2099-12-31)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

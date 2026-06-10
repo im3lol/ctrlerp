@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
           const now = new Date()
           const expiry = new Date(license.expiresAt)
           const daysLeft = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-          const isExpired = expiry < now
+          const isExpired = !license.isLifetime && expiry < now
 
           if (isExpired) {
             return NextResponse.json(

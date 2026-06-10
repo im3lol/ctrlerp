@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Key, Loader2 } from 'lucide-react'
+import { Key, Loader2, Infinity, Calendar, DollarSign } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 const ADMIN_TOKEN_KEY = 'ctrl_admin_token'
 
@@ -39,7 +40,10 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
   const [type, setType] = useState('basic')
   const [maxUsers, setMaxUsers] = useState('')
   const [maxCompanies, setMaxCompanies] = useState('')
-  const [durationDays, setDurationDays] = useState('365')
+  const [durationMode, setDurationMode] = useState<'months' | 'lifetime'>('months')
+  const [durationMonths, setDurationMonths] = useState('12')
+  const [price, setPrice] = useState('')
+  const [currency, setCurrency] = useState('EGP')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [tenantsLoading, setTenantsLoading] = useState(false)
@@ -75,22 +79,33 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
       case 'trial':
         setMaxUsers('1')
         setMaxCompanies('1')
-        setDurationDays('7')
+        setDurationMode('months')
+        setDurationMonths('1') // ~30 days
+        setPrice('0')
         break
       case 'basic':
         setMaxUsers('5')
         setMaxCompanies('2')
-        setDurationDays('365')
+        setDurationMonths('12')
+        setPrice('')
         break
       case 'professional':
         setMaxUsers('20')
         setMaxCompanies('5')
-        setDurationDays('365')
+        setDurationMonths('12')
+        setPrice('')
         break
       case 'enterprise':
         setMaxUsers('100')
         setMaxCompanies('20')
-        setDurationDays('365')
+        setDurationMonths('12')
+        setPrice('')
+        break
+      case 'lifetime':
+        setMaxUsers('999')
+        setMaxCompanies('999')
+        setDurationMode('lifetime')
+        setPrice('')
         break
     }
   }
@@ -107,6 +122,8 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
     setLoading(true)
     try {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      const isLifetime = durationMode === 'lifetime' || type === 'lifetime'
+
       const res = await fetch('/api/admin/licenses', {
         method: 'POST',
         headers: {
@@ -118,7 +135,10 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
           type,
           maxUsers: maxUsers ? parseInt(maxUsers) : undefined,
           maxCompanies: maxCompanies ? parseInt(maxCompanies) : undefined,
-          durationDays: durationDays ? parseInt(durationDays) : undefined,
+          durationMonths: isLifetime ? undefined : (durationMonths ? parseInt(durationMonths) : undefined),
+          isLifetime,
+          price: price ? parseFloat(price) : 0,
+          currency,
         }),
       })
 
@@ -134,7 +154,9 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
       setType('basic')
       setMaxUsers('5')
       setMaxCompanies('2')
-      setDurationDays('365')
+      setDurationMode('months')
+      setDurationMonths('12')
+      setPrice('')
       onSuccess()
     } catch (err) {
       console.error(err)
@@ -168,6 +190,7 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
             </div>
           )}
 
+          {/* Tenant */}
           <div className="space-y-2">
             <Label className="text-slate-300 text-sm">المستأجر *</Label>
             <Select value={tenantId} onValueChange={setTenantId} disabled={tenantsLoading}>
@@ -184,6 +207,7 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
             </Select>
           </div>
 
+          {/* Type */}
           <div className="space-y-2">
             <Label className="text-slate-300 text-sm">نوع الترخيص</Label>
             <Select value={type} onValueChange={handleTypeChange}>
@@ -195,10 +219,66 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
                 <SelectItem value="basic">أساسي</SelectItem>
                 <SelectItem value="professional">احترافي</SelectItem>
                 <SelectItem value="enterprise">مؤسسي</SelectItem>
+                <SelectItem value="lifetime">مدى الحياة</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
+          {/* Duration Mode */}
+          {type !== 'lifetime' && type !== 'trial' && (
+            <div className="space-y-2">
+              <Label className="text-slate-300 text-sm">مدة الاشتراك</Label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDurationMode('months')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors border',
+                    durationMode === 'months'
+                      ? 'bg-violet-500/20 text-violet-300 border-violet-500/50'
+                      : 'bg-slate-700/30 text-slate-400 border-slate-600 hover:bg-slate-700/50'
+                  )}
+                >
+                  <Calendar className="h-4 w-4" />
+                  بالأشهر
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDurationMode('lifetime')}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors border',
+                    durationMode === 'lifetime'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                      : 'bg-slate-700/30 text-slate-400 border-slate-600 hover:bg-slate-700/50'
+                  )}
+                >
+                  <Infinity className="h-4 w-4" />
+                  مدى الحياة
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Duration in months */}
+          {durationMode === 'months' && type !== 'lifetime' && (
+            <div className="space-y-2">
+              <Label className="text-slate-300 text-sm">
+                {type === 'trial' ? 'المدة بالأيام' : 'المدة بالأشهر'}
+              </Label>
+              <Input
+                type="number"
+                value={type === 'trial' ? '7' : durationMonths}
+                onChange={(e) => setDurationMonths(e.target.value)}
+                min="1"
+                disabled={type === 'trial'}
+                className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
+                dir="ltr"
+                placeholder={type === 'trial' ? '7' : '12'}
+              />
+            </div>
+          )}
+
+          {/* Max Users & Companies */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="text-slate-300 text-sm">الحد الأقصى للمستخدمين</Label>
@@ -224,16 +304,38 @@ export default function CreateLicenseDialog({ open, onClose, onSuccess }: Create
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-slate-300 text-sm">المدة (بالأيام)</Label>
-            <Input
-              type="number"
-              value={durationDays}
-              onChange={(e) => setDurationDays(e.target.value)}
-              min="1"
-              className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
-              dir="ltr"
-            />
+          {/* Price & Currency */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2 space-y-2">
+              <Label className="text-slate-300 text-sm flex items-center gap-1">
+                <DollarSign className="h-3.5 w-3.5" />
+                سعر الاشتراك
+              </Label>
+              <Input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="0"
+                className="bg-slate-700/50 border-slate-600 text-white focus:border-violet-500"
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-300 text-sm">العملة</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectItem value="EGP">EGP</SelectItem>
+                  <SelectItem value="SAR">SAR</SelectItem>
+                  <SelectItem value="AED">AED</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <DialogFooter className="gap-2">

@@ -38,7 +38,7 @@ export async function GET(
   }
 }
 
-// PATCH: Update license (extend expiry, change status, change type)
+// PATCH: Update license (extend expiry, change status, change type, activate with months/lifetime)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -48,7 +48,7 @@ export async function PATCH(
     const { id } = await params
 
     const body = await request.json()
-    const { status, type, extendDays, maxUsers, maxCompanies } = body
+    const { status, type, extendDays, extendMonths, maxUsers, maxCompanies, isLifetime, price, currency, activateLifetime, activateMonths } = body
 
     const existing = await db.license.findUnique({ where: { id } })
     if (!existing) {
@@ -59,7 +59,7 @@ export async function PATCH(
     if (status && ['active', 'expired', 'suspended', 'cancelled'].includes(status)) {
       data.status = status
     }
-    if (type && ['trial', 'basic', 'professional', 'enterprise'].includes(type)) {
+    if (type && ['trial', 'basic', 'professional', 'enterprise', 'lifetime'].includes(type)) {
       data.type = type
     }
     if (maxUsers !== undefined) {
@@ -68,11 +68,53 @@ export async function PATCH(
     if (maxCompanies !== undefined) {
       data.maxCompanies = maxCompanies
     }
-    if (extendDays) {
-      // Extend from current expiry or from now if already expired
+    if (price !== undefined) {
+      data.price = price
+    }
+    if (currency !== undefined) {
+      data.currency = currency
+    }
+    if (isLifetime !== undefined) {
+      data.isLifetime = isLifetime
+    }
+
+    // Activate for specific months
+    if (activateMonths && activateMonths > 0) {
+      data.status = 'active'
+      data.isLifetime = false
+      data.type = data.type || existing.type === 'trial' ? 'basic' : existing.type
+      const baseDate = existing.expiresAt > new Date() ? existing.expiresAt : new Date()
+      data.expiresAt = new Date(baseDate)
+      data.expiresAt.setMonth(data.expiresAt.getMonth() + activateMonths)
+    }
+
+    // Activate lifetime
+    if (activateLifetime) {
+      data.status = 'active'
+      data.isLifetime = true
+      data.type = data.type || 'lifetime'
+      data.expiresAt = new Date('2099-12-31T23:59:59.999Z')
+    }
+
+    // Extend by days (for trial extension)
+    if (extendDays && extendDays > 0) {
       const currentExpiry = existing.expiresAt
       const baseDate = currentExpiry > new Date() ? currentExpiry : new Date()
       data.expiresAt = new Date(baseDate.getTime() + extendDays * 24 * 60 * 60 * 1000)
+      if (data.status !== 'active') {
+        data.status = 'active'
+      }
+    }
+
+    // Extend by months
+    if (extendMonths && extendMonths > 0) {
+      const currentExpiry = existing.expiresAt
+      const baseDate = currentExpiry > new Date() ? currentExpiry : new Date()
+      data.expiresAt = new Date(baseDate)
+      data.expiresAt.setMonth(data.expiresAt.getMonth() + extendMonths)
+      if (data.status !== 'active') {
+        data.status = 'active'
+      }
     }
 
     const license = await db.license.update({
