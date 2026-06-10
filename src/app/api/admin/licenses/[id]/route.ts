@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
 import { logActivity, logLicenseHistory, logRevenue } from '@/lib/activity-logger'
+import { invalidateCache } from '@/lib/cache'
 
 // GET: License details with tenant info
 export async function GET(
@@ -105,11 +106,11 @@ export async function PATCH(
       activityAction = 'license_activated_months'
       activityDescription = `تفعيل ترخيص ${activateMonths} شهر للمستأجر ${existing.tenant.name}`
 
-      // Log revenue
+      // Log revenue (fire-and-forget)
       if (price && price > 0) {
         const periodEnd = new Date(baseDate)
         periodEnd.setMonth(periodEnd.getMonth() + activateMonths)
-        await logRevenue({
+        logRevenue({
           tenantId: existing.tenantId,
           licenseId: existing.id,
           amount: price,
@@ -132,9 +133,9 @@ export async function PATCH(
       activityAction = 'license_activated_lifetime'
       activityDescription = `تفعيل ترخيص مدى الحياة للمستأجر ${existing.tenant.name}`
 
-      // Log revenue
+      // Log revenue (fire-and-forget)
       if (price && price > 0) {
-        await logRevenue({
+        logRevenue({
           tenantId: existing.tenantId,
           licenseId: existing.id,
           amount: price,
@@ -172,11 +173,11 @@ export async function PATCH(
       activityAction = 'license_months_extended'
       activityDescription = `تمديد الاشتراك ${extendMonths} شهر للمستأجر ${existing.tenant.name}`
 
-      // Log revenue for renewal
+      // Log revenue for renewal (fire-and-forget)
       if (existing.price > 0) {
         const periodEnd = new Date(baseDate)
         periodEnd.setMonth(periodEnd.getMonth() + extendMonths)
-        await logRevenue({
+        logRevenue({
           tenantId: existing.tenantId,
           licenseId: existing.id,
           amount: existing.monthlyPrice * extendMonths || existing.price,
@@ -218,8 +219,8 @@ export async function PATCH(
       },
     })
 
-    // Log license history
-    await logLicenseHistory({
+    // Log license history and activity (fire-and-forget - don't block response)
+    logLicenseHistory({
       licenseId: id,
       action: historyAction,
       oldStatus: existing.status,
@@ -234,8 +235,7 @@ export async function PATCH(
       details: { extendDays, extendMonths, activateMonths, activateLifetime },
     })
 
-    // Log activity
-    await logActivity({
+    logActivity({
       action: activityAction,
       category: 'license',
       description: activityDescription,
@@ -246,6 +246,9 @@ export async function PATCH(
       targetName: existing.tenant.name,
       details: { oldStatus: existing.status, newStatus: data.status, extendDays, extendMonths, activateMonths, activateLifetime },
     })
+
+    // Invalidate caches since data changed
+    invalidateCache('admin:')
 
     return NextResponse.json({ license })
   } catch (error) {

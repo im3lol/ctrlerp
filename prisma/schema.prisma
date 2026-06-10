@@ -37,6 +37,10 @@ model PlatformAdminToken {
   createdAt DateTime @default(now())
 
   admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([adminId])
+  @@index([createdAt])
 }
 
 model Tenant {
@@ -55,6 +59,8 @@ model Tenant {
   revenueRecords RevenueRecord[]
 
   @@unique([ownerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model License {
@@ -77,6 +83,15 @@ model License {
   tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   history   LicenseHistory[]
   revenueRecords RevenueRecord[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([type])
+  @@index([isLifetime])
+  @@index([expiresAt])
+  @@index([status, type])
+  @@index([status, isLifetime, expiresAt])
+  @@index([createdAt])
 }
 
 model LicenseHistory {
@@ -111,6 +126,10 @@ model ActivityLog {
   details     String?  // JSON string with extra info
   ipAddress   String?
   createdAt   DateTime @default(now())
+
+  @@index([category])
+  @@index([createdAt])
+  @@index([action])
 }
 
 model RevenueRecord {
@@ -127,6 +146,12 @@ model RevenueRecord {
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   license License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([licenseId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([currency])
 }
 
 // ============================================

@@ -47,17 +47,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user's companies
-    const companyUsers = await db.companyUser.findMany({
-      where: { userId: user.id, isActive: true },
-      select: {
-        companyId: true,
-        role: true,
-        company: {
-          select: { id: true, nameAr: true, nameEn: true, tenantId: true },
+    // Parallel: Get user's companies + clean up expired tokens
+    const [companyUsers] = await Promise.all([
+      db.companyUser.findMany({
+        where: { userId: user.id, isActive: true },
+        select: {
+          companyId: true,
+          role: true,
+          company: {
+            select: { id: true, nameAr: true, nameEn: true, tenantId: true },
+          },
         },
-      },
-    })
+      }),
+      // Clean up expired tokens in background (non-blocking)
+      db.accessToken.deleteMany({
+        where: {
+          userId: user.id,
+          expiresAt: { lt: new Date() },
+        },
+      }),
+    ])
 
     const companies = companyUsers.map((cu) => ({
       id: cu.company.id,
@@ -127,7 +136,6 @@ export async function POST(request: NextRequest) {
             tenantStatus: tenant.status,
           }
         } else {
-          // No active license
           return NextResponse.json(
             { error: 'لا يوجد ترخيص نشط. يرجى التواصل مع إدارة المنصة' },
             { status: 403 }
@@ -136,17 +144,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Clean up expired tokens for this user
-    await db.accessToken.deleteMany({
-      where: {
-        userId: user.id,
-        expiresAt: { lt: new Date() },
-      },
-    })
-
-    // Generate a new access token (valid for 24 hours)
+    // Generate a new access token (valid for 7 days for better UX)
     const token = randomUUID()
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     await db.accessToken.create({
       data: {
         userId: user.id,

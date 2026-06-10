@@ -10,8 +10,15 @@ const SUPABASE_URL = 'postgresql://postgres.hojpkyszlbjkscbwquuz:3lolScar%4025%2
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasourceUrl: SUPABASE_URL,
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+
+// Graceful shutdown - close connections properly
+if (process.env.NODE_ENV === 'production') {
+  process.on('beforeExit', async () => {
+    await db.$disconnect()
+  })
+}

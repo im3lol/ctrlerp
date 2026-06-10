@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Building2,
@@ -345,6 +345,29 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // Memoize computed values to prevent unnecessary re-renders
+  const { stats, revenue, growth, charts, alerts, recentTenants, recentActivities, systemHealth, licenseWarnings, churnRate, averageRevenuePerUser, todayStats } = useMemo(() => {
+    if (!data) return {
+      stats: null, revenue: null, growth: null, charts: null, alerts: null,
+      recentTenants: [], recentActivities: [], systemHealth: null,
+      licenseWarnings: null, churnRate: 0, averageRevenuePerUser: 0, todayStats: null,
+    }
+    return {
+      stats: data.stats,
+      revenue: data.revenue,
+      growth: data.growth,
+      charts: data.charts,
+      alerts: data.alerts,
+      recentTenants: data.recentTenants,
+      recentActivities: data.recentActivities,
+      systemHealth: data.systemHealth,
+      licenseWarnings: data.licenseWarnings,
+      churnRate: data.churnRate,
+      averageRevenuePerUser: data.averageRevenuePerUser,
+      todayStats: data.todayStats,
+    }
+  }, [data])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -371,11 +394,11 @@ export default function AdminDashboard() {
     )
   }
 
-  const { stats, revenue, growth, charts, alerts, recentTenants, recentActivities, systemHealth, licenseWarnings, churnRate, averageRevenuePerUser, todayStats } = data
-
-  const memoryPercent = systemHealth?.memoryUsage?.heapTotal > 0
-    ? Math.round((systemHealth.memoryUsage.heapUsed / systemHealth.memoryUsage.heapTotal) * 100)
-    : 0
+  const memoryPercent = useMemo(() =>
+    systemHealth?.memoryUsage?.heapTotal > 0
+      ? Math.round((systemHealth.memoryUsage.heapUsed / systemHealth.memoryUsage.heapTotal) * 100)
+      : 0
+  , [systemHealth?.memoryUsage?.heapTotal, systemHealth?.memoryUsage?.heapUsed])
 
   return (
     <div className="space-y-6">

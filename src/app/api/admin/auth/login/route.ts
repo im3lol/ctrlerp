@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { logActivity } from '@/lib/activity-logger'
+import { invalidateCache } from '@/lib/cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,31 +30,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'الحساب معطل' }, { status: 403 })
     }
 
-    // Create token
+    // Parallel: Create token + clean up expired tokens
     const token = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
-    await db.platformAdminToken.create({
-      data: {
-        adminId: admin.id,
-        token,
-        expiresAt,
-      },
-    })
-
-    // Clean up expired tokens
-    await db.platformAdminToken.deleteMany({
-      where: {
-        adminId: admin.id,
-        expiresAt: { lt: new Date() },
-      },
-    })
+    await Promise.all([
+      db.platformAdminToken.create({
+        data: {
+          adminId: admin.id,
+          token,
+          expiresAt,
+        },
+      }),
+      // Clean up expired tokens in parallel
+      db.platformAdminToken.deleteMany({
+        where: {
+          adminId: admin.id,
+          expiresAt: { lt: new Date() },
+        },
+      }),
+    ])
 
     // Get client IP
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
 
-    // Log admin login
-    await logActivity({
+    // Log admin login (fire-and-forget - don't block response)
+    logActivity({
       action: 'admin_login',
       category: 'auth',
       description: `تسجيل دخول المدير: ${admin.name}`,
@@ -64,6 +66,9 @@ export async function POST(request: NextRequest) {
       targetName: admin.name,
       ipAddress,
     })
+
+    // Invalidate admin caches on login
+    invalidateCache('admin:')
 
     return NextResponse.json({
       admin: {

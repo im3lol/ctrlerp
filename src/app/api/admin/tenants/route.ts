@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
 import { logActivity } from '@/lib/activity-logger'
+import { invalidateCache } from '@/lib/cache'
 
 // GET: List all tenants with filtering
 export async function GET(request: NextRequest) {
@@ -102,8 +103,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Log activity
-    await logActivity({
+    // Log activity (fire-and-forget - don't block response)
+    logActivity({
       action: 'tenant_created',
       category: 'tenant',
       description: `إنشاء مستأجر جديد: ${name} مع ترخيص تجريبي 7 أيام`,
@@ -114,6 +115,9 @@ export async function POST(request: NextRequest) {
       targetName: name,
       details: { email, phone, licenseKey },
     })
+
+    // Invalidate caches since data changed
+    invalidateCache('admin:')
 
     return NextResponse.json({ tenant, license }, { status: 201 })
   } catch (error) {

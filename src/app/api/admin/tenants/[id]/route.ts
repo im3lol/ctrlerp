@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
 import { logActivity } from '@/lib/activity-logger'
+import { invalidateCache } from '@/lib/cache'
 
 // GET: Tenant details with license, companies, users
 export async function GET(
@@ -12,54 +13,53 @@ export async function GET(
     await requireAdminAuth(request)
     const { id } = await params
 
-    const tenant = await db.tenant.findUnique({
-      where: { id },
-      include: {
-        licenses: {
-          orderBy: { createdAt: 'desc' },
-          include: { history: { orderBy: { createdAt: 'desc' }, take: 10 } },
-        },
-        companies: {
-          select: {
-            id: true,
-            nameAr: true,
-            nameEn: true,
-            status: true,
-            createdAt: true,
+    // Parallel: tenant details + user count + total revenue
+    const [tenant, userCount, totalRevenue] = await Promise.all([
+      db.tenant.findUnique({
+        where: { id },
+        include: {
+          licenses: {
+            orderBy: { createdAt: 'desc' },
+            include: { history: { orderBy: { createdAt: 'desc' }, take: 10 } },
+          },
+          companies: {
+            select: {
+              id: true,
+              nameAr: true,
+              nameEn: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              email: true,
+            },
+          },
+          revenueRecords: {
+            orderBy: { createdAt: 'desc' },
+            take: 10,
           },
         },
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            email: true,
-          },
+      }),
+      db.companyUser.count({
+        where: {
+          company: { tenantId: id },
+          isActive: true,
         },
-        revenueRecords: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-      },
-    })
+      }),
+      db.revenueRecord.aggregate({
+        where: { tenantId: id },
+        _sum: { amount: true },
+      }),
+    ])
 
     if (!tenant) {
       return NextResponse.json({ error: 'المستأجر غير موجود' }, { status: 404 })
     }
-
-    // Get user count across all companies in this tenant
-    const userCount = await db.companyUser.count({
-      where: {
-        company: { tenantId: id },
-        isActive: true,
-      },
-    })
-
-    // Calculate total revenue for this tenant
-    const totalRevenue = await db.revenueRecord.aggregate({
-      where: { tenantId: id },
-      _sum: { amount: true },
-    })
 
     return NextResponse.json({
       ...tenant,
@@ -109,7 +109,7 @@ export async function PATCH(
       },
     })
 
-    // Log activity based on status change
+    // Log activity (fire-and-forget)
     if (status && status !== existing.status) {
       let action = 'tenant_updated'
       let description = `تحديث بيانات المستأجر ${existing.name}`
@@ -125,7 +125,7 @@ export async function PATCH(
         description = `إلغاء المستأجر ${existing.name}`
       }
 
-      await logActivity({
+      logActivity({
         action,
         category: 'tenant',
         description,
@@ -137,7 +137,7 @@ export async function PATCH(
         details: { oldStatus: existing.status, newStatus: status },
       })
     } else {
-      await logActivity({
+      logActivity({
         action: 'tenant_updated',
         category: 'tenant',
         description: `تحديث بيانات المستأجر ${existing.name}`,
@@ -149,6 +149,9 @@ export async function PATCH(
         details: { name, email, phone },
       })
     }
+
+    // Invalidate caches
+    invalidateCache('admin:')
 
     return NextResponse.json({ tenant })
   } catch (error) {
@@ -177,8 +180,8 @@ export async function DELETE(
       data: { status: 'cancelled' },
     })
 
-    // Log activity
-    await logActivity({
+    // Log activity (fire-and-forget)
+    logActivity({
       action: 'tenant_cancelled',
       category: 'tenant',
       description: `حذف/إلغاء المستأجر ${existing.name}`,
@@ -188,6 +191,9 @@ export async function DELETE(
       targetId: id,
       targetName: existing.name,
     })
+
+    // Invalidate caches
+    invalidateCache('admin:')
 
     return NextResponse.json({ tenant })
   } catch (error) {

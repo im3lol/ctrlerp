@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/admin-guard'
 import { logActivity, logLicenseHistory, logRevenue } from '@/lib/activity-logger'
+import { cached, CACHE_TTL, invalidateCache } from '@/lib/cache'
 
 // GET: List all licenses with tenant info, filtering
 export async function GET(request: NextRequest) {
@@ -19,7 +20,8 @@ export async function GET(request: NextRequest) {
     if (type) where.type = type
     if (status) where.status = status
 
-    const [licenses, total] = await Promise.all([
+    // Parallel: paginated list + count + revenue stats (using aggregate instead of findMany all)
+    const [licenses, total, revenueStats] = await Promise.all([
       db.license.findMany({
         where,
         skip,
@@ -37,24 +39,26 @@ export async function GET(request: NextRequest) {
         },
       }),
       db.license.count({ where }),
+
+      // Use aggregate/groupBy instead of fetching ALL licenses into memory
+      Promise.all([
+        db.license.aggregate({
+          where: { status: 'active', price: { gt: 0 } },
+          _sum: { price: true },
+          _count: { id: true },
+        }),
+        db.license.aggregate({
+          where: { status: 'active', isLifetime: false, type: { not: 'trial' }, monthlyPrice: { gt: 0 } },
+          _sum: { monthlyPrice: true },
+        }),
+        db.license.aggregate({
+          where: { status: 'active', isLifetime: true, price: { gt: 0 } },
+          _sum: { price: true },
+        }),
+      ]),
     ])
 
-    // Calculate revenue stats
-    const allLicenses = await db.license.findMany({
-      select: { price: true, monthlyPrice: true, currency: true, type: true, status: true, isLifetime: true },
-    })
-
-    const totalRevenue = allLicenses
-      .filter(l => l.status === 'active' && l.price > 0)
-      .reduce((sum, l) => sum + l.price, 0)
-
-    const monthlyRecurring = allLicenses
-      .filter(l => l.status === 'active' && !l.isLifetime && l.type !== 'trial' && l.monthlyPrice > 0)
-      .reduce((sum, l) => sum + l.monthlyPrice, 0)
-
-    const lifetimeRevenue = allLicenses
-      .filter(l => l.status === 'active' && l.isLifetime && l.price > 0)
-      .reduce((sum, l) => sum + l.price, 0)
+    const [totalRev, mrrRev, ltRev] = revenueStats
 
     return NextResponse.json({
       licenses,
@@ -63,10 +67,10 @@ export async function GET(request: NextRequest) {
       limit,
       totalPages: Math.ceil(total / limit),
       revenue: {
-        totalRevenue,
-        monthlyRecurring,
-        lifetimeRevenue,
-        activePaidCount: allLicenses.filter(l => l.status === 'active' && l.price > 0).length,
+        totalRevenue: totalRev._sum.price || 0,
+        monthlyRecurring: mrrRev._sum.monthlyPrice || 0,
+        lifetimeRevenue: ltRev._sum.price || 0,
+        activePaidCount: totalRev._count.id || 0,
       },
     })
   } catch (error) {
@@ -163,8 +167,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Log license creation
-    await logLicenseHistory({
+    // Log license creation, activity, and revenue in parallel (fire-and-forget)
+    logLicenseHistory({
       licenseId: license.id,
       action: 'created',
       newStatus: 'active',
@@ -175,7 +179,7 @@ export async function POST(request: NextRequest) {
       details: { key: licenseKey, maxUsers: defaultMaxUsers, maxCompanies: defaultMaxCompanies },
     })
 
-    await logActivity({
+    logActivity({
       action: 'license_created',
       category: 'license',
       description: `إنشاء ترخيص ${type} للمستأجر ${tenant.name}`,
@@ -187,9 +191,9 @@ export async function POST(request: NextRequest) {
       details: { type, key: licenseKey, price: licensePrice, currency: licenseCurrency },
     })
 
-    // Log revenue if price > 0
+    // Log revenue if price > 0 (fire-and-forget)
     if (licensePrice > 0) {
-      await logRevenue({
+      logRevenue({
         tenantId,
         licenseId: license.id,
         amount: licensePrice,
@@ -200,6 +204,9 @@ export async function POST(request: NextRequest) {
         description: `اشتراك ${type} - ${tenant.name}`,
       })
     }
+
+    // Invalidate caches since data changed
+    invalidateCache('admin:')
 
     return NextResponse.json({ license }, { status: 201 })
   } catch (error) {
