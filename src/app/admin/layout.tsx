@@ -14,6 +14,7 @@ import {
   BarChart3,
   Heart,
   DollarSign,
+  HardDrive,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,7 @@ const navigation: NavItem[] = [
   { id: 'system', label: 'صحة النظام', icon: Heart, path: '/admin/system' },
   { id: 'tenants', label: 'المستأجرون', icon: Building2, path: '/admin/tenants' },
   { id: 'licenses', label: 'التراخيص', icon: Key, path: '/admin/licenses' },
+  { id: 'backups', label: 'النسخ الاحتياطية', icon: HardDrive, path: '/admin/backups' },
   { id: 'activity', label: 'سجل الأنشطة', icon: Activity, path: '/admin/activity-logs' },
 ]
 
