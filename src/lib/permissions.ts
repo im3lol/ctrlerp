@@ -119,3 +119,47 @@ export function getRolePermissions(role: string): Permission[] {
 export function isValidRole(role: string): boolean {
   return role in rolePermissions
 }
+
+// ─── Permission Categories for UI Grouping ──────────────────────────────────
+
+export const permissionCategories: Record<string, string[]> = {
+  'المبيعات': ['sales.view', 'sales.create', 'sales.edit', 'sales.delete', 'sales.confirm', 'sales.collect'],
+  'المشتريات': ['purchases.view', 'purchases.create', 'purchases.edit', 'purchases.delete', 'purchases.confirm', 'purchases.pay'],
+  'المخزون': ['inventory.view', 'inventory.create', 'inventory.edit', 'inventory.delete', 'inventory.adjust'],
+  'المحاسبة': ['accounting.view', 'accounting.create', 'accounting.edit', 'accounting.delete', 'accounting.post', 'accounting.reverse'],
+  'المستثمرين': ['investors.view', 'investors.create', 'investors.manage'],
+  'التقارير': ['reports.view', 'reports.export', 'reports.financial', 'reports.inventory'],
+  'الإعدادات': ['settings.view', 'settings.edit', 'settings.users', 'settings.company', 'settings.system'],
+  'المستخدمين': ['users.view', 'users.create', 'users.edit', 'users.delete'],
+}
+
+// ─── Module Access Mapping ─────────────────────────────────────────────────
+// Which roles can access which modules
+
+export const moduleAccess: Record<string, string[]> = {
+  sales: ['super_admin', 'admin', 'sales', 'accountant'],
+  purchases: ['super_admin', 'admin', 'purchase', 'accountant'],
+  inventory: ['super_admin', 'admin', 'inventory', 'accountant'],
+  accounting: ['super_admin', 'admin', 'accountant'],
+  investors: ['super_admin', 'admin', 'accountant'],
+  reports: ['super_admin', 'admin', 'accountant', 'sales', 'purchase', 'inventory'],
+  settings: ['super_admin', 'admin'],
+}
+
+/**
+ * Check if a role has access to a module
+ */
+export function hasModuleAccess(role: string, module: string): boolean {
+  const allowedRoles = moduleAccess[module]
+  if (!allowedRoles) return true // Unknown module = allow by default
+  return allowedRoles.includes(role)
+}
+
+/**
+ * Get all modules a role can access
+ */
+export function getAccessibleModules(role: string): string[] {
+  return Object.entries(moduleAccess)
+    .filter(([_, roles]) => roles.includes(role))
+    .map(([module]) => module)
+}

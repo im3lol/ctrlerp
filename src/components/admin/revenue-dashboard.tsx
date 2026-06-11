@@ -21,6 +21,7 @@ import {
   Search,
   Filter,
   LogIn,
+  Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -307,6 +308,26 @@ export default function RevenueDashboard() {
   const [filterCurrency, setFilterCurrency] = useState('')
   const [errorMsg, setErrorMsg] = useState<string>('')
 
+  const exportCSV = async () => {
+    try {
+      const token = localStorage.getItem(ADMIN_TOKEN_KEY)
+      const res = await fetch(`/api/admin/reports?type=revenue&period=this_month&format=csv`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'revenue_report.csv'
+        a.click()
+        window.URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Export failed:', e)
+    }
+  }
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setErrorMsg('')
@@ -410,6 +431,9 @@ export default function RevenueDashboard() {
               </button>
             ))}
           </div>
+          <Button variant="outline" size="sm" onClick={exportCSV} className="border-slate-600 text-slate-300 hover:bg-slate-700 gap-1">
+            <Download className="h-4 w-4" /> تصدير CSV
+          </Button>
           <Button onClick={fetchData} variant="outline" size="icon" className="border-slate-600 text-slate-300 hover:bg-slate-700">
             <RefreshCw className="h-4 w-4" />
           </Button>
