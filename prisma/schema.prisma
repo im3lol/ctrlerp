@@ -143,6 +143,27 @@ model ActivityLog {
   @@index([action])
 }
 
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // license_expiring, license_expired, user_limit, system, security, backup
+  title       String
+  message     String
+  priority    String   @default("info") // info, warning, critical
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  targetType  String?  // tenant, license, user, system, backup
+  targetId    String?  // ID of the related entity
+  actionUrl   String?  // URL to navigate to when clicking the notification
+  icon        String?  // Icon name from lucide-react
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime? // Auto-delete after this date
+
+  @@index([type])
+  @@index([priority])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
 model RevenueRecord {
   id          String   @id @default(cuid())
   tenantId    String

@@ -16,6 +16,7 @@ import {
   DollarSign,
   HardDrive,
 } from 'lucide-react'
+import { NotificationBell } from '@/components/admin/notification-bell'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -247,6 +248,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Sheet>
 
           <div className="flex-1" />
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* Header admin info */}
           <div className="flex items-center gap-2">

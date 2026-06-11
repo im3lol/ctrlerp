@@ -38,6 +38,37 @@ export function logActivity(params: LogActivityParams) {
     console.error('Failed to log activity:', error)
     // Don't throw - activity logging should not break the main flow
   })
+
+  // Create notifications for important events
+  if (['license_created', 'license_expired', 'license_suspended', 'tenant_suspended', 'admin_login', 'security_alert'].includes(params.action)) {
+    import('./notifications').then(({ createNotification }) => {
+      let notifType: 'license_expiring' | 'license_expired' | 'user_limit' | 'system' | 'security' | 'backup' | 'tenant_created' | 'tenant_suspended' | 'payment' = 'system'
+      let priority: 'info' | 'warning' | 'critical' = 'info'
+      
+      if (params.action.startsWith('license_')) {
+        notifType = params.action === 'license_expired' ? 'license_expired' : 'license_expiring'
+        priority = params.action === 'license_expired' ? 'critical' : 'warning'
+      } else if (params.action === 'tenant_suspended') {
+        notifType = 'tenant_suspended'
+        priority = 'warning'
+      } else if (params.action === 'admin_login' || params.action === 'security_alert') {
+        notifType = 'security'
+        priority = 'info'
+      }
+      
+      createNotification({
+        type: notifType,
+        title: params.description,
+        message: `${params.category}: ${params.description}${params.targetName ? ` - ${params.targetName}` : ''}`,
+        priority,
+        targetType: params.targetType,
+        targetId: params.targetId,
+      })
+    }).catch((e) => {
+      // Don't fail the main operation if notification fails
+      console.error('[ActivityLogger] Failed to create notification:', e)
+    })
+  }
 }
 
 export function logLicenseHistory(params: {
